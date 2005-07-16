@@ -1,0 +1,18 @@
+.danboorumsglink {
+  top: 10px;
+  text-decoration: underline;
+  color: blue;
+  cursor: pointer;
+  border: 1px solid transparent;
+  margin-top: -1px;
+  margin-bottom: 0px;
+}
+
+.danboorumsglink:hover:active {
+  color: red;
+}
+
+.danboorumsglink:focus {
+  border: 1px dotted black;
+}
+
