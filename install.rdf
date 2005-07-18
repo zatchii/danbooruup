@@ -8,7 +8,7 @@
 		<em:description>Uploads images to danbooru from the context menu.</em:description>
 		<em:creator>Buffered</em:creator>
 		<em:homepageURL>http://unbuffered.info/danbooruup/</em:homepageURL>
-		<em:iconURL>chrome://danbooruup/skin/icon.ico</em:iconURL>
+		<em:iconURL>chrome://danbooruup/skin/icon-large.png</em:iconURL>
 		<em:optionsURL>chrome://danbooruup/content/danbooruUpOptions.xul</em:optionsURL>
 		<em:updateURL>http://unbuffered.info/danbooruup/danbooruup.rdf</em:updateURL>
 		<em:type>2</em:type>

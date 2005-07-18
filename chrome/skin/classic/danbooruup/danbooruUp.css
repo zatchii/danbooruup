@@ -16,3 +16,8 @@
   border: 1px dotted black;
 }
 
+.windowDialog, .windowDialog prefpane { padding: 0px; }
+.contentPane { margin: 9px 8px 5px 8px; }
+.zcontentPane { margin: 0px 0px 0px 0px; }
+.actionButtons { margin: 0px 3px 6px 3px !important; }
+
