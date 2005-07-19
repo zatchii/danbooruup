@@ -9,4 +9,6 @@
 <!ENTITY danbooru-box-tags-accesskey "g">
 <!ENTITY danbooru-box-title-label "Title:">
 <!ENTITY danbooru-box-title-accesskey "i">
+<!ENTITY danbooru-box-danbooru-label "Danbooru:">
+<!ENTITY danbooru-box-danbooru-accesskey "d">
 
