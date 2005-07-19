@@ -60,7 +60,7 @@
 			<spacer flex="1"/>
 			<button oncommand="close();"
 				label="&danbooruUpOptions.cancel.label;" accesskey="&danbooruUpOptions.cancel.accesskey;"/>
-			<button oncommand="gDanbooruManager.onOK(); close()"
+			<button oncommand="if (gDanbooruManager.onOK()) close()"
 				label="&danbooruUpOptions.ok.label;" accesskey="&danbooruUpOptions.ok.accesskey;"/>
 		</hbox>
 		<resizer dir="bottomright"/>

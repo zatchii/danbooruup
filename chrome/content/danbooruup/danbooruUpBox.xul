@@ -7,23 +7,35 @@
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel"
 	width="500px"
-	height="145px"
-	minwidth="300px"
-	minheight="145px"
+	height="170px"
 	persist="screenX screenY width height"
 	onload="init();"
         ondialogaccept="return doOK();"
         ondialogcancel="return doCancel();">
 
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>	
 <script>
 function init()
 {
 	document.getElementById('source').value = window.arguments[0].imageURI;
+	var ml = document.getElementById('danbooru');
+	ml.selectedIndex = -1;
+	ml.removeAllItems();
+	gDanbooruManager.init(ml);
 	document.getElementById('tags').focus();
 }
 function doOK()
 {
-	window.arguments[0].start(document.getElementById('source').value, document.getElementById('tags').value, document.getElementById('title').value, window.arguments[0].imageNode, window.arguments[0].wind);
+	var ml = document.getElementById('danbooru');
+	gDanbooruManager.selectDanbooru(ml.selectedIndex);
+	gDanbooruManager.uninit();
+	window.arguments[0].start(document.getElementById('source').value,
+		document.getElementById('tags').value,
+		document.getElementById('title').value,
+		ml.label,
+		window.arguments[0].imageNode,
+		window.arguments[0].wind);
+ 
 	return true;
 }
 function doCancel() {return true;}
@@ -34,11 +46,13 @@ function doCancel() {return true;}
 <box align="center"><label control="source" accesskey="&danbooru-box-source-accesskey;" value="&danbooru-box-source-label;"/></box>
 <box align="center"><label control="tags" accesskey="&danbooru-box-tags-accesskey;" value="&danbooru-box-tags-label;"/></box>
 <box align="center"><label control="title" accesskey="&danbooru-box-title-accesskey;" value="&danbooru-box-title-label;"/></box>
+<box align="center"><label control="danbooru" accesskey="&danbooru-box-danbooru-accesskey;" value="&danbooru-box-danbooru-label;"/></box>
 </column>
 <column flex="1">
 	<textbox id="source" flex="1"/>
 	<textbox id="tags" flex="1"/>
 	<textbox id="title" flex="1"/>
+	<menulist id="danbooru" flex="1" crop="end"/>
 </column>
 </columns>
 </grid>

@@ -42,34 +42,34 @@ function danbooruUploadImage() {
 		{imageNode:danbooruImgNode, imageURI:imgURIStr, wind:thistab, start:danbooruStartUpload});
 }
 
-function danbooruStartUpload(sSource, sTags, sTitle, node, wind)
+function danbooruStartUpload(aSource, aTags, aTitle, aDest, aNode, aWind)
 {
 	var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
 			.getService(Components.interfaces.nsIIOService);
 	var uploader;
-	var imgChannel	= ioService.newChannel(sSource,"",null);
+	var imgChannel	= ioService.newChannel(aSource,"",null);
 	var os		= Components.classes["@mozilla.org/observer-service;1"]
 			.getService(Components.interfaces.nsIObserverService);
 
-	if (sSource.substr(0,7) == "file://") {
+	if (aSource.substr(0,7) == "file://") {
 		imgChannel = imgChannel.QueryInterface(Components.interfaces.nsIFileChannel);
-		uploader = new danbooruUploader(sSource, sTags, sTitle, wind, true, wind.contentDocument.location);
+		uploader = new danbooruUploader(aSource, aTags, aTitle, aDest, aWind, true, aWind.contentDocument.location);
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
 		imgChannel.asyncOpen(uploader, null);
 	} else {
 		var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
 				.getService(Components.interfaces.nsICookieService);
-		var cookieStr = cookieJar.getCookieString(ioService.newURI(node.ownerDocument.location,"",null), null);
+		var cookieStr = cookieJar.getCookieString(ioService.newURI(aNode.ownerDocument.location,"",null), null);
 
 		imgChannel = imgChannel.QueryInterface(Components.interfaces.nsIHttpChannel);
-		imgChannel.referrer = ioService.newURI(node.ownerDocument.location, "", null);
+		imgChannel.referrer = ioService.newURI(aNode.ownerDocument.location, "", null);
 		imgChannel.setRequestHeader("Cookie", cookieStr, true);
 
 		// don't need to bother with Uploader's array transfer
 		var listener = Components.classes["@mozilla.org/network/simple-stream-listener;1"]
 				.createInstance(Components.interfaces.nsISimpleStreamListener);
-		uploader = new danbooruUploader(sSource, sTags, sTitle, wind, false, wind.contentDocument.location);
+		uploader = new danbooruUploader(aSource, aTags, aTitle, aDest, aWind, false, aWind.contentDocument.location);
 
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
@@ -81,19 +81,20 @@ function danbooruStartUpload(sSource, sTags, sTitle, node, wind)
 /*
  * retrieves an image and constructs the multipart POST data
  */
-function danbooruUploader(source,tags,title,tab,local,location)
+function danbooruUploader(aSource, aTags, aTitle, aDest, aTab, aLocal, aLocation)
 {
-	this.mSource = source;
-	this.mTags = tags;
-	this.mTitle = title;
-	this.mTab = tab;
-	this.mLocation = location;
+	this.mSource = aSource;
+	this.mTags = aTags;
+	this.mTitle = aTitle;
+	this.mDest = aDest;
+	this.mTab = aTab;
+	this.mLocation = aLocation;
 
 	this.mStorage = Components.classes["@mozilla.org/storagestream;1"]
 			.createInstance(Components.interfaces.nsIStorageStream);
 	this.mStorage.init(4096,64*1048576,null);
 
-	if (local) {
+	if (aLocal) {
 		this.mOutStr = Components.classes["@mozilla.org/binaryoutputstream;1"]
 				.createInstance(Components.interfaces.nsIBinaryOutputStream)
 				.QueryInterface(Components.interfaces.nsIOutputStream);
@@ -110,6 +111,7 @@ danbooruUploader.prototype = {
 mSource:"",
 mTags:"",
 mTitle:"",
+mDest:"",
 mTab:null,
 mChannel:null,
 mStorage:null,
@@ -176,8 +178,7 @@ upload: function ()
 	var prefs	= Components.classes["@mozilla.org/preferences-service;1"]
 			.getService(Components.interfaces.nsIPrefBranch);
 	// upload URI and cookie info
-	var upURIStr	= prefs.getCharPref("extensions.danbooruUp.postadduri");
-	var upURI = ioService.newURI(upURIStr,null,null);
+	var upURI = ioService.newURI(this.mDest,null,null);
 	var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
 			.getService(Components.interfaces.nsICookieService);
 	var cookieStr = cookieJar.getCookieString(upURI, null);
@@ -195,7 +196,7 @@ upload: function ()
 	var postage = new danbooruPoster();
 	var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 	os.addObserver(postage, "danbooru-up", false);
-	postage.start(mimeIS, this.mSource, this.mTab);
+	postage.start(mimeIS, this.mSource, this.mDest, this.mTab);
 },
 cancel:function()
 {
@@ -205,9 +206,10 @@ cancel:function()
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		this.mChannel.cancel(0x804b0002);
 		os.removeObserver(this, "danbooru-down");
-		getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.png",
-			danbooruUpMsg.GetStringFromName('danbooruUp.msg.readcancel'), "",
-			null, "", "danbooru-up", null, "top", true);
+		if(this.mTab)
+			getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.png",
+				danbooruUpMsg.GetStringFromName('danbooruUp.msg.readcancel'), "",
+				null, "", "danbooru-up", null, "top", true);
 		return true;
 	}
 	}catch(e){alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);}
@@ -232,10 +234,11 @@ onStartRequest: function (channel, ctxt)
 
 	//alert(channel.contentType + ' ' + channel.contentLength + "\n" + channel.URI.asciiSpec );
 	this.mChannel = channel;
-	getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.gif",
-		danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mSource,
-		commondlgMsg.GetStringFromName('cancelButtonText'), commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
-		null, "danbooru-down", null, "top", true);
+	if(this.mTab)
+		getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.gif",
+			danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mSource,
+			commondlgMsg.GetStringFromName('cancelButtonText'), commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
+			null, "danbooru-down", null, "top", true);
 },
 onStopRequest: function (channel, ctxt, status)
 {
@@ -290,14 +293,12 @@ danbooruPoster.prototype = {
 	mStorage:null,
 	mOutStr:null,
 
-	start:function(datastream, imgURIStr, ctxt) {
+	start:function(datastream, imgURIStr, upURIStr, ctxt) {
 		var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
 				.getService(Components.interfaces.nsIIOService);
 		var prefs	= Components.classes["@mozilla.org/preferences-service;1"]
 				.getService(Components.interfaces.nsIPrefBranch);
 		// upload URI and cookie info
-		var upURIStr	= prefs.getCharPref("extensions.danbooruUp.postadduri");
-
 		this.mChannel = ioService.newChannel(upURIStr,"",null)
 				.QueryInterface(Components.interfaces.nsIRequest)
 				.QueryInterface(Components.interfaces.nsIHttpChannel)
@@ -309,11 +310,12 @@ danbooruPoster.prototype = {
 
 		this.mTab = ctxt;
 		this.mLocation = ctxt.contentDocument.location;
-		getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-uploading.gif",
-			danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+imgURIStr,
-			commondlgMsg.GetStringFromName('cancelButtonText'),
-			commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
-			null, "danbooru-up", null, "top", true);
+		if(this.mTab)
+			getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-uploading.gif",
+				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+imgURIStr,
+				commondlgMsg.GetStringFromName('cancelButtonText'),
+				commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
+				null, "danbooru-up", null, "top", true);
 		try{
 			this.mChannel.asyncOpen(this, null);
 			return true;
@@ -341,9 +343,10 @@ danbooruPoster.prototype = {
 			var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 			this.mChannel.cancel(0x804b0002);
 			os.removeObserver(this, "danbooru-up");
-			getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
-				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'), "",
-				null, "", "", null, "top", true);
+			if(this.mTab)
+				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'), "",
+					null, "", "", null, "top", true);
 			return true;
 		}
 		return false;
@@ -368,6 +371,8 @@ danbooruPoster.prototype = {
 	{
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		os.removeObserver(this, "danbooru-up");
+		const kErrorNetTimeout	= 0x804B000E;
+		const kErrorNetRefused	= 0x804B000D;
 
 		this.mOutStr.close();
 
@@ -381,14 +386,16 @@ danbooruPoster.prototype = {
 			//alert(channel.responseStatus + "\n" + errs + "\n" + viewurl);
 
 			if (errs) {	// what
-				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
-					danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
-					"", null, "", "", null, "top", true);
+				if(this.mTab)
+					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+						danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
+						"", null, "", "", null, "top", true);
 				
 			} else {
-				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
-					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
-					"", null, "", "", null, "top", true);
+				if(this.mTab)
+					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+						danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
+						"", null, "", "", null, "top", true);
 				if (viewurl)
 					this.addLinkToBrowserMessage(viewurl);
 			}
@@ -407,7 +414,6 @@ danbooruPoster.prototype = {
 					this.addLinkToBrowserMessage(viewurl);
 
 				getBrowser().getMessageForBrowser(this.mTab, 'top');
-				msgtext.appendChild(link);
 			} else {
 				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.unhandled') + ' ' + errs,
@@ -421,12 +427,29 @@ danbooruPoster.prototype = {
 			var str=bis.readBytes(sis.available());
 
 			// FIXME: newlines do not work in any fashion
-			getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
-				danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + ' ' + channel.responseStatus +
-				' ' + channel.responseStatusText + "\n" + str,
-				"", null, "", "", null, "top", true);
+			if (this.mTab)
+				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+					danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + ' '
+					+ channel.responseStatus + ' ' + channel.responseStatusText + "\n" + str,
+					"", null, "", "", null, "top", true);
 			bis.close(); sis.close();
 		}
+		} else if (status == kErrorNetTimeout) {
+			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
+			var str = errmsg.GetStringFromName('netTimeout')
+			str = str.replace('%S', channel.URI.spec);
+			if (this.mTab)
+				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
+					"", null, "", "", null, "top", true);
+		} else if (status == kErrorNetRefused) {
+			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
+			var str = errmsg.GetStringFromName('connectionFailure')
+			str = str.replace('%S', channel.URI.spec);
+			if (this.mTab)
+				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
+					"", null, "", "", null, "top", true);
 		} else { // not NS_OK
 			alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+status.toString(16));
 		}

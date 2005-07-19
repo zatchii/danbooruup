@@ -54,6 +54,7 @@
 function Danbooru(host)
 {
 	this.rawHost = host;
+	this.selected = false;
 }
 
 var gDanbooruManager = {
@@ -101,8 +102,8 @@ var gDanbooruManager = {
     } catch(ex) {
       var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
                                     .getService(Components.interfaces.nsIPromptService);
-      var message = this._bundle.getString("invalidURI");
-      var title = this._bundle.getString("invalidURITitle");
+      var message = this._bundle.GetStringFromName("danbooruUp.opt.invalidURI");
+      var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
       promptService.alert(window, title, message);
       return;
     }
@@ -132,6 +133,29 @@ var gDanbooruManager = {
     this.onHostInput(textbox);
   },
 
+  selectDanbooru: function (aWhich)
+  {
+    if (aWhich < 0 || aWhich >= this._danbooru.length) return;
+
+    for (var j = 0; j < this._danbooru.length; ++j) {
+      if(j == aWhich) {
+        this._danbooru[j].selected = true;
+      } else if(this._danbooru[j].selected) {
+	this._danbooru[j].selected = false;
+      }
+    }
+  },
+
+  getSelectedDanbooru: function ()
+  {
+    for (var j = 0; j < this._danbooru.length; ++j) {
+      if(this._danbooru[j].selected) {
+	return j;
+      }
+    }
+    return 0;
+  },
+
   onHostInput: function (aSiteField)
   {
     document.getElementById("btnAdd").disabled = !aSiteField.value;
@@ -143,20 +167,72 @@ var gDanbooruManager = {
       gDanbooruManager.addDanbooru();
   },
 
+  // load function only for danbooruUpOptions
   onLoad: function ()
   {
-    this._bundle = document.getElementById("bundlePreferences");
-    this._loadDanbooru();
+    this._bundle = Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService)
+		   .createBundle('chrome://danbooruup/locale/danbooruUp.properties');
+    this._tree = document.getElementById("danbooruTree");
+
+    this.init(null);
+
+    // sort and display the table
+    this._tree.treeBoxObject.view = this._view;
+    this.onDanbooruSort("rawHost", false);
+
     document.getElementById("url").focus();
+  },
+
+  // used by danbooruUpBox and Options
+  init: function (aMenuList)
+  {
+    this._loadDanbooru();
+    if(aMenuList) {
+      for (var j = 0; j < this._danbooru.length; ++j) {
+        aMenuList.appendItem(this._danbooru[j].rawHost,0);
+      }
+      aMenuList.selectedIndex = this.getSelectedDanbooru();
+    }
   },
 
   uninit: function ()
   {
+    var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+                    .getService(Components.interfaces.nsIIOService);
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+		.getService(Components.interfaces.nsIPrefService);
+    var pbi = prefs.getBranch('extensions.danbooruUp.');
+    var selpref = 'postadduri.selected';
+    var selected = this.getSelectedDanbooru();
+    try {
+      pbi.setIntPref(selpref, selected);
+    } catch(ex) {
+      try { // okay, reset it then
+        try { pbi.deleteBranch(selpref); } catch (whocares) { }
+        pbi.setIntPref(selpref, selected);
+      } catch (ex2) { // oh no
+        var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+			    .getService(Components.interfaces.nsIPromptService);
+        var message = this._bundle.GetStringFromName("danbooruUp.opt.prefSaveFailed");
+        var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
+        promptService.alert(window, title, message);
+      }
+    }
   },
 
   onOK: function ()
   {
+    if(!this._danbooru.length) {
+      var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+                                    .getService(Components.interfaces.nsIPromptService);
+      var message = this._bundle.GetStringFromName("danbooruUp.opt.emptyHosts");
+      var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
+      promptService.alert(window, title, message);
+      return false;
+    }
     this._saveDanbooru();
+    this.uninit();
+    return true;
   },
 
   onDanbooruSelected: function ()
@@ -198,22 +274,20 @@ var gDanbooruManager = {
 
   _loadDanbooru: function ()
   {
-    this._tree = document.getElementById("danbooruTree");
     this._danbooru = [];
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
-    var pbi = Components.classes["@mozilla.org/preferences-service;1"]
-	      .getService(Components.interfaces.nsIPrefBranch);
-    var pref = 'extensions.danbooruUp.postadduri';
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+		.getService(Components.interfaces.nsIPrefService);
+    var pbi = prefs.getBranch('extensions.danbooruUp.');
+    // this pref is a comma-delimited list of hosts
+    var pref = 'postadduri';
+    var selpref = 'postadduri.selected';
 
     // load danbooru into a table
     var count = 0;
-    try {
-      // this pref is a comma-delimited list of hosts
-      var hosts = pbi.getCharPref(pref);
-    } catch(ex) {
-      return;
-    }
+    var selhost = '';
+    try { var hosts = pbi.getCharPref(pref); } catch(ex) { return; }
 
     hostList = hosts.split("`");
     for (var j = 0; j < hostList.length; ++j) {
@@ -224,12 +298,32 @@ var gDanbooruManager = {
         this._addDanbooruToList(uri.spec);
       } catch(ex) {}
     }
- 
+
+    if(this._danbooru.length < 1) {
+      var dbranch = prefs.getDefaultBranch('extensions.danbooruup.');
+      var uri = ioService.newURI(host, null, null);
+      this._addDanbooruToList(uri.spec);
+    }
+    if(this._danbooru.length < 1) {
+      this._addDanbooruToList('http://danbooru.donmai.us/post/list');
+    }
+    if(this._danbooru.length < 1) {
+      var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+                                    .getService(Components.interfaces.nsIPromptService);
+      var message = this._bundle.GetStringFromName("danbooruUp.opt.hostAddFailed");
+      var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
+      throw message;
+      promptService.alert(window, title, message);
+      return;
+    }
+
     this._view._rowCount = this._danbooru.length;
 
-    // sort and display the table
-    this._tree.treeBoxObject.view = this._view;
-    this.onDanbooruSort("rawHost", false);
+    var selhost = null;
+    try {
+      selhost = pbi.getIntPref(selpref);
+    } catch(ex) { }
+    this.selectDanbooru(selhost);
   },
 
   _saveDanbooru: function ()
