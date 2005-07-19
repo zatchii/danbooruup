@@ -1,4 +1,5 @@
 @echo off
+call vim -o install.rdf chrome\content\danbooruup\contents.rdf
 del /f danbooruup.xpi > nul
 del /f chrome\danbooruup.jar > nul
 cd chrome

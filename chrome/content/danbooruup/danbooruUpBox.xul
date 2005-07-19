@@ -29,7 +29,9 @@ function doOK()
 	var ml = document.getElementById('danbooru');
 	gDanbooruManager.selectDanbooru(ml.selectedIndex);
 	gDanbooruManager.uninit();
-	window.arguments[0].start(document.getElementById('source').value,
+	window.arguments[0].start(
+		window.arguments[0].imageURI,
+		document.getElementById('source').value,
 		document.getElementById('tags').value,
 		document.getElementById('title').value,
 		ml.label,
