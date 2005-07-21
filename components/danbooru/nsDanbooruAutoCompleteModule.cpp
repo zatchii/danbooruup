@@ -38,6 +38,7 @@
 #include "nsIGenericFactory.h"
 
 #include "nsDanbooruAutoComplete.h"
+#include "nsDanbooruTagHistory.h"
 
 ////////////////////////////////////////////////////////////////////////
 // NOTE this file supercedes nsSampleFactory.cpp.  nsSampleFactory has
@@ -64,6 +65,13 @@
 //		 constructor nsSampleImpl::nsSampleImpl()
 //
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDanbooruAutoComplete)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDanbooruTagHistory, nsDanbooruTagHistory::GetInstance)
+
+
+static void PR_CALLBACK nsDanbooruAutoCompleteDestructor(nsIModule* self)
+{
+	nsDanbooruTagHistory::ReleaseInstance();
+}
 
 ////////////////////////////////////////////////////////////////////////
 // Define a table of CIDs implemented by this module along with other
@@ -71,7 +79,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDanbooruAutoComplete)
 // class name.
 //
 // The Registration and Unregistration proc are optional in the structure.
-
+/*
 static NS_METHOD nsDanbooruAutoCompleteRegistrationProc(nsIComponentManager *aCompMgr,
                                           nsIFile *aPath,
                                           const char *registryLocation,
@@ -103,20 +111,15 @@ static NS_METHOD nsDanbooruAutoCompleteUnregistrationProc(nsIComponentManager *a
     // Return value is not used from this function.
     return NS_OK;
 }
+*/
 
 // For each class that wishes to support nsIClassInfo, add a line like this
-NS_DECL_CLASSINFO(nsDanbooruAutoComplete)
+//NS_DECL_CLASSINFO(nsDanbooruAutoComplete)
 
 static const nsModuleComponentInfo components[] =
 {
-  { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor,
-    nsDanbooruAutoCompleteRegistrationProc /* NULL if you dont need one */,
-    nsDanbooruAutoCompleteUnregistrationProc /* NULL if you dont need one */,
-    NULL /* no factory destructor */,
-    NS_CI_INTERFACE_GETTER_NAME(nsDanbooruAutoComplete),
-    NULL /* no language helper */,
-    &NS_CLASSINFO_NAME(nsDanbooruAutoComplete)
-  }
+  { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor },
+  { "Danbooru Tag History Service", NS_DANBOORUTAGHISTORY_CID, NS_DANBOORUTAGHISTORY_CONTRACTID, nsDanbooruTagHistoryConstructor },
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -128,4 +131,6 @@ static const nsModuleComponentInfo components[] =
 //		NS_IMPL_NSGETMODULE_WITH_DTOR() instead of the vanilla
 //		NS_IMPL_NSGETMODULE()
 //
-NS_IMPL_NSGETMODULE(nsDanbooruAutoCompleteModule, components)
+//NS_IMPL_NSGETMODULE(nsDanbooruAutoCompleteModule, components)
+NS_IMPL_NSGETMODULE_WITH_DTOR(nsDanbooruAutoCompleteModule, components, nsDanbooruAutoCompleteDestructor)
+

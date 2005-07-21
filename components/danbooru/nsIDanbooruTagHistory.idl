@@ -48,7 +48,7 @@ interface nsIDanbooruTagHistory : nsISupports
   /**
    * Gets the name and value at a position in the form history.
    */
-  void getEntryAt(in unsigned long index, out AString name, out AString value);
+  void getEntryAt(in unsigned long index, out AString name, out long value);
   
   /**
    * Gets just the name at a position in the form history.
@@ -58,12 +58,12 @@ interface nsIDanbooruTagHistory : nsISupports
   /**
    * Gets just the value at a position in the form history.
    */
-  void getValueAt(in unsigned long index, out AString value);
+  void getValueAt(in unsigned long index, out long value);
   
   /**
    * Appends a name and value pair to the end of the form history.
    */
-  void addEntry(in AString name, in AString value);
+  void addEntry(in AString name, in long value);
 
   /**
    * Removes the entry at a position.
@@ -88,5 +88,5 @@ interface nsIDanbooruTagHistory : nsISupports
   /**
    * Gets whether a name and value pair exists in the form history.
    */
-  boolean entryExists(in AString name, in AString value);
+  boolean entryExists(in AString name, in long value);
 };

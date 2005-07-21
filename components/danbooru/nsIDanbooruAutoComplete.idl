@@ -52,9 +52,10 @@ interface nsIDanbooruAutoComplete : nsISupports
 	attribute string value;
 	void writeValue(in string aPrefix);
 	void poke(in string aValue);
+	void updateTagListFrom(in AString aXmlURI);
 
-	void startSearch(in AString aSearchString, in AString aSearchParam, in nsIAutoCompleteResult aPreviousResult, in nsIAutoCompleteObserver aListener);
-	void stopSearch();
+//	void startSearch(in AString aSearchString, in AString aSearchParam, in nsIAutoCompleteResult aPreviousResult, in nsIAutoCompleteObserver aListener);
+//	void stopSearch();
 };
 
 

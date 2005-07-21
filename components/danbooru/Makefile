@@ -36,8 +36,8 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../../../moz-cvs/mozilla
-topsrcdir	= ../../../moz-cvs/mozilla
+DEPTH		= ../../../../moz-cvs/mozilla
+topsrcdir	= ../../../../moz-cvs/mozilla
 srcdir		= .
 VPATH		= .
 
@@ -54,6 +54,12 @@ REQUIRES =	\
 		locale \
 		pref \
 		string \
+		dom \
+		xpconnect \
+		js \
+		necko \
+		caps \
+		xmlextras \
 		$(NULL)
 
 # This makefile builds the "program" subdirectory.

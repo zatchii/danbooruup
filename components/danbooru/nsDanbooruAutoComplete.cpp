@@ -46,6 +46,7 @@
 #include <stdio.h>
 
 #include "nsDanbooruAutoComplete.h"
+#include "nsDanbooruTagHistory.h"
 #include "nsMemory.h"
 
 #include "nsIAutoCompleteResultTypes.h"
@@ -56,20 +57,20 @@
 
 nsDanbooruAutoComplete::nsDanbooruAutoComplete() : mValue(nsnull)
 {
-    mValue = (char*)nsMemory::Clone("initial value", 14);
+    //mValue = (char*)nsMemory::Clone("initial value", 14);
 }
 
 nsDanbooruAutoComplete::~nsDanbooruAutoComplete()
 {
-    if (mValue)
-        nsMemory::Free(mValue);
+//    if (mValue)
+//        nsMemory::Free(mValue);
 }
 
 /**
  * NS_IMPL_ISUPPORTS1 expands to a simple implementation of the nsISupports
  * interface.  This includes a proper implementation of AddRef, Release,
  * and QueryInterface.  If this class supported more interfaces than just
- * nsISupports, 
+ * nsISupports,
  * you could use NS_IMPL_ADDREF() and NS_IMPL_RELEASE() to take care of the
  * simple stuff, but you would have to create QueryInterface on your own.
  * nsSampleFactory.cpp is an example of this approach.
@@ -79,7 +80,16 @@ nsDanbooruAutoComplete::~nsDanbooruAutoComplete()
  * The _CI variant adds support for nsIClassInfo, which permits introspection
  * and interface flattening.
  */
-NS_IMPL_ISUPPORTS1_CI(nsDanbooruAutoComplete, nsIDanbooruAutoComplete)
+//NS_IMPL_ISUPPORTS1_CI(nsDanbooruAutoComplete, nsIDanbooruAutoComplete)
+
+NS_INTERFACE_MAP_BEGIN(nsDanbooruAutoComplete)
+	NS_INTERFACE_MAP_ENTRY(nsIDanbooruAutoComplete)
+	NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteSearch)
+	NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDanbooruAutoComplete)
+NS_INTERFACE_MAP_END
+
+NS_IMPL_ADDREF(nsDanbooruAutoComplete)
+NS_IMPL_RELEASE(nsDanbooruAutoComplete)
 
 /**
  * Notice that in the protoype for this function, the NS_IMETHOD macro was
@@ -96,12 +106,12 @@ nsDanbooruAutoComplete::GetValue(char** aValue)
     if (mValue) {
         /**
          * GetValue's job is to return data known by an instance of
-         * nsSample to the outside world.  If we  were to simply return 
+         * nsSample to the outside world.  If we  were to simply return
          * a pointer to data owned by this instance, and the client were to
          * free it, bad things would surely follow.
          * On the other hand, if we create a new copy of the data for our
          * client, and it turns out that client is implemented in JavaScript,
-         * there would be no way to free the buffer.  The solution to the 
+         * there would be no way to free the buffer.  The solution to the
          * buffer ownership problem is the nsMemory singleton.  Any buffer
          * returned by an XPCOM method should be allocated by the nsMemory.
          * This convention lets things like JavaScript reflection do their
@@ -166,11 +176,11 @@ nsDanbooruAutoComplete::WriteValue(const char* aPrefix)
     foopy.Append(PRUnichar('o'));
     foopy.Append(PRUnichar('p'));
     foopy.Append(PRUnichar('y'));
-    
+
     const PRUnichar* f = foopy.get();
     PRUint32 l = foopy.Length();
     printf("%c%c%c%c%c %d\n", char(f[0]), char(f[1]), char(f[2]), char(f[3]), char(f[4]), l);
-    
+
     nsEmbedCString foopy2;
     GetStringValue(foopy2);
 
@@ -183,12 +193,188 @@ nsDanbooruAutoComplete::WriteValue(const char* aPrefix)
     return NS_OK;
 }
 
+/* pilfered from nsSchemaLoader also */
+static nsresult
+GetResolvedURI(const nsAString& aSchemaURI,
+		const char* aMethod,
+		nsIURI** aURI)
+{
+  nsresult rv;
+  nsCOMPtr<nsIXPCNativeCallContext> cc;
+  nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID(), &rv));
+  if(NS_SUCCEEDED(rv)) {
+    rv = xpc->GetCurrentNativeCallContext(getter_AddRefs(cc));
+  }
+
+  if (NS_SUCCEEDED(rv) && cc) {
+    JSContext* cx;
+    rv = cc->GetJSContext(&cx);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIScriptSecurityManager> secMan(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIURI> baseURI;
+    nsCOMPtr<nsIPrincipal> principal;
+    rv = secMan->GetSubjectPrincipal(getter_AddRefs(principal));
+    if (NS_SUCCEEDED(rv)) {
+      principal->GetURI(getter_AddRefs(baseURI));
+    }
+
+    rv = NS_NewURI(aURI, aSchemaURI, nsnull, baseURI);
+    if (NS_FAILED(rv)) return rv;
+
+    rv = secMan->CheckLoadURIFromScript(cx, *aURI);
+    if (NS_FAILED(rv))
+    {
+      // Security check failed. The above call set a JS exception. The
+      // following lines ensure that the exception is propagated.
+      cc->SetExceptionWasThrown(PR_TRUE);
+      return rv;
+    }
+  }
+  else {
+    rv = NS_NewURI(aURI, aSchemaURI, nsnull);
+    if (NS_FAILED(rv)) return rv;
+  }
+
+  return NS_OK;
+}
+
+static nsresult
+ProcessTagXML(nsIDOMElement *document)
+{
+	NS_ENSURE_ARG(document);
+
+	nsCOMPtr<nsIDOMNodeList> nodeList;
+	PRUint32 index = 0;
+	PRUint32 length = 0;
+	document->GetChildNodes(getter_AddRefs(nodeList));
+
+	if (nodeList) {
+		nodeList->GetLength(&length);
+	} else {
+		// no tags?
+		return NS_ERROR_FAILURE;
+	}
+
+	nsCOMPtr<nsIDOMNode> child;
+	nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
+	while (index < length) {
+		nodeList->Item(index++, getter_AddRefs(child));
+		nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
+		if (!childElement) {
+			continue;
+		}
+
+		nsAutoString tagname;
+
+		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
+		if (history) {
+			PRUint32 count = 0;
+		if (!tagname.IsEmpty()) {
+			char *ctagname = ToNewCString(tagname);
+			history->AddEntry(tagname, 0);
+			history->GetRowCount(&count);
+			printf("%d\t%s\n", count, ctagname);
+			nsMemory::Free(ctagname);
+		}
+		}
+		else { printf("nohistory\n"); }
+	}
+	NS_RELEASE(history);
+
+	return NS_OK;
+}
+
+/* used to be the nsISchema load */
+NS_IMETHODIMP
+nsDanbooruAutoComplete::UpdateTagListFrom(const nsAString &aXmlURI)
+{
+  nsCOMPtr<nsIURI> resolvedURI;
+  nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  nsCAutoString spec;
+  resolvedURI->GetSpec(spec);
+
+  nsCOMPtr<nsIXMLHttpRequest> request(do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv));
+  if (!request) {
+printf("req: %d\n", rv);
+    return rv;
+  }
+printf("request\n", rv);
+
+  const nsAString& empty = EmptyString();
+  rv = request->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty,
+                            empty);
+  if (NS_FAILED(rv)) {
+printf("openreq: %d\n", rv);
+    return rv;
+  }
+printf("openrequest\n", rv);
+
+  // Force the mimetype of the returned stream to be xml.
+  rv = request->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
+  if (NS_FAILED(rv)) {
+printf("mime: %d\n", rv);
+    return rv;
+  }
+printf("setmime\n", rv);
+
+  rv = request->Send(nsnull);
+  if (NS_FAILED(rv)) {
+printf("send: %d\n", rv);
+    return rv;
+  }
+printf("send\n", rv);
+
+  nsCOMPtr<nsIDOMDocument> document;
+  rv = request->GetResponseXML(getter_AddRefs(document));
+  if (NS_FAILED(rv)) {
+printf("xml: %d\n", rv);
+    return rv;
+  }
+printf("xml\n", rv);
+
+  nsCOMPtr<nsIDOMElement> element;
+  document->GetDocumentElement(getter_AddRefs(element));
+  if (element) {
+    rv = ProcessTagXML(element);
+  }
+  else {
+printf("can't convert\n", rv);
+    rv = NS_ERROR_CANNOT_CONVERT_DATA;
+  }
+
+printf("final verdict: %d\n", rv);
+  return rv;
+}
+
+////////////////////////////
+// nsIAutoCompleteSearch
+
 NS_IMETHODIMP
 nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAString &aSearchParam,
 					nsIAutoCompleteResult *aPreviousResult, nsIAutoCompleteObserver *aListener)
 {
+	NS_ENSURE_ARG_POINTER(aListener);
+
 	nsCOMPtr<nsIAutoCompleteResult> result;
 	nsCOMPtr<nsIAutoCompleteMdbResult> mdbResult = do_QueryInterface(aPreviousResult);
+
+	nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
+	if (history) {
+		nsresult rv = history->AutoCompleteSearch(aSearchString, 0,
+				NS_STATIC_CAST(nsIAutoCompleteMdbResult *,
+					aPreviousResult),
+				getter_AddRefs(result));
+
+		NS_ENSURE_SUCCESS(rv, rv);
+		NS_RELEASE(history);
+	}		
+	aListener->OnSearchResult(this, result);  
 
 	return NS_OK;
 }
@@ -206,7 +392,7 @@ nsFormHistory::OpenDatabase()
 {
   if (mStore)
     return NS_OK;
-  
+
   // Get a handle to the database file
   nsCOMPtr <nsIFile> historyFile;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
@@ -231,7 +417,7 @@ nsFormHistory::OpenDatabase()
   historyFile->GetNativePath(filePath);
   PRBool exists = PR_TRUE;
   historyFile->Exists(&exists);
-  
+
   if (!exists || NS_FAILED(rv = OpenExistingFile(filePath.get()))) {
     // If the file doesn't exist, or we fail trying to open it,
     // then make sure it is deleted and then create an empty database file
@@ -261,7 +447,7 @@ nsFormHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const nsAS
       return PR_TRUE;
     }
   }
-  
+
   return PR_FALSE;
 }
 

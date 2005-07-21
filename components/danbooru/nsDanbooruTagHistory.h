@@ -48,6 +48,10 @@
 #include "nsWeakReference.h"
 #include "mdb.h"
 
+#define NS_DANBOORUTAGHISTORY_CID \
+{ 0x0afd6b91, 0x10db, 0x485e, { 0xa6, 0xe2, 0x45, 0x5e, 0x70, 0x4a, 0xf6, 0x71 } }
+#define NS_DANBOORUTAGHISTORY_CONTRACTID "@mozilla.org/danbooru/taghistory"
+
 class nsDanbooruTagHistory : public nsIDanbooruTagHistory,
                       public nsIObserver,
 //                      public nsIFormSubmitObserver,
@@ -68,7 +72,7 @@ public:
   static nsDanbooruTagHistory *GetInstance();
   static void ReleaseInstance(void);
 
-  nsresult AutoCompleteSearch(const nsAString &aInputName, const nsAString &aInputValue,
+  nsresult AutoCompleteSearch(const nsAString &aInputName, const PRInt32 aInputValue,
                               nsIAutoCompleteMdbResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
 
   static mdb_column kToken_NameColumn;
@@ -83,18 +87,20 @@ protected:
   nsresult CreateTokens();
   nsresult Flush();
   nsresult CopyRowsFromTable(nsIMdbTable *sourceTable);
-  
+
   mdb_err UseThumb(nsIMdbThumb *aThumb, PRBool *aDone);
-  
-  nsresult AppendRow(const nsAString &aValue, const nsAString &aName, nsIMdbRow **aResult);
+
+  nsresult AppendRow(const nsAString &aName, const PRInt32 aValue, nsIMdbRow **aResult);
   nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAString &aValue);
+  nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue);
   nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue);
-  
-  PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const nsAString &aInputValue, PRUnichar **aValue);
-  
+  nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, PRInt32 *aValue);
+
+  PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue);
+
   PR_STATIC_CALLBACK(int) SortComparison(const void *v1, const void *v2, void *closureVoid);
 
-  nsresult EntriesExistInternal(const nsAString *aName, const nsAString *aValue, PRBool *_retval);
+  nsresult EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval);
 
   nsresult RemoveEntriesInternal(const nsAString *aName);
 

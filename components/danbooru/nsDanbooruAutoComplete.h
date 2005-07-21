@@ -42,7 +42,21 @@
  */
 
 #include "nsIDanbooruAutoComplete.h"
+
+#include "nsIXPConnect.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsIPrincipal.h"
+
+#include "nsIDOMDocument.h"
+#include "nsIDOMElement.h"
+#include "nsIDOM3Node.h"
+#include "nsIDOMNodeList.h"
+
 #include "nsCOMPtr.h"
+
+#include "nsIXMLHttpRequest.h"
+#include "nsNetUtil.h"
+
 #include "nsIAutoCompleteSearch.h"
 
 /**
@@ -87,6 +101,7 @@ public:
      * commented out (because this macro already defines them.)
      */
     NS_DECL_NSIDANBOORUAUTOCOMPLETE
+    NS_DECL_NSIAUTOCOMPLETESEARCH
 
     /**
      * The following is an explanation of how the interface header
