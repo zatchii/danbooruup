@@ -132,6 +132,8 @@ endif
 
 include $(topsrcdir)/config/rules.mk
 
+DEFINES += -DDANBOORUUP_TESTING
+
 libs:: $(TARGETS)
 #	$(INSTALL) $(srcdir)/xpconnect-sample.html $(DIST)/bin/res/samples
 

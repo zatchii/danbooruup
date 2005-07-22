@@ -91,6 +91,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_ADDREF(nsDanbooruAutoComplete)
 NS_IMPL_RELEASE(nsDanbooruAutoComplete)
 
+#if 0
 /**
  * Notice that in the protoype for this function, the NS_IMETHOD macro was
  * used to declare the return type.  For the implementation, the return
@@ -192,6 +193,7 @@ nsDanbooruAutoComplete::WriteValue(const char* aPrefix)
 
     return NS_OK;
 }
+#endif
 
 /* pilfered from nsSchemaLoader also */
 static nsresult
@@ -271,16 +273,20 @@ ProcessTagXML(nsIDOMElement *document)
 
 		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
 		if (history) {
-			PRUint32 count = 0;
-		if (!tagname.IsEmpty()) {
-			char *ctagname = ToNewCString(tagname);
-			history->AddEntry(tagname, 0);
-			history->GetRowCount(&count);
-			printf("%d\t%s\n", count, ctagname);
-			nsMemory::Free(ctagname);
+			if (!tagname.IsEmpty()) {
+				history->AddEntry(tagname, 0);
+#ifdef DANBOORUUP_TESTING
+				PRUint32 count = 0;
+				history->GetRowCount(&count);
+				char *ctagname = ToNewCString(tagname);
+				printf("%d\t%s\n", count, ctagname);
+				nsMemory::Free(ctagname);
+#endif
+			}
 		}
-		}
+#ifdef DANBOORUUP_TESTING
 		else { printf("nohistory\n"); }
+#endif
 	}
 	NS_RELEASE(history);
 
@@ -289,67 +295,57 @@ ProcessTagXML(nsIDOMElement *document)
 
 /* used to be the nsISchema load */
 NS_IMETHODIMP
-nsDanbooruAutoComplete::UpdateTagListFrom(const nsAString &aXmlURI)
+nsDanbooruAutoComplete::UpdateTagListFromURI(const nsAString &aXmlURI)
 {
-  nsCOMPtr<nsIURI> resolvedURI;
-  nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-  nsCAutoString spec;
-  resolvedURI->GetSpec(spec);
+	nsCOMPtr<nsIURI> resolvedURI;
+	nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+	nsCAutoString spec;
+	resolvedURI->GetSpec(spec);
 
-  nsCOMPtr<nsIXMLHttpRequest> request(do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv));
-  if (!request) {
-printf("req: %d\n", rv);
-    return rv;
-  }
-printf("request\n", rv);
+	nsCOMPtr<nsIXMLHttpRequest> request(do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv));
+	if (!request) {
+		return rv;
+	}
 
-  const nsAString& empty = EmptyString();
-  rv = request->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty,
-                            empty);
-  if (NS_FAILED(rv)) {
-printf("openreq: %d\n", rv);
-    return rv;
-  }
-printf("openrequest\n", rv);
+	const nsAString& empty = EmptyString();
+	rv = request->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty, empty);
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
 
-  // Force the mimetype of the returned stream to be xml.
-  rv = request->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
-  if (NS_FAILED(rv)) {
-printf("mime: %d\n", rv);
-    return rv;
-  }
-printf("setmime\n", rv);
+	// Force the mimetype of the returned stream to be xml.
+	rv = request->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+#ifdef DANBOORUUP_TESTING
+	printf("getting\n", rv);
+#endif
 
-  rv = request->Send(nsnull);
-  if (NS_FAILED(rv)) {
-printf("send: %d\n", rv);
-    return rv;
-  }
-printf("send\n", rv);
+	rv = request->Send(nsnull);
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
 
-  nsCOMPtr<nsIDOMDocument> document;
-  rv = request->GetResponseXML(getter_AddRefs(document));
-  if (NS_FAILED(rv)) {
-printf("xml: %d\n", rv);
-    return rv;
-  }
-printf("xml\n", rv);
+	nsCOMPtr<nsIDOMDocument> document;
+	rv = request->GetResponseXML(getter_AddRefs(document));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
 
-  nsCOMPtr<nsIDOMElement> element;
-  document->GetDocumentElement(getter_AddRefs(element));
-  if (element) {
-    rv = ProcessTagXML(element);
-  }
-  else {
-printf("can't convert\n", rv);
-    rv = NS_ERROR_CANNOT_CONVERT_DATA;
-  }
+	nsCOMPtr<nsIDOMElement> element;
+	document->GetDocumentElement(getter_AddRefs(element));
+	if (element) {
+		rv = ProcessTagXML(element);
+	}
+	else {
+		rv = NS_ERROR_CANNOT_CONVERT_DATA;
+	}
 
-printf("final verdict: %d\n", rv);
-  return rv;
+	return rv;
 }
 
 ////////////////////////////
@@ -360,21 +356,27 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 					nsIAutoCompleteResult *aPreviousResult, nsIAutoCompleteObserver *aListener)
 {
 	NS_ENSURE_ARG_POINTER(aListener);
-
+#ifdef DANBOORUUP_TESTING
+	char *csearch = ToNewCString(aSearchString);
+	char *cparam = ToNewCString(aSearchParam);
+	printf("search: %s\t%s\n", csearch, cparam);
+	nsMemory::Free(csearch);
+	nsMemory::Free(cparam);
+#endif
 	nsCOMPtr<nsIAutoCompleteResult> result;
 	nsCOMPtr<nsIAutoCompleteMdbResult> mdbResult = do_QueryInterface(aPreviousResult);
 
 	nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
 	if (history) {
-		nsresult rv = history->AutoCompleteSearch(aSearchString, 0,
+		nsresult rv = history->AutoCompleteSearch(aSearchString,
 				NS_STATIC_CAST(nsIAutoCompleteMdbResult *,
 					aPreviousResult),
 				getter_AddRefs(result));
 
 		NS_ENSURE_SUCCESS(rv, rv);
 		NS_RELEASE(history);
-	}		
-	aListener->OnSearchResult(this, result);  
+	}
+	aListener->OnSearchResult(this, result);
 
 	return NS_OK;
 }
@@ -384,78 +386,4 @@ nsDanbooruAutoComplete::StopSearch()
 {
 	return NS_OK;
 }
-
-#if 1 && 0
-
-nsresult
-nsFormHistory::OpenDatabase()
-{
-  if (mStore)
-    return NS_OK;
-
-  // Get a handle to the database file
-  nsCOMPtr <nsIFile> historyFile;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
-  NS_ENSURE_SUCCESS(rv, rv);
-  historyFile->Append(NS_ConvertUTF8toUCS2(kFormHistoryFileName));
-
-  // Get an Mdb Factory
-  static NS_DEFINE_CID(kMorkCID, NS_MORK_CID);
-  nsCOMPtr<nsIMdbFactoryFactory> mdbFactory = do_CreateInstance(kMorkCID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mdbFactory->GetMdbFactory(getter_AddRefs(mMdbFactory));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Create the Mdb environment
-  mdb_err err = mMdbFactory->MakeEnv(nsnull, &mEnv);
-  NS_ASSERTION(err == 0, "ERROR: Unable to create Tab History mdb");
-  mEnv->SetAutoClear(PR_TRUE);
-  NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
-  mEnv->SetErrorHook(new SatchelErrorHook());
-
-  nsCAutoString filePath;
-  historyFile->GetNativePath(filePath);
-  PRBool exists = PR_TRUE;
-  historyFile->Exists(&exists);
-
-  if (!exists || NS_FAILED(rv = OpenExistingFile(filePath.get()))) {
-    // If the file doesn't exist, or we fail trying to open it,
-    // then make sure it is deleted and then create an empty database file
-    historyFile->Remove(PR_FALSE);
-    rv = CreateNewFile(filePath.get());
-  }
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Get the initial size of the file, needed later for Commit
-  historyFile->GetFileSize(&mFileSizeOnDisk);
-
-  return NS_OK;
-}
-
-PRBool
-nsFormHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const nsAString &aInputValue, PRUnichar **aValue)
-{
-  nsAutoString name;
-  GetRowValue(aRow, kToken_NameColumn, name);
-
-  if (name.Equals(aInputName)) {
-    nsAutoString value;
-    GetRowValue(aRow, kToken_ValueColumn, value);
-    if (Compare(Substring(value, 0, aInputValue.Length()), aInputValue, nsCaseInsensitiveStringComparator()) == 0) {
-      if (aValue)
-        *aValue = ToNewUnicode(value);
-      return PR_TRUE;
-    }
-  }
-
-  return PR_FALSE;
-}
-
-
-
-
-#endif
-
-
-
 

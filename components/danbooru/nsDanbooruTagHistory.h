@@ -61,7 +61,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDANBOORUTAGHISTORY
   NS_DECL_NSIOBSERVER
-  
+
   // nsIFormSubmitObserver
   //NS_IMETHOD Notify(nsIContent* formNode, nsIDOMWindowInternal* window, nsIURI* actionURL, PRBool* cancelSubmit);
 
@@ -72,7 +72,7 @@ public:
   static nsDanbooruTagHistory *GetInstance();
   static void ReleaseInstance(void);
 
-  nsresult AutoCompleteSearch(const nsAString &aInputName, const PRInt32 aInputValue,
+  nsresult AutoCompleteSearch(const nsAString &aInputName,
                               nsIAutoCompleteMdbResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
 
   static mdb_column kToken_NameColumn;
@@ -97,6 +97,7 @@ protected:
   nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, PRInt32 *aValue);
 
   PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue);
+  PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRInt32 *aValue);
 
   PR_STATIC_CALLBACK(int) SortComparison(const void *v1, const void *v2, void *closureVoid);
 
@@ -117,7 +118,7 @@ protected:
   nsIMdbStore* mStore;
   nsIMdbTable* mTable;
   PRInt64 mFileSizeOnDisk;
-  
+
   // database tokens
   mdb_scope kToken_RowScope;
   mdb_kind kToken_Kind;

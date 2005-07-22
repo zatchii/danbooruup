@@ -80,8 +80,13 @@ NS_IMPL_THREADSAFE_RELEASE(nsDanbooruTagHistory)
 mdb_column nsDanbooruTagHistory::kToken_NameColumn = 0;
 mdb_column nsDanbooruTagHistory::kToken_ValueColumn = 0;
 
+#ifdef DANBOORUUP_TESTING
 PRBool nsDanbooruTagHistory::gTagHistoryEnabled = PR_TRUE;
 PRBool nsDanbooruTagHistory::gPrefsInitialized = PR_TRUE;
+#else
+PRBool nsDanbooruTagHistory::gTagHistoryEnabled = PR_FALSE;
+PRBool nsDanbooruTagHistory::gPrefsInitialized = PR_FALSE;
+#endif
 
 nsDanbooruTagHistory::nsDanbooruTagHistory() :
   mEnv(nsnull),
@@ -335,7 +340,7 @@ nsDanbooruTagHistory::Notify(nsIContent* aFormNode, nsIDOMWindowInternal* aWindo
 ////////////////////////////////////////////////////////////////////////
 //// Database I/O
 
-class SatchelErrorHook : public nsIMdbErrorHook
+class DanbooruErrorHook : public nsIMdbErrorHook
 {
 public:
   NS_DECL_ISUPPORTS
@@ -350,45 +355,45 @@ public:
 };
 
 // nsIMdbErrorHook has no IID!
-NS_IMPL_ISUPPORTS0(SatchelErrorHook)
+NS_IMPL_ISUPPORTS0(DanbooruErrorHook)
 
 NS_IMETHODIMP
-SatchelErrorHook::OnErrorString(nsIMdbEnv *ev, const char *inAscii)
+DanbooruErrorHook::OnErrorString(nsIMdbEnv *ev, const char *inAscii)
 {
   printf("mork error: %s\n", inAscii);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SatchelErrorHook::OnErrorYarn(nsIMdbEnv *ev, const mdbYarn* inYarn)
+DanbooruErrorHook::OnErrorYarn(nsIMdbEnv *ev, const mdbYarn* inYarn)
 {
   printf("mork error yarn: %p\n", inYarn);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SatchelErrorHook::OnWarningString(nsIMdbEnv *ev, const char *inAscii)
+DanbooruErrorHook::OnWarningString(nsIMdbEnv *ev, const char *inAscii)
 {
   printf("mork warning: %s\n", inAscii);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SatchelErrorHook::OnWarningYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
+DanbooruErrorHook::OnWarningYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
 {
   printf("mork warning yarn: %p\n", inYarn);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SatchelErrorHook::OnAbortHintString(nsIMdbEnv *ev, const char *inAscii)
+DanbooruErrorHook::OnAbortHintString(nsIMdbEnv *ev, const char *inAscii)
 {
   printf("mork abort: %s\n", inAscii);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SatchelErrorHook::OnAbortHintYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
+DanbooruErrorHook::OnAbortHintYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
 {
   printf("mork abort yarn: %p\n", inYarn);
   return NS_OK;
@@ -403,12 +408,14 @@ nsDanbooruTagHistory::OpenDatabase()
   // Get a handle to the database file
   nsCOMPtr <nsIFile> historyFile;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
-  //NS_ENSURE_SUCCESS(rv, rv);
+#ifndef DANBOORUUP_TESTING
+  NS_ENSURE_SUCCESS(rv, rv);
+#else
   if(NS_FAILED(rv)) {
 	rv = NS_GetSpecialDirectory("CurWorkD", getter_AddRefs(historyFile));
-	printf("gsd %08x\n", (PRUint32)rv);
 	NS_ENSURE_SUCCESS(rv, rv);
   }
+#endif
   historyFile->Append(NS_ConvertUTF8toUCS2(kTagHistoryFileName));
 
   // Get an Mdb Factory
@@ -423,7 +430,7 @@ nsDanbooruTagHistory::OpenDatabase()
   NS_ASSERTION(err == 0, "ERROR: Unable to create Tab History mdb");
   mEnv->SetAutoClear(PR_TRUE);
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
-  mEnv->SetErrorHook(new SatchelErrorHook());
+  mEnv->SetErrorHook(new DanbooruErrorHook());
 
   nsCAutoString filePath;
   historyFile->GetNativePath(filePath);
@@ -749,135 +756,160 @@ nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol,
 // TODO: work
 nsresult
 nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
-                                  const PRInt32 aInputValue,
                                   nsIAutoCompleteMdbResult *aPrevResult,
                                   nsIAutoCompleteResult **aResult)
 {
-  if (!TagHistoryEnabled())
-    return NS_OK;
+	if (!TagHistoryEnabled())
+		return NS_OK;
 
-  nsresult rv = OpenDatabase(); // lazily ensure that the database is open
-  NS_ENSURE_SUCCESS(rv, rv);
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<nsIAutoCompleteMdbResult> result;
+	nsCOMPtr<nsIAutoCompleteMdbResult> result;
 
-  if (aPrevResult) {
-    result = aPrevResult;
+	if (aPrevResult) {
+		result = aPrevResult;
 
-    PRUint32 rowCount;
-    result->GetMatchCount(&rowCount);
+		PRUint32 rowCount;
+		result->GetMatchCount(&rowCount);
 
-    for (PRInt32 i = rowCount-1; i >= 0; --i) {
-      nsIMdbRow *row;
-      result->GetRowAt(i, &row);
-      if (!RowMatch(row, aInputName, aInputValue, nsnull))
-        result->RemoveValueAt(i, PR_FALSE);
-    }
-  } else {
-    result = do_CreateInstance("@mozilla.org/autocomplete/mdb-result;1");
+		for (PRInt32 i = rowCount-1; i >= 0; --i) {
+			nsIMdbRow *row;
+			result->GetRowAt(i, &row);
+			if (!RowMatch(row, aInputName, nsnull))
+				result->RemoveValueAt(i, PR_FALSE);
+		}
+	} else {
+		result = do_CreateInstance("@mozilla.org/autocomplete/mdb-result;1");
 
-    nsAutoString buf; buf.AppendInt(aInputValue);
-    result->SetSearchString(buf);
-    result->Init(mEnv, mTable);
-    result->SetTokens(kToken_ValueColumn, nsIAutoCompleteMdbResult::kIntType, nsnull, nsIAutoCompleteMdbResult::kUnicharType);
+		//nsAutoString buf; buf.AppendInt(aInputName);
+		result->SetSearchString(aInputName);
+		result->Init(mEnv, mTable);
+		result->SetTokens(kToken_NameColumn, nsIAutoCompleteMdbResult::kUnicharType, kToken_ValueColumn, nsIAutoCompleteMdbResult::kIntType);
 
-    // Get a cursor to iterate through all rows in the database
-    nsCOMPtr<nsIMdbTableRowCursor> rowCursor;
-    mdb_err err = mTable->GetTableRowCursor(mEnv, -1, getter_AddRefs(rowCursor));
-    NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
+		// Get a cursor to iterate through all rows in the database
+		nsCOMPtr<nsIMdbTableRowCursor> rowCursor;
+		mdb_err err = mTable->GetTableRowCursor(mEnv, -1, getter_AddRefs(rowCursor));
+		NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
 
-    // Store only the matching values
-    nsAutoVoidArray matchingValues;
-    nsCOMArray<nsIMdbRow> matchingRows;
+		// Store only the matching values
+		nsAutoVoidArray matchingValues;
+		nsCOMArray<nsIMdbRow> matchingRows;
 
-    nsCOMPtr<nsIMdbRow> row;
-    mdb_pos pos;
-    do {
-      rowCursor->NextRow(mEnv, getter_AddRefs(row), &pos);
-      if (!row)
-        break;
+		nsCOMPtr<nsIMdbRow> row;
+		mdb_pos pos;
+		do {
+			rowCursor->NextRow(mEnv, getter_AddRefs(row), &pos);
+			if (!row)
+				break;
 
-      PRInt32 value = 0; // We will own the allocated string value
-      if (RowMatch(row, aInputName, aInputValue, &value)) {
-        matchingRows.AppendObject(row);
-        matchingValues.AppendElement((void*)value);
-      }
-    } while (row);
+			PRInt32 value = 0; // We will own the allocated string value
+			nsAutoString name;
+			if (RowMatch(row, aInputName, &value)) {
+				matchingRows.AppendObject(row);
+				GetRowValue(row, kToken_NameColumn, name);
+				matchingValues.AppendElement(new nsString(name));
+				matchingValues.AppendElement((void*)value);
+			}
+		} while (row);
 
-    // Turn auto array into flat array for quick sort, now that we
-    // know how many items there are
-    PRUint32 count = matchingRows.Count();
+		// Turn auto array into flat array for quick sort, now that we
+		// know how many items there are
+		PRUint32 count = matchingRows.Count();
 
-    if (count > 0) {
-      PRUint32* items = new PRUint32[count];
-      PRUint32 i;
-      for (i = 0; i < count; ++i)
-        items[i] = i;
+		if (count > 0) {
+			PRUint32* items = new PRUint32[count];
+			PRUint32 i;
+			for (i = 0; i < count; ++i)
+				items[i] = i;
 
-      NS_QuickSort(items, count, sizeof(PRUint32),
-                   SortComparison, &matchingValues);
+			NS_QuickSort(items, count, sizeof(PRUint32),
+					SortComparison, &matchingValues);
 
-      for (i = 0; i < count; ++i) {
-        // Place the sorted result into the autocomplete result
-        result->AddRow(matchingRows[items[i]]);
+			for (i = 0; i < count; ++i) {
+				// Place the sorted result into the autocomplete result
+				result->AddRow(matchingRows[items[i]]);
 
-        // Free up these strings we owned.
-        NS_Free(matchingValues[i]);
-      }
+				// Free up these strings we owned.
+				NS_Free(matchingValues[i]);
+			}
 
-      delete[] items;
-    }
+			delete[] items;
+		}
 
-    PRUint32 matchCount;
-    result->GetMatchCount(&matchCount);
-    if (matchCount > 0) {
-      result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);
-      result->SetDefaultIndex(0);
-    } else {
-      result->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
-      result->SetDefaultIndex(-1);
-    }
-  }
+		PRUint32 matchCount;
+		result->GetMatchCount(&matchCount);
+		if (matchCount > 0) {
+			result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);
+			result->SetDefaultIndex(0);
+		} else {
+			result->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
+			result->SetDefaultIndex(-1);
+		}
+	}
 
-  *aResult = result;
-  NS_IF_ADDREF(*aResult);
+	*aResult = result;
+	NS_IF_ADDREF(*aResult);
 
-  return NS_OK;
+	return NS_OK;
 }
 
 int PR_CALLBACK
 nsDanbooruTagHistory::SortComparison(const void *v1, const void *v2, void *closureVoid)
 {
-  PRUint32 *index1 = (PRUint32 *)v1;
-  PRUint32 *index2 = (PRUint32 *)v2;
-  nsAutoVoidArray *array = (nsAutoVoidArray *)closureVoid;
+	PRUint32 *index1 = (PRUint32 *)v1;
+	PRUint32 *index2 = (PRUint32 *)v2;
+	nsAutoVoidArray *array = (nsAutoVoidArray *)closureVoid;
 
-  PRUnichar *s1 = (PRUnichar *)array->ElementAt(*index1);
-  PRUnichar *s2 = (PRUnichar *)array->ElementAt(*index2);
+	nsString *s1 = (nsString *)array->ElementAt(2 * *index1);
+	nsString *s2 = (nsString *)array->ElementAt(2 * *index2);
+	PRInt32 n1 = (PRInt32)array->ElementAt(1 + 2 * *index1);
+	PRInt32 n2 = (PRInt32)array->ElementAt(1 + 2 * *index2);
 
-  return nsCRT::strcmp(s1, s2);
+	if (n1 == n2)
+		return Compare(*s1, *s2, nsCaseInsensitiveStringComparator());
+	if (n1 > n2)
+		return -1;
+	return 1;
 }
 
-// FIXME: more investigation
 PRBool
 nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue)
 {
-  nsAutoString name;
-  GetRowValue(aRow, kToken_NameColumn, name);
+	nsAutoString name;
+	GetRowValue(aRow, kToken_NameColumn, name);
 
-  if (name.Equals(aInputName)) {
-    PRInt32 value;
-    GetRowValue(aRow, kToken_ValueColumn, &value);
-    if (aValue) {
-      if (value == *aValue) {
-        *aValue = value;
-        return PR_TRUE;
-      }
-    }
-  }
+	if (name.Equals(aInputName)) {
+		PRInt32 value;
+		GetRowValue(aRow, kToken_ValueColumn, &value);
+		if (value == aInputValue) {
+			if (aValue)
+				*aValue = value;
+			return PR_TRUE;
+		}
+	}
 
-  return PR_FALSE;
+	return PR_FALSE;
 }
+
+PRBool
+nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRInt32 *aValue)
+{
+	nsAutoString name;
+	GetRowValue(aRow, kToken_NameColumn, name);
+
+	if (name.Equals(aInputName)) {
+		if (aValue) {
+			PRInt32 value;
+			GetRowValue(aRow, kToken_ValueColumn, &value);
+			*aValue = value;
+		}
+		return PR_TRUE;
+	}
+
+	return PR_FALSE;
+}
+
 
 nsresult
 nsDanbooruTagHistory::EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval)
