@@ -48,7 +48,9 @@
 #include "nsIMdbFactoryFactory.h"
 #include "nsQuickSort.h"
 #include "nsCRT.h"
-#include "nsStringAPI.h"
+#include "nsString.h"
+#include "nsIConsoleService.h"
+#include "nsPrintfCString.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 //#include "nsIContent.h"
@@ -104,7 +106,6 @@ nsresult
 nsDanbooruTagHistory::Init()
 {
   gTagHistory = this;
-  printf("initializing tag history\n");
   //nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
   //if (service)
   //  service->AddObserver(this, NS_FORMSUBMIT_SUBJECT, PR_TRUE);
@@ -272,6 +273,42 @@ nsDanbooruTagHistory::RemoveAllEntries()
   rv |= Flush();
 
   return rv;
+}
+
+NS_IMETHODIMP
+nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRInt32 *retval)
+{
+	if(aName.IsEmpty())
+		return NS_ERROR_INVALID_ARG;
+
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	NS_ENSURE_SUCCESS(rv, rv);
+
+	mdb_err err;
+	mdb_count count;
+	nsAutoString name;
+	PRInt32 value;
+	err = mTable->GetCount(mEnv, &count);
+	if (err != 0) return NS_ERROR_FAILURE;
+
+	for (mdb_pos pos = count - 1; pos >= 0; --pos) {
+		nsCOMPtr<nsIMdbRow> row;
+		err = mTable->PosToRow(mEnv, pos, getter_AddRefs(row));
+		NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
+		if (err != 0)
+			break;
+		if (! row)
+			continue;
+
+		GetRowValue(row, kToken_NameColumn, name);
+		if (Compare(name, aName, nsCaseInsensitiveStringComparator()) == 0) {
+			GetRowValue(row, kToken_ValueColumn, &value);
+			SetRowValue(row, kToken_ValueColumn, value+1);
+			break;
+		}
+	}
+
+	return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -753,7 +790,6 @@ nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol,
 	return NS_OK;
 }
 
-// TODO: work
 nsresult
 nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
                                   nsIAutoCompleteMdbResult *aPrevResult,
@@ -772,7 +808,6 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 
 		PRUint32 rowCount;
 		result->GetMatchCount(&rowCount);
-
 		for (PRInt32 i = rowCount-1; i >= 0; --i) {
 			nsIMdbRow *row;
 			result->GetRowAt(i, &row);
@@ -879,7 +914,7 @@ nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, con
 	nsAutoString name;
 	GetRowValue(aRow, kToken_NameColumn, name);
 
-	if (name.Equals(aInputName)) {
+	if (Compare(Substring(name, 0, aInputName.Length()), aInputName, nsCaseInsensitiveStringComparator()) == 0) {
 		PRInt32 value;
 		GetRowValue(aRow, kToken_ValueColumn, &value);
 		if (value == aInputValue) {
@@ -898,7 +933,30 @@ nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRI
 	nsAutoString name;
 	GetRowValue(aRow, kToken_NameColumn, name);
 
-	if (name.Equals(aInputName)) {
+nsCOMPtr<nsIConsoleService> console = do_GetService("@mozilla.org/consoleservice;1");
+if (console)
+{
+	char *p = ToNewCString(aInputName);
+	char *q = ToNewCString(name);
+	nsPrintfCString bob(" - matching %s with %s", p, q);
+	PRUnichar *jim = ToNewUnicode(bob);
+	console->LogStringMessage(jim);
+#ifdef DEBUG
+	NS_NAMED_LITERAL_STRING(a," - matching ");
+	NS_NAMED_LITERAL_STRING(b," - ");
+	nsString joe = a +aInputName +b +name;
+	char *z = ToNewCString(joe);
+	fprintf(stderr, "%s\n", z);
+	nsMemory::Free(z);
+#endif
+	nsMemory::Free(p);
+	nsMemory::Free(q);
+	nsMemory::Free(jim);
+}
+	if (Compare(Substring(name, 0, aInputName.Length()), aInputName, nsCaseInsensitiveStringComparator()) == 0) {
+#ifdef DEBUG
+	fprintf(stderr, "************************* MATCH *************************\n");
+#endif
 		if (aValue) {
 			PRInt32 value;
 			GetRowValue(aRow, kToken_ValueColumn, &value);

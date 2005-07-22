@@ -100,6 +100,9 @@ CPPSRCS		=		   \
 XPIDLSRCS	= nsIDanbooruAutoComplete.idl \
 		  nsIDanbooruTagHistory.idl
 
+MOZ_DEBUG = 1
+MOZ_DEBUG_MODULES = danbooruac
+
 include $(topsrcdir)/config/config.mk
 
 # EXTRA_COMPONENTS installs components written JavaScript to
@@ -132,7 +135,7 @@ endif
 
 include $(topsrcdir)/config/rules.mk
 
-DEFINES += -DDANBOORUUP_TESTING
+#DEFINES += -DDANBOORUUP_TESTING
 
 libs:: $(TARGETS)
 #	$(INSTALL) $(srcdir)/xpconnect-sample.html $(DIST)/bin/res/samples

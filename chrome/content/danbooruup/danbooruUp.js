@@ -391,7 +391,6 @@ danbooruPoster.prototype = {
 					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
 						"", null, "", "", null, "top", true);
-				
 			} else {
 				if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
@@ -411,7 +410,7 @@ danbooruPoster.prototype = {
 					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.duplicate'),
 						"", null, "", "", null, "top", true);
-				
+
 					if (viewurl)
 						this.addLinkToBrowserMessage(viewurl);
 				}
@@ -467,4 +466,8 @@ danbooruPoster.prototype = {
 };
 
 window.addEventListener("load", danbooruImageInit, false);
-
+{
+	Components.classes["@mozilla.org/autocomplete/search;1?name=danboorutag"]
+	.getService(Components.interfaces.nsIDanbooruAutoComplete)
+	.updateTagListFromURI("http://danbooru.donmai.us/tags/list_raw");
+}

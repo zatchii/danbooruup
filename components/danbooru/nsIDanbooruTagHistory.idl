@@ -44,12 +44,12 @@ interface nsIDanbooruTagHistory : nsISupports
    * The total number of rows in the form history.
    */
   readonly attribute unsigned long rowCount;
-  
+
   /**
    * Gets the name and value at a position in the form history.
    */
   void getEntryAt(in unsigned long index, out AString name, out long value);
-  
+
   /**
    * Gets just the name at a position in the form history.
    */
@@ -59,7 +59,7 @@ interface nsIDanbooruTagHistory : nsISupports
    * Gets just the value at a position in the form history.
    */
   void getValueAt(in unsigned long index, out long value);
-  
+
   /**
    * Appends a name and value pair to the end of the form history.
    */
@@ -74,7 +74,7 @@ interface nsIDanbooruTagHistory : nsISupports
    * Removes all entries that are paired with a name.
    */
   void removeEntriesForName(in AString name);
-  
+
   /**
    * Removes all entries in the entire form history.
    */
@@ -89,4 +89,9 @@ interface nsIDanbooruTagHistory : nsISupports
    * Gets whether a name and value pair exists in the form history.
    */
   boolean entryExists(in AString name, in long value);
+
+  /**
+   * Increments the value associated with a given name.
+   */
+  long incrementValueForName(in AString name);
 };

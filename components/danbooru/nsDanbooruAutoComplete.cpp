@@ -52,6 +52,9 @@
 #include "nsIAutoCompleteResultTypes.h"
 #include "nsString.h"
 
+#include "nsIConsoleService.h"
+#include "nsPrintfCString.h"
+
 #include "nsEmbedString.h"
 ////////////////////////////////////////////////////////////////////////
 
@@ -355,14 +358,34 @@ NS_IMETHODIMP
 nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAString &aSearchParam,
 					nsIAutoCompleteResult *aPreviousResult, nsIAutoCompleteObserver *aListener)
 {
-	NS_ENSURE_ARG_POINTER(aListener);
-#ifdef DANBOORUUP_TESTING
+nsCOMPtr<nsIConsoleService> console = do_GetService("@mozilla.org/consoleservice;1");
+if (console)
+{
 	char *csearch = ToNewCString(aSearchString);
 	char *cparam = ToNewCString(aSearchParam);
-	printf("search: %s\t%s\n", csearch, cparam);
+	nsPrintfCString bob("searching %s - %s", csearch, cparam);
+	PRUnichar *joe = ToNewUnicode(bob);
+	console->LogStringMessage(joe);
 	nsMemory::Free(csearch);
 	nsMemory::Free(cparam);
+	nsMemory::Free(joe);
+}
+
+	NS_ENSURE_ARG_POINTER(aListener);
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+{
+	//char *csearch = ToNewCString(aSearchString);
+	//char *cparam = ToNewCString(aSearchParam);
+	NS_NAMED_LITERAL_STRING(a,"searching ");
+	NS_NAMED_LITERAL_STRING(b," - ");
+	nsString bob= a +aSearchString +b +aSearchParam;
+	char *z = ToNewCString(bob);
+	fprintf(stderr, "%s\n", z);
+	nsMemory::Free(z);
+	//nsMemory::Free(cparam);
+}
 #endif
+
 	nsCOMPtr<nsIAutoCompleteResult> result;
 	nsCOMPtr<nsIAutoCompleteMdbResult> mdbResult = do_QueryInterface(aPreviousResult);
 

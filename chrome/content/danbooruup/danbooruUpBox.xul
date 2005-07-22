@@ -13,7 +13,7 @@
         ondialogaccept="return doOK();"
         ondialogcancel="return doCancel();">
 
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>	
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 <script>
 function init()
 {
@@ -37,7 +37,7 @@ function doOK()
 		ml.label,
 		window.arguments[0].imageNode,
 		window.arguments[0].wind);
- 
+
 	return true;
 }
 function doCancel() {return true;}
@@ -52,7 +52,7 @@ function doCancel() {return true;}
 </column>
 <column flex="1">
 	<textbox id="source" flex="1"/>
-	<textbox id="tags" flex="1"/>
+	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1"/>
 	<textbox id="title" flex="1"/>
 	<menulist id="danbooru" flex="1" crop="end"/>
 </column>
