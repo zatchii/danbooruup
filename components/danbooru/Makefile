@@ -60,6 +60,7 @@ REQUIRES =	\
 		necko \
 		caps \
 		xmlextras \
+		layout \
 		$(NULL)
 
 # This makefile builds the "program" subdirectory.
@@ -100,8 +101,10 @@ CPPSRCS		=		   \
 XPIDLSRCS	= nsIDanbooruAutoComplete.idl \
 		  nsIDanbooruTagHistory.idl
 
-MOZ_DEBUG = 1
-MOZ_DEBUG_MODULES = danbooruac
+#MOZ_DEBUG = 1
+#MOZ_DEBUG_MODULES = danbooruac
+#MOZ_DEBUG_SYMBOLS = 1
+#MOZ_OPTIMIZE = 0
 
 include $(topsrcdir)/config/config.mk
 

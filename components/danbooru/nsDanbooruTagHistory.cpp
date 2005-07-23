@@ -50,7 +50,6 @@
 #include "nsCRT.h"
 #include "nsString.h"
 #include "nsIConsoleService.h"
-#include "nsPrintfCString.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 //#include "nsIContent.h"
@@ -485,30 +484,6 @@ nsDanbooruTagHistory::OpenDatabase()
   // Get the initial size of the file, needed later for Commit
   historyFile->GetFileSize(&mFileSizeOnDisk);
 
-  /* // TESTING: Add a row to the database
-  nsAutoString foopy;
-  foopy.AssignWithConversion("foopy");
-  nsAutoString oogly;
-  oogly.AssignWithConversion("oogly");
-  AppendRow(foopy, oogly, nsnull);
-  Flush(); */
-
-  /* // TESTING: Dump the contents of the database
-  PRUint32 count = 0;
-  mdb_err err = mTable->GetCount(mEnv, &count);
-  printf("%d rows in form history\n", count);
-
-  for (mdb_pos pos = count - 1; pos >= 0; --pos) {
-    nsCOMPtr<nsIMdbRow> row;
-    err = mTable->PosToRow(mEnv, pos, getter_AddRefs(row));
-
-    nsAutoString name;
-    GetRowValue(row, kToken_NameColumn, name);
-    nsAutoString value;
-    GetRowValue(row, kToken_ValueColumn, value);
-    printf("ROW: %s - %s\n", ToNewCString(name), ToNewCString(value));
-  } */
-
   return NS_OK;
 }
 
@@ -833,17 +808,17 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 
 		nsCOMPtr<nsIMdbRow> row;
 		mdb_pos pos;
+		nsAutoString name;
+		PRInt32 value;
 		do {
 			rowCursor->NextRow(mEnv, getter_AddRefs(row), &pos);
 			if (!row)
 				break;
 
-			PRInt32 value = 0; // We will own the allocated string value
-			nsAutoString name;
 			if (RowMatch(row, aInputName, &value)) {
 				matchingRows.AppendObject(row);
 				GetRowValue(row, kToken_NameColumn, name);
-				matchingValues.AppendElement(new nsString(name));
+				matchingValues.AppendElement(ToNewUnicode(name));
 				matchingValues.AppendElement((void*)value);
 			}
 		} while (row);
@@ -866,7 +841,9 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 				result->AddRow(matchingRows[items[i]]);
 
 				// Free up these strings we owned.
-				NS_Free(matchingValues[i]);
+				// Only the strings.
+				if(!(i&1))
+					NS_Free(matchingValues[i]);
 			}
 
 			delete[] items;
@@ -896,13 +873,13 @@ nsDanbooruTagHistory::SortComparison(const void *v1, const void *v2, void *closu
 	PRUint32 *index2 = (PRUint32 *)v2;
 	nsAutoVoidArray *array = (nsAutoVoidArray *)closureVoid;
 
-	nsString *s1 = (nsString *)array->ElementAt(2 * *index1);
-	nsString *s2 = (nsString *)array->ElementAt(2 * *index2);
+	PRUnichar *s1 = (PRUnichar *)array->ElementAt(2 * *index1);
+	PRUnichar *s2 = (PRUnichar *)array->ElementAt(2 * *index2);
 	PRInt32 n1 = (PRInt32)array->ElementAt(1 + 2 * *index1);
 	PRInt32 n2 = (PRInt32)array->ElementAt(1 + 2 * *index2);
 
 	if (n1 == n2)
-		return Compare(*s1, *s2, nsCaseInsensitiveStringComparator());
+		return nsCRT::strcmp(s1, s2);
 	if (n1 > n2)
 		return -1;
 	return 1;
@@ -932,7 +909,7 @@ nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRI
 {
 	nsAutoString name;
 	GetRowValue(aRow, kToken_NameColumn, name);
-
+#if 0
 nsCOMPtr<nsIConsoleService> console = do_GetService("@mozilla.org/consoleservice;1");
 if (console)
 {
@@ -953,10 +930,8 @@ if (console)
 	nsMemory::Free(q);
 	nsMemory::Free(jim);
 }
-	if (Compare(Substring(name, 0, aInputName.Length()), aInputName, nsCaseInsensitiveStringComparator()) == 0) {
-#ifdef DEBUG
-	fprintf(stderr, "************************* MATCH *************************\n");
 #endif
+	if (Compare(Substring(name, 0, aInputName.Length()), aInputName, nsCaseInsensitiveStringComparator()) == 0) {
 		if (aValue) {
 			PRInt32 value;
 			GetRowValue(aRow, kToken_ValueColumn, &value);

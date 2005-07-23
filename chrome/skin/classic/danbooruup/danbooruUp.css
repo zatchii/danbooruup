@@ -1,3 +1,6 @@
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
 .danboorumsglink {
   top: 10px;
   text-decoration: underline;
@@ -20,4 +23,9 @@
 .contentPane { margin: 9px 8px 5px 8px; }
 .zcontentPane { margin: 0px 0px 0px 0px; }
 .actionButtons { margin: 0px 3px 6px 3px !important; }
+
+textbox[type="danbooruac"] {
+	-moz-binding: url("chrome://danbooruup/content/danbooruUp.xml#danbooruac") !important;
+	padding: 3px 4px 2px 2px;
+}
 

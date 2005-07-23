@@ -38,7 +38,10 @@
 #include "nsISupports.idl"
 
 interface nsIAutoCompleteResult;
+interface nsIAutoCompleteController;
 interface nsIAutoCompleteObserver;
+interface nsITimerCallback;
+interface nsITreeView;
 interface nsIAutoCompleteSearch;
 
 [scriptable, uuid(1d28d383-b5b1-4ad4-a35a-71673702a5d6)]

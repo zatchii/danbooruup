@@ -5,6 +5,15 @@ const StrBundleSvc	= Components.classes['@mozilla.org/intl/stringbundle;1']
 var danbooruUpMsg	= StrBundleSvc.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
 var commondlgMsg	= StrBundleSvc.createBundle('chrome://mozapps/locale/extensions/update.properties');
 
+var danbooruTagUpdater = {
+	notify: function()
+	{
+		Components.classes["@mozilla.org/autocomplete/search;1?name=danboorutag"]
+		.createInstance(Components.interfaces.nsIDanbooruAutoComplete)
+		.updateTagListFromURI("http://danbooru.donmai.us/tag/list_raw");
+	}
+};
+
 function danbooruImageInit(e) {
 	var menu = document.getElementById("contentAreaContextMenu");
 	menu.addEventListener("popupshowing",danbooruImageContext,false);
@@ -37,8 +46,9 @@ function danbooruUploadImage() {
 		imgURIStr = locationURI.resolve(imgURIStr);
 	}
 
+	// dialog=yes raises asserts that I don't feel like ignoring all the time using a debug build
 	window.openDialog("chrome://danbooruup/content/danbooruUpBox.xul",
-		"danbooruUpBox", "centerscreen,chrome,resizable=yes",
+		"danbooruUpBox", "centerscreen,chrome,dialog=no,resizable=yes",
 		{imageNode:danbooruImgNode, imageURI:imgURIStr, wind:thistab, start:danbooruStartUpload});
 }
 
@@ -466,8 +476,6 @@ danbooruPoster.prototype = {
 };
 
 window.addEventListener("load", danbooruImageInit, false);
-{
-	Components.classes["@mozilla.org/autocomplete/search;1?name=danboorutag"]
-	.getService(Components.interfaces.nsIDanbooruAutoComplete)
-	.updateTagListFromURI("http://danbooru.donmai.us/tags/list_raw");
-}
+Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer)
+					.initWithCallback(danbooruTagUpdater, 10000, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+

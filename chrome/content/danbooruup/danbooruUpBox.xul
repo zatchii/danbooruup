@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
 
 <!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUp.dtd">
 
@@ -7,7 +8,7 @@
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel"
 	width="500px"
-	height="170px"
+	height="175px"
 	persist="screenX screenY width height"
 	onload="init();"
         ondialogaccept="return doOK();"
@@ -27,16 +28,34 @@ function init()
 function doOK()
 {
 	var ml = document.getElementById('danbooru');
+	var tags = document.getElementById('tags').value;
 	gDanbooruManager.selectDanbooru(ml.selectedIndex);
 	gDanbooruManager.uninit();
+
+	if(tags.length) {
+		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
+		var flat=[];
+		for(var a in tagarr) {
+			flat[tagarr[a]]=null;
+		}
+		var taghist = Components.classes["@mozilla.org/danbooru/taghistory"]
+				.getService(Components.interfaces.nsIDanbooruTagHistory);
+		for(var a in flat) {
+			taghist.incrementValueForName(a);
+		}
+	}
+
 	window.arguments[0].start(
 		window.arguments[0].imageURI,
 		document.getElementById('source').value,
-		document.getElementById('tags').value,
+		tags,
 		document.getElementById('title').value,
 		ml.label,
 		window.arguments[0].imageNode,
 		window.arguments[0].wind);
+	window.arguments[0].imageNode = null;
+	window.arguments[0].wind = null;
+	window.arguments=null;
 
 	return true;
 }
@@ -52,7 +71,7 @@ function doCancel() {return true;}
 </column>
 <column flex="1">
 	<textbox id="source" flex="1"/>
-	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1"/>
+	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1" onsettextvalue="alert(1)"/>
 	<textbox id="title" flex="1"/>
 	<menulist id="danbooru" flex="1" crop="end"/>
 </column>
