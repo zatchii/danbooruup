@@ -3,7 +3,7 @@ WIN32_MODULE_COPYRIGHT=¬Firefox and Mozilla Developers, Gordon Tran, according t
 WIN32_MODULE_FILEVERSION=0,2,0,0
 WIN32_MODULE_FILEVERSION_STRING=0.2
 WIN32_MODULE_TRADEMARKS=Firefox is a Trademark of The Mozilla Foundation.
-WIN32_MODULE_DESCRIPTION=DanbooruUp
+WIN32_MODULE_DESCRIPTION=DanbooruUp Autocomplete Component
 WIN32_MODULE_PRODUCTNAME=DanbooruUp
 WIN32_MODULE_NAME=DanbooruUp
 
