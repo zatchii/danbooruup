@@ -91,6 +91,7 @@ protected:
   mdb_err UseThumb(nsIMdbThumb *aThumb, PRBool *aDone);
 
   nsresult AppendRow(const nsAString &aName, const PRInt32 aValue, nsIMdbRow **aResult);
+  nsresult AppendRow(const nsAString &aName, nsIMdbRow **aResult);
   nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAString &aValue);
   nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue);
   nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue);

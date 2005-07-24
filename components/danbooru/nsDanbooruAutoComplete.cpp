@@ -190,7 +190,7 @@ ProcessTagXML(nsIDOMElement *document)
 		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
 		if (history) {
 			if (!tagname.IsEmpty()) {
-				history->AddEntry(tagname, 0);
+				history->AddNameEntry(tagname);
 #ifdef DANBOORUUP_TESTING
 				PRUint32 count = 0;
 				history->GetRowCount(&count);

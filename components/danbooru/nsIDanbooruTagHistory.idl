@@ -66,6 +66,11 @@ interface nsIDanbooruTagHistory : nsISupports
   void addEntry(in AString name, in long value);
 
   /**
+   * Appends just a name to the end of the form history. Default value is 0.
+   */
+  void addNameEntry(in AString name);
+
+  /**
    * Removes the entry at a position.
    */
   void removeEntryAt(in unsigned long index);

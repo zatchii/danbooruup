@@ -241,6 +241,20 @@ nsDanbooruTagHistory::AddEntry(const nsAString &aName, const PRInt32 aValue)
 }
 
 NS_IMETHODIMP
+nsDanbooruTagHistory::AddNameEntry(const nsAString &aName)
+{
+  if (!TagHistoryEnabled())
+    return NS_OK;
+
+  nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIMdbRow> row;
+  AppendRow(aName, getter_AddRefs(row));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsDanbooruTagHistory::RemoveEntryAt(PRUint32 index)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -694,6 +708,37 @@ nsDanbooruTagHistory::AppendRow(const nsAString &aName, const PRInt32 aValue, ns
 
   SetRowValue(row, kToken_NameColumn, aName);
   SetRowValue(row, kToken_ValueColumn, aValue);
+
+  if (aResult) {
+    *aResult = row;
+    NS_ADDREF(*aResult);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsDanbooruTagHistory::AppendRow(const nsAString &aName, nsIMdbRow **aResult)
+{
+  if (!mTable)
+    return NS_ERROR_NOT_INITIALIZED;
+
+  PRBool exists;
+  NameExists(aName, &exists);
+  if (exists)
+    return NS_OK;
+
+  mdbOid rowId;
+  rowId.mOid_Scope = kToken_RowScope;
+  rowId.mOid_Id = mdb_id(-1);
+
+  nsCOMPtr<nsIMdbRow> row;
+  mdb_err err = mTable->NewRow(mEnv, &rowId, getter_AddRefs(row));
+  if (err != 0)
+    return NS_ERROR_FAILURE;
+
+  SetRowValue(row, kToken_NameColumn, aName);
+  SetRowValue(row, kToken_ValueColumn, 0);
 
   if (aResult) {
     *aResult = row;
