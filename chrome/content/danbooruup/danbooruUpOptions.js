@@ -70,9 +70,9 @@ var gDanbooruManager = {
     },
     getCellText: function (aRow, aColumn)
     {
-      if (aColumn.id == "siteCol")
+      //if (aColumn.id == "siteCol" || aColumn == "siteCol")
         return gDanbooruManager._danbooru[aRow].rawHost;
-      return "";
+      //return "";
     },
 
     isSeparator: function(aIndex) { return false; },
@@ -122,7 +122,7 @@ var gDanbooruManager = {
       ++this._view._rowCount;
       this._tree.treeBoxObject.rowCountChanged(this._view.rowCount - 1, 1);
       // Re-do the sort, since we inserted this new item at the end.
-      gTreeUtils.sort(this._tree, this._view, this._danbooru,
+      this.sort(this._tree, this._view, this._danbooru,
 		      this._lastDanbooruSortColumn,
 		      this._lastDanbooruSortAscending);
     }
@@ -246,7 +246,7 @@ var gDanbooruManager = {
   {
     if (this._view.rowCount) {
       var removedDanbooru = [];
-      gTreeUtils.deleteSelectedItems(this._tree, this._view, this._danbooru, removedDanbooru);
+      this.deleteSelectedItems(this._tree, this._view, this._danbooru, removedDanbooru);
     }
     var hasSelection = this._tree.view.selection.count > 0;
     document.getElementById("removeHost").disabled = (!this._danbooru.length) || (this._tree.view.selection.count < 1);
@@ -263,13 +263,65 @@ var gDanbooruManager = {
 
   onDanbooruSort: function (aColumn)
   {
-    this._lastDanbooruSortAscending = gTreeUtils.sort(this._tree, 
-                                                        this._view, 
-                                                        this._danbooru,
-                                                        aColumn, 
-                                                        this._lastDanbooruSortColumn, 
-                                                        this._lastDanbooruSortAscending);
+    this._lastDanbooruSortAscending = this.sort(this._tree, 
+		    this._view, 
+		    this._danbooru,
+		    aColumn, 
+		    this._lastDanbooruSortColumn, 
+		    this._lastDanbooruSortAscending);
     this._lastDanbooruSortColumn = aColumn;
+  },
+
+  deleteSelectedItems: function (aTree, aView, aItems, aDeletedItems)
+  {
+    var selection = aTree.view.selection;
+    selection.selectEventsSuppressed = true;
+    
+    var rc = selection.getRangeCount();
+    for (var i = 0; i < rc; ++i) {
+      var min = { }; var max = { };
+      selection.getRangeAt(i, min, max);
+      for (var j = min.value; j <= max.value; ++j) {
+        aDeletedItems.push(aItems[j]);
+        aItems[j] = null;
+      }
+    }
+    
+    var nextSelection = 0;
+    for (i = 0; i < aItems.length; ++i) {
+      if (!aItems[i]) {
+        var j = i;
+        while (j < aItems.length && !aItems[j])
+          ++j;
+        aItems.splice(i, j - i);
+        nextSelection = j < aView.rowCount ? j - 1 : j - 2;
+        aView._rowCount -= j - i;
+        aTree.treeBoxObject.rowCountChanged(i, i - j);
+      }
+    }
+
+    if (aItems.length) {
+      selection.select(nextSelection);
+      aTree.treeBoxObject.ensureRowIsVisible(nextSelection);
+      aTree.focus();
+    }
+    selection.selectEventsSuppressed = false;
+  },
+
+  sort: function (aTree, aView, aDataSet, aColumn, 
+			aLastSortColumn, aLastSortAscending) 
+  {
+    var ascending = (aColumn == aLastSortColumn) ? !aLastSortAscending : true;
+    aDataSet.sort(function (a, b) { return a[aColumn].toLowerCase().localeCompare(b[aColumn].toLowerCase()); });
+    if (!ascending)
+      aDataSet.reverse();
+    
+    aTree.view.selection.select(-1);
+    aTree.view.selection.select(0);
+    aTree.treeBoxObject.invalidate();
+    aTree.treeBoxObject.ensureRowIsVisible(0);
+    
+    return ascending;
   },
 
   _loadDanbooru: function ()

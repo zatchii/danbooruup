@@ -14,7 +14,6 @@
         onunload="gDanbooruManager.uninit();"
         persist="screenX screenY width height">
 
-	<script type="application/x-javascript" src="chrome://browser/content/preferences/permissionsutils.js"/>
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 
 	<!--<vbox>

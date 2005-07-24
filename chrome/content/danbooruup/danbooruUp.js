@@ -478,6 +478,6 @@ danbooruPoster.prototype = {
 
 window.addEventListener("load", danbooruImageInit, false);
 var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
-try { var junk = Components.classes["@mozilla.org/danbooru/taghistory"].getService(Components.interfaces.nsIDanbooruTagHistory).rowCount; } catch(x) {}
+try { var junk = Components.classes["@mozilla.org/danbooru/taghistory;1"].getService(Components.interfaces.nsIDanbooruTagHistory).rowCount; } catch(x) {}
 timer.initWithCallback(danbooruTagUpdater, 100, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
 

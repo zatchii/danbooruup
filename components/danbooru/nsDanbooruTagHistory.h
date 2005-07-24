@@ -50,7 +50,7 @@
 
 #define NS_DANBOORUTAGHISTORY_CID \
 { 0x0afd6b91, 0x10db, 0x485e, { 0xa6, 0xe2, 0x45, 0x5e, 0x70, 0x4a, 0xf6, 0x71 } }
-#define NS_DANBOORUTAGHISTORY_CONTRACTID "@mozilla.org/danbooru/taghistory"
+#define NS_DANBOORUTAGHISTORY_CONTRACTID "@mozilla.org/danbooru/taghistory;1"
 
 class nsDanbooruTagHistory : public nsIDanbooruTagHistory,
                       public nsIObserver,
