@@ -237,8 +237,14 @@ nsDanbooruAutoComplete::UpdateTagListFromURI(const nsAString &aXmlURI)
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
+
+	// keep-alive, more like zombie
+	rv = request->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
 #ifdef DANBOORUUP_TESTING
-	printf("getting\n", rv);
+	fprintf(stderr,"getting\n", rv);
 #endif
 
 	rv = request->Send(nsnull);

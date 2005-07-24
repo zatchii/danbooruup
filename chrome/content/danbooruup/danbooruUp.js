@@ -11,6 +11,7 @@ var danbooruTagUpdater = {
 		Components.classes["@mozilla.org/autocomplete/search;1?name=danboorutag"]
 		.createInstance(Components.interfaces.nsIDanbooruAutoComplete)
 		.updateTagListFromURI("http://danbooru.donmai.us/tag/list_raw");
+		timer = null;
 	}
 };
 
@@ -476,6 +477,7 @@ danbooruPoster.prototype = {
 };
 
 window.addEventListener("load", danbooruImageInit, false);
-Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer)
-					.initWithCallback(danbooruTagUpdater, 10000, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+try { var junk = Components.classes["@mozilla.org/danbooru/taghistory"].getService(Components.interfaces.nsIDanbooruTagHistory).rowCount; } catch(x) {}
+timer.initWithCallback(danbooruTagUpdater, 100, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
 

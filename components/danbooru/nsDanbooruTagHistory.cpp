@@ -64,7 +64,7 @@
 #include "nsCOMArray.h"
 
 #define PREF_FORMFILL_BRANCH "extensions.danbooruUp.autocomplete."
-#define PREF_FORMFILL_ENABLE "enable"
+#define PREF_FORMFILL_ENABLE "enabled"
 
 static const char *kTagHistoryFileName = "danbooruhistory.dat";
 
