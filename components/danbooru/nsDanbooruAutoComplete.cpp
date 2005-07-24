@@ -73,7 +73,9 @@
 
 ////////////////////////////////////////////////////////////////////////
 
+#ifdef DANBOORUUP_SELF_AUTOCOMPLETECONTROLLER
 static const char *kAutoCompleteSearchCID = "@mozilla.org/autocomplete/search;1?name=";
+#endif
 
 nsDanbooruAutoComplete::nsDanbooruAutoComplete()
 #ifdef DANBOORUUP_SELF_AUTOCOMPLETECONTROLLER
