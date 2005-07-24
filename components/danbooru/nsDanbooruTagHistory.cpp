@@ -403,7 +403,7 @@ DanbooruErrorHook::OnErrorString(nsIMdbEnv *ev, const char *inAscii)
 NS_IMETHODIMP
 DanbooruErrorHook::OnErrorYarn(nsIMdbEnv *ev, const mdbYarn* inYarn)
 {
-  printf("mork error yarn: %p\n", inYarn);
+  printf("mork error yarn: %p\n", (void*)inYarn);
   return NS_OK;
 }
 
@@ -417,7 +417,7 @@ DanbooruErrorHook::OnWarningString(nsIMdbEnv *ev, const char *inAscii)
 NS_IMETHODIMP
 DanbooruErrorHook::OnWarningYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
 {
-  printf("mork warning yarn: %p\n", inYarn);
+  printf("mork warning yarn: %p\n", (void*)inYarn);
   return NS_OK;
 }
 
@@ -431,7 +431,7 @@ DanbooruErrorHook::OnAbortHintString(nsIMdbEnv *ev, const char *inAscii)
 NS_IMETHODIMP
 DanbooruErrorHook::OnAbortHintYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
 {
-  printf("mork abort yarn: %p\n", inYarn);
+  printf("mork abort yarn: %p\n", (void*)inYarn);
   return NS_OK;
 }
 
@@ -665,7 +665,7 @@ nsDanbooruTagHistory::CopyRowsFromTable(nsIMdbTable *sourceTable)
     rowId.mOid_Id = mdb_id(-1);
 
     nsCOMPtr<nsIMdbRow> newRow;
-    mdb_err err = mTable->NewRow(mEnv, &rowId, getter_AddRefs(newRow));
+    /*mdb_err err =*/ mTable->NewRow(mEnv, &rowId, getter_AddRefs(newRow));
     newRow->SetRow(mEnv, row);
     mTable->AddRow(mEnv, newRow);
   } while (row);
