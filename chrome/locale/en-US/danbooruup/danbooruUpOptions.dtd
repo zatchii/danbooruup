@@ -1,6 +1,7 @@
 <!-- Entities for the Sample Extension Options Dialog go here -->
 
 <!ENTITY danbooruUpOptions.title			"DanbooruUp Options">
+<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here.">
 <!ENTITY danbooruUpOptions.posturi.label		"URL of post/add:">
 <!ENTITY danbooruUpOptions.posturi.accesskey		"U">
 <!ENTITY danbooruUpOptions.add.label			"Add Site">
@@ -10,3 +11,22 @@
 <!ENTITY danbooruUpOptions.cancel.accesskey		"C">
 <!ENTITY danbooruUpOptions.ok.label			"OK">
 <!ENTITY danbooruUpOptions.ok.accesskey			"O">
+<!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
+<!ENTITY danbooruUpOptions.autocompleteTab.label	"Tag Autocomplete">
+<!ENTITY danbooruUpOptions.urlgroup.label		"Tag History">
+<!ENTITY danbooruUpOptions.updategroup.label		"Updating">
+<!ENTITY danbooruUpOptions.enableAC.label		"Enable Tag Autocomplete">
+<!ENTITY danbooruUpOptions.enableAC.accesskey		"E">
+<!ENTITY danbooruUpOptions.updateURL.label		"Update URL:">
+<!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
+<!ENTITY danbooruUpOptions.updateOnStartup.label	"Update on startup">
+<!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"s">
+<!ENTITY danbooruUpOptions.updateOnUpload.label		"Update on upload">
+<!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"p">
+<!ENTITY danbooruUpOptions.updateOnUpload.before.label	"Update before update dialog appears">
+<!ENTITY danbooruUpOptions.updateOnUpload.after.label	"Update after confirming upload">
+<!ENTITY danbooruUpOptions.updateOnTimer.label		"Update on timer">
+<!ENTITY danbooruUpOptions.updateOnTimer.accesskey	"t">
+<!ENTITY danbooruUpOptions.clearTagHistory.label	"Clear tag history">
+<!ENTITY danbooruUpOptions.updateNow.label		"Update now">
+

@@ -44,29 +44,56 @@
 #include "nsICategoryManager.h"
 #include "nsIDirectoryService.h"
 #include "nsAppDirectoryServiceDefs.h"
+
+#include "nsAutoCompleteArrayResult.h"
+
+#ifdef DANBOORUUP_MORK
 #include "nsMorkCID.h"
 #include "nsIMdbFactoryFactory.h"
 #include "nsQuickSort.h"
+#endif
+
 #include "nsCRT.h"
 #include "nsString.h"
-#include "nsIConsoleService.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
-//#include "nsIContent.h"
-//#include "nsIDOMNode.h"
-//#include "nsIDOMHTMLFormElement.h"
-//#include "nsIDOMHTMLInputElement.h"
-//#include "nsIDOMHTMLCollection.h"
+
+// GetResolvedURI 
+#include "nsIXPConnect.h"
+#include "nsIScriptSecurityManager.h"
+#include "nsIPrincipal.h"
+// Update/Process
+#include "nsIXMLHttpRequest.h"
+#include "nsNetUtil.h"
+#include "nsIDOMDocument.h"
+#include "nsIDOMElement.h"
+#include "nsIDOM3Node.h"
+#include "nsIDOMNodeList.h"
+
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
 #include "nsIPrefBranch2.h"
 #include "nsVoidArray.h"
 #include "nsCOMArray.h"
+#include "mozIStorageService.h"
+#include "mozStorageCID.h"
 
 #define PREF_FORMFILL_BRANCH "extensions.danbooruUp.autocomplete."
 #define PREF_FORMFILL_ENABLE "enabled"
 
+#ifdef DANBOORUUP_MORK
 static const char *kTagHistoryFileName = "danbooruhistory.dat";
+#else
+static const char *kTagHistoryFileName = "danbooruhistory.sdb";
+
+static const char *kTagTableName = "tags";
+#define kTagHistorySchema "id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL UNIQUE, value INTEGER NOT NULL DEFAULT 0"
+#define kTagInsert "INSERT OR IGNORE INTO tags (id, name) VALUES (?1, ?2)"
+#define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
+#define kTagSearch "SELECT name FROM tags WHERE name LIKE ?1||'%' ORDER BY value desc,name asc"
+#define kTagExists "SELECT NULL FROM tags WHERE name=?1"
+#define kRemoveAll "DELETE FROM tags"
+#endif
 
 NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistory)
   NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistory)
@@ -78,8 +105,10 @@ NS_INTERFACE_MAP_END_THREADSAFE
 NS_IMPL_THREADSAFE_ADDREF(nsDanbooruTagHistory)
 NS_IMPL_THREADSAFE_RELEASE(nsDanbooruTagHistory)
 
+#ifdef DANBOORUUP_MORK
 mdb_column nsDanbooruTagHistory::kToken_NameColumn = 0;
 mdb_column nsDanbooruTagHistory::kToken_ValueColumn = 0;
+#endif
 
 #ifdef DANBOORUUP_TESTING
 PRBool nsDanbooruTagHistory::gTagHistoryEnabled = PR_TRUE;
@@ -90,9 +119,13 @@ PRBool nsDanbooruTagHistory::gPrefsInitialized = PR_FALSE;
 #endif
 
 nsDanbooruTagHistory::nsDanbooruTagHistory() :
+#ifdef DANBOORUUP_MORK
   mEnv(nsnull),
   mStore(nsnull),
   mTable(nsnull)
+#else
+  mDB(nsnull)
+#endif
 {
 }
 
@@ -168,15 +201,171 @@ nsDanbooruTagHistory::TagHistoryEnabled()
 ////////////////////////////////////////////////////////////////////////
 //// nsIDanbooruTagHistory
 
+/* pilfered from nsSchemaLoader */
+static nsresult
+GetResolvedURI(const nsAString& aSchemaURI,
+		const char* aMethod,
+		nsIURI** aURI)
+{
+  nsresult rv;
+  nsCOMPtr<nsIXPCNativeCallContext> cc;
+  nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID(), &rv));
+  if(NS_SUCCEEDED(rv)) {
+    rv = xpc->GetCurrentNativeCallContext(getter_AddRefs(cc));
+  }
+
+  if (NS_SUCCEEDED(rv) && cc) {
+    JSContext* cx;
+    rv = cc->GetJSContext(&cx);
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIScriptSecurityManager> secMan(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
+    if (NS_FAILED(rv)) return rv;
+
+    nsCOMPtr<nsIURI> baseURI;
+    nsCOMPtr<nsIPrincipal> principal;
+    rv = secMan->GetSubjectPrincipal(getter_AddRefs(principal));
+    if (NS_SUCCEEDED(rv)) {
+      principal->GetURI(getter_AddRefs(baseURI));
+    }
+
+    rv = NS_NewURI(aURI, aSchemaURI, nsnull, baseURI);
+    if (NS_FAILED(rv)) return rv;
+
+    rv = secMan->CheckLoadURIFromScript(cx, *aURI);
+    if (NS_FAILED(rv))
+    {
+      // Security check failed. The above call set a JS exception. The
+      // following lines ensure that the exception is propagated.
+      cc->SetExceptionWasThrown(PR_TRUE);
+      return rv;
+    }
+  }
+  else {
+    rv = NS_NewURI(aURI, aSchemaURI, nsnull);
+    if (NS_FAILED(rv)) return rv;
+  }
+
+  return NS_OK;
+}
+
+nsresult
+nsDanbooruTagHistory::ProcessTagXML(void *document)
+{
+	NS_ENSURE_ARG(document);
+
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	NS_ENSURE_SUCCESS(rv, rv);
+
+	nsCOMPtr<nsIDOMNodeList> nodeList;
+	PRUint32 index = 0;
+	PRUint32 length = 0;
+
+	((nsIDOMElement *)document)->GetChildNodes(getter_AddRefs(nodeList));
+
+	if (nodeList) {
+		nodeList->GetLength(&length);
+	} else {
+		// no tags?
+		return NS_OK;
+	}
+
+	nsCOMPtr<nsIDOMNode> child;
+	//nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
+	mDB->BeginTransaction();
+	while (index < length) {
+		nodeList->Item(index++, getter_AddRefs(child));
+		nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
+		if (!childElement) {
+			continue;
+		}
+
+		nsAutoString tagname, tagid;
+
+		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
+		childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
+		if (!tagname.IsEmpty()) {
+			mInsertStmt->BindStringParameter(0, tagid);
+			mInsertStmt->BindStringParameter(1, tagname);
+			mInsertStmt->Execute();
+		}
+	}
+	mDB->CommitTransaction();
+
+	return NS_OK;
+}
+
+/* used to be the nsISchema load */
+NS_IMETHODIMP
+nsDanbooruTagHistory::UpdateTagListFromURI(const nsAString &aXmlURI)
+{
+	nsCOMPtr<nsIURI> resolvedURI;
+	nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+	nsCAutoString spec;
+	resolvedURI->GetSpec(spec);
+
+	nsCOMPtr<nsIXMLHttpRequest> request(do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv));
+	if (!request) {
+		return rv;
+	}
+
+	const nsAString& empty = EmptyString();
+	rv = request->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty, empty);
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+
+	// Force the mimetype of the returned stream to be xml.
+	rv = request->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+
+	// keep-alive, more like zombie
+	rv = request->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+#ifdef DANBOORUUP_TESTING
+	fprintf(stderr,"getting\n", rv);
+#endif
+
+	rv = request->Send(nsnull);
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+
+	nsCOMPtr<nsIDOMDocument> document;
+	rv = request->GetResponseXML(getter_AddRefs(document));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+
+	nsCOMPtr<nsIDOMElement> element;
+	document->GetDocumentElement(getter_AddRefs(element));
+	if (element) {
+		ProcessTagXML(element);
+	}
+	else {
+		rv = NS_ERROR_CANNOT_CONVERT_DATA;
+	}
+
+	return rv;
+}
+
 NS_IMETHODIMP
 nsDanbooruTagHistory::GetRowCount(PRUint32 *aRowCount)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef DANBOORUUP_MORK
   mdb_err err = mTable->GetCount(mEnv, aRowCount);
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
-
+#endif
   return NS_OK;
 }
 
@@ -186,13 +375,14 @@ nsDanbooruTagHistory::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt32 *aVa
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef DANBOORUUP_MORK
   nsCOMPtr<nsIMdbRow> row;
   mdb_err err = mTable->PosToRow(mEnv, aIndex, getter_AddRefs(row));
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
 
   GetRowValue(row, kToken_NameColumn, aName);
   GetRowValue(row, kToken_ValueColumn, aValue);
-
+#endif
   return NS_OK;
 }
 
@@ -202,12 +392,13 @@ nsDanbooruTagHistory::GetNameAt(PRUint32 aIndex, nsAString &aName)
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef DANBOORUUP_MORK
   nsCOMPtr<nsIMdbRow> row;
   mdb_err err = mTable->PosToRow(mEnv, aIndex, getter_AddRefs(row));
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
 
   GetRowValue(row, kToken_NameColumn, aName);
-
+#endif
   return NS_OK;
 }
 
@@ -217,17 +408,18 @@ nsDanbooruTagHistory::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
 
+#ifdef DANBOORUUP_MORK
   nsCOMPtr<nsIMdbRow> row;
   mdb_err err = mTable->PosToRow(mEnv, aIndex, getter_AddRefs(row));
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
 
   GetRowValue(row, kToken_ValueColumn, aValue);
-
+#endif
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::AddEntry(const nsAString &aName, const PRInt32 aValue)
+nsDanbooruTagHistory::AddEntry(const nsAString &aName, const nsAString &aID, const PRInt32 aValue)
 {
   if (!TagHistoryEnabled())
     return NS_OK;
@@ -235,13 +427,19 @@ nsDanbooruTagHistory::AddEntry(const nsAString &aName, const PRInt32 aValue)
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mInsertStmt->BindStringParameter(0, aID);
+  mInsertStmt->BindStringParameter(1, aName);
+  return mInsertStmt->Execute();
+
+#ifdef DANBOORUUP_MORK
   nsCOMPtr<nsIMdbRow> row;
-  AppendRow(aName, aValue, getter_AddRefs(row));
+  AppendRow(aName, aID, aValue, getter_AddRefs(row));
+#endif
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::AddNameEntry(const nsAString &aName)
+nsDanbooruTagHistory::AddNameEntry(const nsAString &aName, const nsAString &aID )
 {
   if (!TagHistoryEnabled())
     return NS_OK;
@@ -249,8 +447,14 @@ nsDanbooruTagHistory::AddNameEntry(const nsAString &aName)
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
 
+  mInsertStmt->BindStringParameter(0, aID);
+  mInsertStmt->BindStringParameter(1, aName);
+  return mInsertStmt->Execute();
+
+#ifdef DANBOORUUP_MORK
   nsCOMPtr<nsIMdbRow> row;
   AppendRow(aName, getter_AddRefs(row));
+#endif
   return NS_OK;
 }
 
@@ -263,33 +467,62 @@ nsDanbooruTagHistory::RemoveEntryAt(PRUint32 index)
 NS_IMETHODIMP
 nsDanbooruTagHistory::EntryExists(const nsAString &aName, const PRInt32 aValue, PRBool *_retval)
 {
+#ifndef DANBOORUUP_MORK
+  return NS_ERROR_NOT_IMPLEMENTED;
+#else
   return EntriesExistInternal(&aName, aValue, _retval);
+#endif
 }
 
 NS_IMETHODIMP
 nsDanbooruTagHistory::NameExists(const nsAString &aName, PRBool *_retval)
 {
+#ifndef DANBOORUUP_MORK
+  mExistsStmt->BindStringParameter(0, aName);
+  *_retval = PR_FALSE;
+  nsresult rv = mExistsStmt->ExecuteStep(_retval);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  mExistsStmt->Reset();
+
+  return NS_OK;
+#else
   return EntriesExistInternal(&aName, nsnull, _retval);
+#endif
 }
 
 NS_IMETHODIMP
 nsDanbooruTagHistory::RemoveEntriesForName(const nsAString &aName)
 {
+#ifndef DANBOORUUP_MORK
+  return NS_ERROR_NOT_IMPLEMENTED;
+#else
   return RemoveEntriesInternal(&aName);
+#endif
 }
 
 NS_IMETHODIMP
 nsDanbooruTagHistory::RemoveAllEntries()
 {
+#ifndef DANBOORUUP_MORK
+  // or we could just drop the database
+  mDB->BeginTransaction();
+  mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kRemoveAll));
+  mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM"));
+  mDB->CommitTransaction();
+
+  return NS_OK;
+#else
   nsresult rv = RemoveEntriesInternal(nsnull);
 
   rv |= Flush();
 
   return rv;
+#endif
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRInt32 *retval)
+nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRBool *retval)
 {
 	if(aName.IsEmpty())
 		return NS_ERROR_INVALID_ARG;
@@ -297,6 +530,19 @@ nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRInt32 *ret
 	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
 
+#ifndef DANBOORUUP_MORK
+	PRBool exists;
+	NameExists(aName, &exists);
+	if(exists) {
+		mIncrementStmt->BindStringParameter(0, aName);
+		mIncrementStmt->Execute();
+		*retval = PR_TRUE;
+	} else {
+		// defer adding tag until we can get an ID
+		*retval = PR_FALSE;
+	}
+	return NS_OK;
+#else
 	mdb_err err;
 	mdb_count count;
 	nsAutoString name;
@@ -304,6 +550,7 @@ nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRInt32 *ret
 	err = mTable->GetCount(mEnv, &count);
 	if (err != 0) return NS_ERROR_FAILURE;
 
+	// hurry up with that sqlite
 	for (mdb_pos pos = count - 1; pos >= 0; --pos) {
 		nsCOMPtr<nsIMdbRow> row;
 		err = mTable->PosToRow(mEnv, pos, getter_AddRefs(row));
@@ -320,8 +567,13 @@ nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRInt32 *ret
 			break;
 		}
 	}
+	// tag not in db, add it with one use
+	if (pos == -1) {
+		AddEntry(aName, 1);
+	}
 
 	return NS_OK;
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -390,6 +642,7 @@ nsDanbooruTagHistory::Notify(nsIContent* aFormNode, nsIDOMWindowInternal* aWindo
 ////////////////////////////////////////////////////////////////////////
 //// Database I/O
 
+#ifdef DANBOORUUP_MORK
 class DanbooruErrorHook : public nsIMdbErrorHook
 {
 public:
@@ -448,10 +701,39 @@ DanbooruErrorHook::OnAbortHintYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
   printf("mork abort yarn: %p\n", (void*)inYarn);
   return NS_OK;
 }
+#endif
 
 nsresult
 nsDanbooruTagHistory::OpenDatabase()
 {
+#ifndef DANBOORUUP_MORK
+  if (mDB)
+    return NS_OK;
+
+  nsCOMPtr<mozIStorageService> storage = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+
+  // Get a handle to the database file
+  nsCOMPtr <nsIFile> historyFile;
+  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
+  NS_ENSURE_SUCCESS(rv, rv);
+  historyFile->Append(NS_ConvertUTF8toUCS2(kTagHistoryFileName));
+  
+  //rv = storage->GetProfileStorage("profile", getter_AddRefs(mDB));
+  rv = storage->OpenDatabase(historyFile, getter_AddRefs(mDB));
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (mDB == nsnull)
+    return NS_ERROR_FAILURE;
+
+  mDB->CreateTable(kTagTableName, kTagHistorySchema);
+
+  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
+  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
+  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
+  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
+
+  return NS_OK;
+
+#else
   if (mStore)
     return NS_OK;
 
@@ -499,8 +781,34 @@ nsDanbooruTagHistory::OpenDatabase()
   historyFile->GetFileSize(&mFileSizeOnDisk);
 
   return NS_OK;
+#endif
 }
 
+nsresult
+nsDanbooruTagHistory::CloseDatabase()
+{
+#ifdef DANBOORUUP_MORK
+  Flush();
+
+  if (mTable)
+    mTable->Release();
+
+  if (mStore)
+    mStore->Release();
+
+  if (mEnv)
+    mEnv->Release();
+
+  mTable = nsnull;
+  mEnv = nsnull;
+  mStore = nsnull;
+#endif
+  // mozStorageConnection destructor takes care of this
+
+  return NS_OK;
+}
+
+#if 0 || defined(DANBOORUUP_MORK)
 nsresult
 nsDanbooruTagHistory::OpenExistingFile(const char *aPath)
 {
@@ -578,27 +886,6 @@ nsDanbooruTagHistory::CreateNewFile(const char *aPath)
   err = UseThumb(thumb, &done);
 
   return err || !done ? NS_ERROR_FAILURE : NS_OK;
-}
-
-nsresult
-nsDanbooruTagHistory::CloseDatabase()
-{
-  Flush();
-
-  if (mTable)
-    mTable->Release();
-
-  if (mStore)
-    mStore->Release();
-
-  if (mEnv)
-    mEnv->Release();
-
-  mTable = nsnull;
-  mEnv = nsnull;
-  mStore = nsnull;
-
-  return NS_OK;
 }
 
 nsresult
@@ -708,7 +995,6 @@ nsDanbooruTagHistory::AppendRow(const nsAString &aName, const PRInt32 aValue, ns
 
   SetRowValue(row, kToken_NameColumn, aName);
   SetRowValue(row, kToken_ValueColumn, aValue);
-
   if (aResult) {
     *aResult = row;
     NS_ADDREF(*aResult);
@@ -744,7 +1030,6 @@ nsDanbooruTagHistory::AppendRow(const nsAString &aName, nsIMdbRow **aResult)
     *aResult = row;
     NS_ADDREF(*aResult);
   }
-
   return NS_OK;
 }
 
@@ -757,9 +1042,10 @@ nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAStr
 	mdb_err err = aRow->AddColumn(mEnv, aCol, &yarn);
 
 	return err ? NS_ERROR_FAILURE : NS_OK;
+	return NS_OK;
 }
 
-	nsresult
+nsresult
 nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue)
 {
 	nsCAutoString buf; buf.AppendInt(aValue);
@@ -768,12 +1054,13 @@ nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt3
 	mdb_err err = aRow->AddColumn(mEnv, aCol, &yarn);
 
 	return err ? NS_ERROR_FAILURE : NS_OK;
+	return NS_OK;
 }
-
 
 nsresult
 nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue)
 {
+
 	mdbYarn yarn;
 	mdb_err err = aRow->AliasCellYarn(mEnv, aCol, &yarn);
 	if (err != 0)
@@ -790,7 +1077,6 @@ nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &a
 		default:
 			return NS_ERROR_UNEXPECTED;
 	}
-
 	return NS_OK;
 }
 
@@ -806,13 +1092,17 @@ nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol,
 		*aResult = atoi((char *)yarn.mYarn_Buf);
 	else
 		*aResult = 0;
-
 	return NS_OK;
 }
+#endif
 
 nsresult
 nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
+#ifdef DANBOORUUP_MORK
                                   nsIAutoCompleteMdbResult *aPrevResult,
+#else
+                                  nsIAutoCompleteArrayResult *aPrevResult,
+#endif
                                   nsIAutoCompleteResult **aResult)
 {
 	if (!TagHistoryEnabled())
@@ -821,6 +1111,7 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
 
+#if 0 || defined(DANBOORUUP_MORK)
 	nsCOMPtr<nsIAutoCompleteMdbResult> result;
 
 	if (aPrevResult) {
@@ -893,7 +1184,49 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 
 			delete[] items;
 		}
+#else
+	nsCOMPtr<nsIAutoCompleteArrayResult> result;
+	if (aPrevResult) {
+		result = aPrevResult;
 
+		PRUint32 rowCount;
+		result->GetMatchCount(&rowCount);
+		for (PRInt32 i = rowCount-1; i >= 0; --i) {
+			nsAutoString name;
+			result->GetValueAt(i, name);
+			if (Compare(Substring(name, 0, aInputName.Length()), aInputName, nsCaseInsensitiveStringComparator()))
+				result->RemoveValueAt(i, PR_FALSE);
+		}
+	} else {
+		result = do_CreateInstance("@mozilla.org/autocomplete/array-result;1");
+		/*nsCOMPtr<nsIComponentManager> compMgr;
+		rv = NS_GetComponentManager(getter_AddRefs(compMgr));
+		if (NS_FAILED(rv))
+			return rv;
+
+		rv = compMgr->CreateInstanceByContractID(NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID, NULL,
+				NS_GET_IID(nsIAutoCompleteArrayResult),
+				getter_AddRefs(result));
+		if (NS_FAILED(rv))
+			return rv;*/
+
+		if (result == nsnull) // nande da yo
+			return NS_ERROR_FAILURE;
+
+		result->SetSearchString(aInputName);
+
+		PRBool row;
+		nsAutoString name;
+		mSearchStmt->BindStringParameter(0, aInputName);
+		mSearchStmt->ExecuteStep(&row);
+		while (row)
+		{
+			mSearchStmt->GetAsString(0, name);
+			result->AddRow(name);
+			mSearchStmt->ExecuteStep(&row);
+		}
+		mSearchStmt->Reset();
+#endif
 		PRUint32 matchCount;
 		result->GetMatchCount(&matchCount);
 		if (matchCount > 0) {
@@ -904,13 +1237,13 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 			result->SetDefaultIndex(-1);
 		}
 	}
-
 	*aResult = result;
 	NS_IF_ADDREF(*aResult);
 
 	return NS_OK;
 }
 
+#if 0 || defined(DANBOORUUP_MORK)
 int PR_CALLBACK
 nsDanbooruTagHistory::SortComparison(const void *v1, const void *v2, void *closureVoid)
 {
@@ -987,8 +1320,9 @@ if (console)
 
 	return PR_FALSE;
 }
+#endif
 
-
+#ifdef DANBOORUUP_MORK
 nsresult
 nsDanbooruTagHistory::EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval)
 {
@@ -1088,3 +1422,5 @@ nsDanbooruTagHistory::RemoveEntriesInternal(const nsAString *aName)
   return (err == 0) ? NS_OK : NS_ERROR_FAILURE;
 
 }
+#endif
+

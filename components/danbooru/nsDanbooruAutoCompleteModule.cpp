@@ -39,6 +39,7 @@
 
 #include "nsDanbooruAutoComplete.h"
 #include "nsDanbooruTagHistory.h"
+#include "nsAutoCompleteArrayResult.h"
 
 ////////////////////////////////////////////////////////////////////////
 // NOTE this file supercedes nsSampleFactory.cpp.  nsSampleFactory has
@@ -66,7 +67,7 @@
 //
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDanbooruAutoComplete)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDanbooruTagHistory, nsDanbooruTagHistory::GetInstance)
-
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteArrayResult)
 
 static void PR_CALLBACK nsDanbooruAutoCompleteDestructor(nsIModule* self)
 {
@@ -120,6 +121,10 @@ static const nsModuleComponentInfo components[] =
 {
   { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor },
   { "Danbooru Tag History Service", NS_DANBOORUTAGHISTORY_CID, NS_DANBOORUTAGHISTORY_CONTRACTID, nsDanbooruTagHistoryConstructor },
+  { "AutoComplete Array Result",
+	  NS_AUTOCOMPLETEARRAYRESULT_CID,
+	  NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID,
+	  nsAutoCompleteArrayResultConstructor },
 };
 
 ////////////////////////////////////////////////////////////////////////

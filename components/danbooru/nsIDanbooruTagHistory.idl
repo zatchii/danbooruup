@@ -41,34 +41,41 @@
 interface nsIDanbooruTagHistory : nsISupports
 {
   /**
-   * The total number of rows in the form history.
+   * The total number of rows in the tag history.
    */
   readonly attribute unsigned long rowCount;
 
   /**
-   * Gets the name and value at a position in the form history.
+   * Updates the tag database from a given XML source.
+   */
+  void updateTagListFromURI(in AString aXmlURI);
+
+  /**
+   * Gets the name and value at a position in the tag history.
    */
   void getEntryAt(in unsigned long index, out AString name, out long value);
 
   /**
-   * Gets just the name at a position in the form history.
+   * Gets just the name at a position in the tag history.
    */
   void getNameAt(in unsigned long index, out AString name);
 
   /**
-   * Gets just the value at a position in the form history.
+   * Gets just the value at a position in the tag history.
    */
   void getValueAt(in unsigned long index, out long value);
 
   /**
-   * Appends a name and value pair to the end of the form history.
+   * Appends a name and value pair to the end of the tag history.
    */
-  void addEntry(in AString name, in long value);
+  //void addEntry(in AString name, in unsigned long id, in long value);
+  void addEntry(in AString name, in AString id, in long value);
 
   /**
-   * Appends just a name to the end of the form history. Default value is 0.
+   * Appends just a name to the end of the tag history. Default value is 0.
    */
-  void addNameEntry(in AString name);
+  //void addNameEntry(in AString name, in unsigned long id);
+  void addNameEntry(in AString name, in AString id);
 
   /**
    * Removes the entry at a position.
@@ -81,7 +88,7 @@ interface nsIDanbooruTagHistory : nsISupports
   void removeEntriesForName(in AString name);
 
   /**
-   * Removes all entries in the entire form history.
+   * Removes all entries in the entire rag history.
    */
   void removeAllEntries();
 
@@ -91,12 +98,13 @@ interface nsIDanbooruTagHistory : nsISupports
   boolean nameExists(in AString name);
 
   /**
-   * Gets whether a name and value pair exists in the form history.
+   * Gets whether a name and value pair exists in the tag history.
    */
   boolean entryExists(in AString name, in long value);
 
   /**
    * Increments the value associated with a given name.
+   * Returns true if the value was incremented, false if the name does not exist.
    */
-  long incrementValueForName(in AString name);
+  boolean incrementValueForName(in AString name);
 };

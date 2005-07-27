@@ -61,6 +61,7 @@ REQUIRES =	\
 		caps \
 		xmlextras \
 		layout \
+		storage \
 		$(NULL)
 
 # This makefile builds the "program" subdirectory.
@@ -94,12 +95,14 @@ CPPSRCS		=		   \
 		nsDanbooruAutoComplete.cpp	   \
 		nsDanbooruAutoCompleteModule.cpp \
 		nsDanbooruTagHistory.cpp \
+		nsAutoCompleteArrayResult.cpp \
 		$(NULL)
 
 # XPIDLSRCS specified IDL files. The build system runs the xpidl tool on these
 # files to generate C++ headers and .xpt typelib files.
 XPIDLSRCS	= nsIDanbooruAutoComplete.idl \
-		  nsIDanbooruTagHistory.idl
+		  nsIDanbooruTagHistory.idl \
+		  nsIAutoCompleteArrayResult.idl
 
 #MOZ_DEBUG = 1
 #MOZ_DEBUG_MODULES = danbooruac

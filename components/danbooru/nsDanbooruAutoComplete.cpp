@@ -58,11 +58,9 @@
 
 #include "nsString.h"
 #include "nsMemory.h"
+#include "prthread.h"
 
-#include "nsIDOMDocument.h"
-#include "nsIDOMElement.h"
-#include "nsIDOM3Node.h"
-#include "nsIDOMNodeList.h"
+#include "nsIAutoCompleteArrayResult.h"
 
 #ifdef DANBOORUUP_SELF_AUTOCOMPLETECONTROLLER
 #include "nsIAutoCompleteResultTypes.h"
@@ -161,15 +159,17 @@ GetResolvedURI(const nsAString& aSchemaURI,
   return NS_OK;
 }
 
+#if 0
 static nsresult
-ProcessTagXML(nsIDOMElement *document)
+ProcessTagXML(void *document)
 {
 	NS_ENSURE_ARG(document);
 
 	nsCOMPtr<nsIDOMNodeList> nodeList;
 	PRUint32 index = 0;
 	PRUint32 length = 0;
-	document->GetChildNodes(getter_AddRefs(nodeList));
+	
+	((nsIDOMElement *)document)->GetChildNodes(getter_AddRefs(nodeList));
 
 	if (nodeList) {
 		nodeList->GetLength(&length);
@@ -187,17 +187,20 @@ ProcessTagXML(nsIDOMElement *document)
 			continue;
 		}
 
-		nsAutoString tagname;
+		nsAutoString tagname, tagid;
+		PRUint32 idnum;
 
 		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
+		childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
+		idnum = atoi(PromiseFlatString(tagid));
 		if (history) {
 			if (!tagname.IsEmpty()) {
-				history->AddNameEntry(tagname);
+				history->AddNameEntry(tagname, idnum);
 #ifdef DANBOORUUP_TESTING
 				PRUint32 count = 0;
 				history->GetRowCount(&count);
 				char *ctagname = ToNewCString(tagname);
-				printf("%d\t%s\n", count, ctagname);
+				fprintf(stderr, "%d\t%s\n", count, ctagname);
 				nsMemory::Free(ctagname);
 #endif
 			}
@@ -263,7 +266,7 @@ nsDanbooruAutoComplete::UpdateTagListFromURI(const nsAString &aXmlURI)
 	nsCOMPtr<nsIDOMElement> element;
 	document->GetDocumentElement(getter_AddRefs(element));
 	if (element) {
-		rv = ProcessTagXML(element);
+		ProcessTagXML(element);
 	}
 	else {
 		rv = NS_ERROR_CANNOT_CONVERT_DATA;
@@ -271,6 +274,7 @@ nsDanbooruAutoComplete::UpdateTagListFromURI(const nsAString &aXmlURI)
 
 	return rv;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIAutoCompleteSearch
@@ -300,7 +304,7 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 	nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
 	if (history) {
 		nsresult rv = history->AutoCompleteSearch(aSearchString,
-				NS_STATIC_CAST(nsIAutoCompleteMdbResult *,
+				NS_STATIC_CAST(nsIAutoCompleteArrayResult *,
 					aPreviousResult),
 				getter_AddRefs(result));
 

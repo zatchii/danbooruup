@@ -14,6 +14,14 @@
         onunload="gDanbooruManager.uninit();"
         persist="screenX screenY width height">
 
+<!--
+  <prefpane id="paneAdvanced" onpaneload="gAdvancedPane.init();"
+            helpURI="chrome://browser/locale/help/help.rdf">
+    <preferences>
+      <preference id="enableAC"   name="extensions.danbooruUp.autocomplete.enabled"   type="bool"/>
+      <preference id="updateOnStartup"   name="extensions.danbooruUp.autocomplete.update.onstartup"   type="bool"/>
+    </preferences>
+-->
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 
 	<!--<vbox>
@@ -22,10 +30,16 @@
 		<textbox id="text_postadduri" preference="postadduri" width="400px"/>
 	</vbox>-->
 
+    <tabbox id="danbooruUpOptionsTabs" flex="1"
+            onselect="gAdvancedPane.tabSelectionChanged();">
+      <tabs>
+        <tab label="&danbooruUpOptions.danbooruTab.label;"/>
+        <tab label="&danbooruUpOptions.autocompleteTab.label;"/>
+      </tabs>
+      <tabpanels flex="1">
+	<tabpanel orient="vertical">
 	<vbox class="contentPane" flex="1">
-		<description id="danbooruText">
-			Add extra danbooru here.
-		</description>
+		<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>
 		<separator class="thin"/>
 		<label control="url" value="&danbooruUpOptions.posturi.label;"/>
 		<hbox align="start">
@@ -57,6 +71,42 @@
 				icon="remove" label="&danbooruUpOptions.removedanbooru.label;" 
 				oncommand="gDanbooruManager.onDanbooruDeleted();"/>
 			<spacer flex="1"/>
+		</hbox>
+	</hbox>
+	</tabpanel>
+	<tabpanel orient="vertical">
+		<hbox>
+			<checkbox id="enableAC" label="&danbooruUpOptions.enableAC.label;" accesskey="&danbooruUpOptions.enableAC.accesskey;"/>
+		</hbox>
+		<groupbox align="start">
+			<caption label="&danbooruUpOptions.urlgroup.label;"/>
+			<hbox align="center" flex="1">
+				<label control="updateURL" value="&danbooruUpOptions.updateURL.label;" accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
+				<textbox id="updateURL" flex="1" width="2000px"/>
+			</hbox>
+			<hbox align="center" pack="end">
+				<button id="clearTagHistory" label="&danbooruUpOptions.clearTagHistory.label;"/>
+				<button id="updatenow" label="&danbooruUpOptions.updateNow.label;"/>
+			</hbox>
+		</groupbox>
+		<groupbox align="start">
+			<caption label="&danbooruUpOptions.updategroup.label;"/>
+			<checkbox id="updateOnStartup" label="&danbooruUpOptions.updateOnStartup.label;" accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"/>
+			<checkbox id="updateOnUpload" label="&danbooruUpOptions.updateOnUpload.label;" accesskey="&danbooruUpOptions.updateOnUpload.accesskey;"/>
+			<vbox align="start" class="indent">
+				<radio id="updateBeforeDialog" label="&danbooruUpOptions.updateOnUpload.before.label;" selected="true"/>
+				<radio id="updateAfterDialog" label="&danbooruUpOptions.updateOnUpload.after.label;"/>
+			</vbox>
+			<checkbox id="updateOnTimer" label="&danbooruUpOptions.updateOnTimer.label;" accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"/>
+			<separator class="thick"/>
+		</groupbox>
+	</tabpanel>
+      </tabpanels>
+    </tabbox>
+    <separator class="thin"/>
+    <hbox align="end">
+		<hbox class="actionButtons" flex="1">
+			<spacer flex="1"/>
 			<button oncommand="close();"
 				label="&danbooruUpOptions.cancel.label;" accesskey="&danbooruUpOptions.cancel.accesskey;"/>
 			<button oncommand="if (gDanbooruManager.onOK()) close()"
@@ -64,7 +114,6 @@
 		</hbox>
 		<resizer dir="bottomright"/>
 	</hbox>
-
-
+<!--/prefpane-->
 </window>
 

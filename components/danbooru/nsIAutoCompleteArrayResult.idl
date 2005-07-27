@@ -1,0 +1,9 @@
+#include "nsIAutoCompleteResultTypes.idl"
+
+/* noscript */
+[uuid(dd0be70d-cd67-4aa1-ab4c-bf0b264e0a5a)]
+interface nsIAutoCompleteArrayResult : nsIAutoCompleteBaseResult
+{
+	void addRow(in AString str);
+};
+

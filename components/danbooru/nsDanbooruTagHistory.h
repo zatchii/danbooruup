@@ -40,16 +40,18 @@
 
 #include "nsIDanbooruTagHistory.h"
 #include "nsIAutoCompleteResultTypes.h"
-//#include "nsIFormSubmitObserver.h"
+#include "nsIAutoCompleteArrayResult.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
+#include "mozIStorageConnection.h"
+#include "mozIStorageStatement.h"
 #include "mdb.h"
 
 #define NS_DANBOORUTAGHISTORY_CID \
-{ 0x0afd6b91, 0x10db, 0x485e, { 0xa6, 0xe2, 0x45, 0x5e, 0x70, 0x4a, 0xf6, 0x71 } }
+{ 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x47 } }
 #define NS_DANBOORUTAGHISTORY_CONTRACTID "@mozilla.org/danbooru/taghistory;1"
 
 class nsDanbooruTagHistory : public nsIDanbooruTagHistory,
@@ -73,29 +75,29 @@ public:
   static void ReleaseInstance(void);
 
   nsresult AutoCompleteSearch(const nsAString &aInputName,
-                              nsIAutoCompleteMdbResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
-
-  static mdb_column kToken_NameColumn;
-  static mdb_column kToken_ValueColumn;
+                              nsIAutoCompleteArrayResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
 
 protected:
   // Database I/O
   nsresult OpenDatabase();
+  nsresult CloseDatabase();
+
+#ifdef DANBOORUUP_MORK
+  static mdb_column kToken_NameColumn;
+  static mdb_column kToken_ValueColumn;
   nsresult OpenExistingFile(const char *aPath);
   nsresult CreateNewFile(const char *aPath);
-  nsresult CloseDatabase();
   nsresult CreateTokens();
   nsresult Flush();
   nsresult CopyRowsFromTable(nsIMdbTable *sourceTable);
-
-  mdb_err UseThumb(nsIMdbThumb *aThumb, PRBool *aDone);
-
-  nsresult AppendRow(const nsAString &aName, const PRInt32 aValue, nsIMdbRow **aResult);
-  nsresult AppendRow(const nsAString &aName, nsIMdbRow **aResult);
+  nsresult AppendRow(const nsAString &aName, const PRUint32 aID, const PRInt32 aValue, nsIMdbRow **aResult);
+  nsresult AppendRow(const nsAString &aName, const PRUint32 aID, nsIMdbRow **aResult);
   nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAString &aValue);
   nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue);
   nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue);
   nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, PRInt32 *aValue);
+
+  mdb_err UseThumb(nsIMdbThumb *aThumb, PRBool *aDone);
 
   PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue);
   PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRInt32 *aValue);
@@ -106,15 +108,7 @@ protected:
 
   nsresult RemoveEntriesInternal(const nsAString *aName);
 
-  static PRBool TagHistoryEnabled();
-
-  static nsDanbooruTagHistory *gTagHistory;
-
-  static PRBool gTagHistoryEnabled;
-  static PRBool gPrefsInitialized;
-
   nsCOMPtr<nsIMdbFactory> mMdbFactory;
-  nsCOMPtr<nsIPrefBranch> mPrefBranch;
   nsIMdbEnv* mEnv;
   nsIMdbStore* mStore;
   nsIMdbTable* mTable;
@@ -123,6 +117,25 @@ protected:
   // database tokens
   mdb_scope kToken_RowScope;
   mdb_kind kToken_Kind;
+#else
+  // mozStorage
+  nsCOMPtr<mozIStorageConnection> mDB;
+
+  nsCOMPtr<mozIStorageStatement> mInsertStmt;
+  nsCOMPtr<mozIStorageStatement> mIncrementStmt;
+  nsCOMPtr<mozIStorageStatement> mSearchStmt;
+  nsCOMPtr<mozIStorageStatement> mExistsStmt;
+
+  nsresult ProcessTagXML(void *);
+#endif
+  static PRBool TagHistoryEnabled();
+
+  static nsDanbooruTagHistory *gTagHistory;
+
+  static PRBool gTagHistoryEnabled;
+  static PRBool gPrefsInitialized;
+
+  nsCOMPtr<nsIPrefBranch> mPrefBranch;
 };
 
 #endif // __nsDanbooruTagHistory__

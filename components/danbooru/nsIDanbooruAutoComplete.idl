@@ -47,7 +47,7 @@ interface nsIAutoCompleteSearch;
 [scriptable, uuid(1d28d383-b5b1-4ad4-a35a-71673702a5d6)]
 interface nsIDanbooruAutoComplete : nsISupports
 {
-	void updateTagListFromURI(in AString aXmlURI);
+	//void updateTagListFromURI(in AString aXmlURI);
 
 //	void startSearch(in AString aSearchString, in AString aSearchParam, in nsIAutoCompleteResult aPreviousResult, in nsIAutoCompleteObserver aListener);
 //	void stopSearch();

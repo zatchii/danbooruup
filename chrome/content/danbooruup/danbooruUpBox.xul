@@ -38,7 +38,7 @@ function doOK()
 		for(var a in tagarr) {
 			flat[tagarr[a]]=null;
 		}
-		var taghist = Components.classes["@mozilla.org/danbooru/taghistory"]
+		var taghist = Components.classes["@mozilla.org/danbooru/taghistory;1"]
 				.getService(Components.interfaces.nsIDanbooruTagHistory);
 		for(var a in flat) {
 			taghist.incrementValueForName(a);
