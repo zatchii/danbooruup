@@ -38,12 +38,17 @@
 #include "nsISupports.idl"
 
 [scriptable, uuid(0afd6b91-10db-485e-a6e2-455e704af671)]
-interface nsIDanbooruTagHistory : nsISupports
+interface nsIDanbooruTagHistoryService : nsISupports
 {
   /**
    * The total number of rows in the tag history.
    */
   readonly attribute unsigned long rowCount;
+
+  /**
+   * The highest ID in the tag database.
+   */
+  readonly attribute unsigned long maxID;
 
   /**
    * Updates the tag database from a given XML source.
@@ -88,7 +93,7 @@ interface nsIDanbooruTagHistory : nsISupports
   void removeEntriesForName(in AString name);
 
   /**
-   * Removes all entries in the entire rag history.
+   * Removes all entries in the entire tag history.
    */
   void removeAllEntries();
 

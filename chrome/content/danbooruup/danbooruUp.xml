@@ -45,9 +45,6 @@
       </field>
 
       <constructor><![CDATA[
-	      //        mController = Components.classes["@mozilla.org/autocomplete/search;1?name=danboorutag"]
-	      //			.createInstance(Components.interfaces.nsIDanbooruAutoComplete)
-	      //			.QueryInterface(Components.interfaces.nsIAutoCompleteController);
 	      mController = Components.classes["@mozilla.org/autocomplete/controller;1"].createInstance(Components.interfaces.nsIAutoCompleteController);
       ]]></constructor>
 

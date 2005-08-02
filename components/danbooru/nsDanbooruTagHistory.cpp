@@ -37,7 +37,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "nsDanbooruTagHistory.h"
+#include "nsDanbooruTagHistoryService.h"
 
 #include "nsIServiceManager.h"
 #include "nsIObserverService.h"
@@ -93,32 +93,34 @@ static const char *kTagTableName = "tags";
 #define kTagSearch "SELECT name FROM tags WHERE name LIKE ?1||'%' ORDER BY value desc,name asc"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kRemoveAll "DELETE FROM tags"
+#define kMaxID "SELECT max(id) FROM tags"
+#define kRowCount "SELECT count() FROM tags"
 #endif
 
-NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistory)
+NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistory)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
 NS_INTERFACE_MAP_END_THREADSAFE
 
-NS_IMPL_THREADSAFE_ADDREF(nsDanbooruTagHistory)
-NS_IMPL_THREADSAFE_RELEASE(nsDanbooruTagHistory)
+NS_IMPL_THREADSAFE_ADDREF(nsDanbooruTagHistoryService)
+NS_IMPL_THREADSAFE_RELEASE(nsDanbooruTagHistoryService)
 
 #ifdef DANBOORUUP_MORK
-mdb_column nsDanbooruTagHistory::kToken_NameColumn = 0;
-mdb_column nsDanbooruTagHistory::kToken_ValueColumn = 0;
+mdb_column nsDanbooruTagHistoryService::kToken_NameColumn = 0;
+mdb_column nsDanbooruTagHistoryService::kToken_ValueColumn = 0;
 #endif
 
 #ifdef DANBOORUUP_TESTING
-PRBool nsDanbooruTagHistory::gTagHistoryEnabled = PR_TRUE;
-PRBool nsDanbooruTagHistory::gPrefsInitialized = PR_TRUE;
+PRBool nsDanbooruTagHistoryService::gTagHistoryEnabled = PR_TRUE;
+PRBool nsDanbooruTagHistoryService::gPrefsInitialized = PR_TRUE;
 #else
-PRBool nsDanbooruTagHistory::gTagHistoryEnabled = PR_FALSE;
-PRBool nsDanbooruTagHistory::gPrefsInitialized = PR_FALSE;
+PRBool nsDanbooruTagHistoryService::gTagHistoryEnabled = PR_FALSE;
+PRBool nsDanbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #endif
 
-nsDanbooruTagHistory::nsDanbooruTagHistory() :
+nsDanbooruTagHistoryService::nsDanbooruTagHistoryService() :
 #ifdef DANBOORUUP_MORK
   mEnv(nsnull),
   mStore(nsnull),
@@ -129,13 +131,13 @@ nsDanbooruTagHistory::nsDanbooruTagHistory() :
 {
 }
 
-nsDanbooruTagHistory::~nsDanbooruTagHistory()
+nsDanbooruTagHistoryService::~nsDanbooruTagHistoryService()
 {
   CloseDatabase();
 }
 
 nsresult
-nsDanbooruTagHistory::Init()
+nsDanbooruTagHistoryService::Init()
 {
   gTagHistory = this;
   //nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
@@ -145,13 +147,13 @@ nsDanbooruTagHistory::Init()
   return NS_OK;
 }
 
-nsDanbooruTagHistory *nsDanbooruTagHistory::gTagHistory = nsnull;
+nsDanbooruTagHistoryService *nsDanbooruTagHistoryService::gTagHistory = nsnull;
 
-nsDanbooruTagHistory *
-nsDanbooruTagHistory::GetInstance()
+nsDanbooruTagHistoryService *
+nsDanbooruTagHistoryService::GetInstance()
 {
   if (!gTagHistory) {
-    gTagHistory = new nsDanbooruTagHistory();
+    gTagHistory = new nsDanbooruTagHistoryService();
     if (!gTagHistory)
       return nsnull;
 
@@ -171,13 +173,13 @@ nsDanbooruTagHistory::GetInstance()
 
 
 void
-nsDanbooruTagHistory::ReleaseInstance()
+nsDanbooruTagHistoryService::ReleaseInstance()
 {
   NS_IF_RELEASE(gTagHistory);
 }
 
 /* static */ PRBool
-nsDanbooruTagHistory::TagHistoryEnabled()
+nsDanbooruTagHistoryService::TagHistoryEnabled()
 {
   if (!gPrefsInitialized) {
     nsCOMPtr<nsIPrefService> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
@@ -250,7 +252,7 @@ GetResolvedURI(const nsAString& aSchemaURI,
 }
 
 nsresult
-nsDanbooruTagHistory::ProcessTagXML(void *document)
+nsDanbooruTagHistoryService::ProcessTagXML(void *document)
 {
 	NS_ENSURE_ARG(document);
 
@@ -271,7 +273,7 @@ nsDanbooruTagHistory::ProcessTagXML(void *document)
 	}
 
 	nsCOMPtr<nsIDOMNode> child;
-	//nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
+	//nsDanbooruTagHistoryService *history = nsDanbooruTagHistoryService::GetInstance();
 	mDB->BeginTransaction();
 	while (index < length) {
 		nodeList->Item(index++, getter_AddRefs(child));
@@ -297,7 +299,7 @@ nsDanbooruTagHistory::ProcessTagXML(void *document)
 
 /* used to be the nsISchema load */
 NS_IMETHODIMP
-nsDanbooruTagHistory::UpdateTagListFromURI(const nsAString &aXmlURI)
+nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI)
 {
 	nsCOMPtr<nsIURI> resolvedURI;
 	nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
@@ -357,7 +359,7 @@ nsDanbooruTagHistory::UpdateTagListFromURI(const nsAString &aXmlURI)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::GetRowCount(PRUint32 *aRowCount)
+nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -365,12 +367,51 @@ nsDanbooruTagHistory::GetRowCount(PRUint32 *aRowCount)
 #ifdef DANBOORUUP_MORK
   mdb_err err = mTable->GetCount(mEnv, aRowCount);
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
+#else
+  PRBool row;
+  mRowCountStmt->ExecuteStep(&row);
+  if (row)
+  {
+	  PRInt32 type;
+	  mRowCountStmt->GetTypeOfIndex(0, &type);
+	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
+		  *aRowCount = 0;
+	  else
+		  mRowCountStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
+	  mRowCountStmt->Reset();
+  } else {
+	  return NS_ERROR_FAILURE;
+  }
 #endif
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt32 *aValue)
+nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
+{
+  nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  PRBool row;
+  mMaxIDStmt->ExecuteStep(&row);
+  if (row)
+  {
+	  PRInt32 type;
+	  mMaxIDStmt->GetTypeOfIndex(0, &type);
+	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
+		  *aRowCount = -1;
+	  else
+		  mMaxIDStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
+	  mMaxIDStmt->Reset();
+  } else {
+	  return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDanbooruTagHistoryService::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt32 *aValue)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -382,12 +423,15 @@ nsDanbooruTagHistory::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt32 *aVa
 
   GetRowValue(row, kToken_NameColumn, aName);
   GetRowValue(row, kToken_ValueColumn, aValue);
-#endif
+
   return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::GetNameAt(PRUint32 aIndex, nsAString &aName)
+nsDanbooruTagHistoryService::GetNameAt(PRUint32 aIndex, nsAString &aName)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -398,12 +442,15 @@ nsDanbooruTagHistory::GetNameAt(PRUint32 aIndex, nsAString &aName)
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
 
   GetRowValue(row, kToken_NameColumn, aName);
-#endif
+
   return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
+nsDanbooruTagHistoryService::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -414,12 +461,15 @@ nsDanbooruTagHistory::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
   NS_ENSURE_TRUE(!err, NS_ERROR_FAILURE);
 
   GetRowValue(row, kToken_ValueColumn, aValue);
-#endif
+
   return NS_OK;
+#else
+  return NS_ERROR_NOT_IMPLEMENTED;
+#endif
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::AddEntry(const nsAString &aName, const nsAString &aID, const PRInt32 aValue)
+nsDanbooruTagHistoryService::AddEntry(const nsAString &aName, const nsAString &aID, const PRInt32 aValue)
 {
   if (!TagHistoryEnabled())
     return NS_OK;
@@ -439,7 +489,7 @@ nsDanbooruTagHistory::AddEntry(const nsAString &aName, const nsAString &aID, con
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::AddNameEntry(const nsAString &aName, const nsAString &aID )
+nsDanbooruTagHistoryService::AddNameEntry(const nsAString &aName, const nsAString &aID )
 {
   if (!TagHistoryEnabled())
     return NS_OK;
@@ -459,13 +509,13 @@ nsDanbooruTagHistory::AddNameEntry(const nsAString &aName, const nsAString &aID 
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::RemoveEntryAt(PRUint32 index)
+nsDanbooruTagHistoryService::RemoveEntryAt(PRUint32 index)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::EntryExists(const nsAString &aName, const PRInt32 aValue, PRBool *_retval)
+nsDanbooruTagHistoryService::EntryExists(const nsAString &aName, const PRInt32 aValue, PRBool *_retval)
 {
 #ifndef DANBOORUUP_MORK
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -475,7 +525,7 @@ nsDanbooruTagHistory::EntryExists(const nsAString &aName, const PRInt32 aValue, 
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::NameExists(const nsAString &aName, PRBool *_retval)
+nsDanbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
 {
 #ifndef DANBOORUUP_MORK
   mExistsStmt->BindStringParameter(0, aName);
@@ -492,7 +542,7 @@ nsDanbooruTagHistory::NameExists(const nsAString &aName, PRBool *_retval)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::RemoveEntriesForName(const nsAString &aName)
+nsDanbooruTagHistoryService::RemoveEntriesForName(const nsAString &aName)
 {
 #ifndef DANBOORUUP_MORK
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -502,13 +552,12 @@ nsDanbooruTagHistory::RemoveEntriesForName(const nsAString &aName)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::RemoveAllEntries()
+nsDanbooruTagHistoryService::RemoveAllEntries()
 {
 #ifndef DANBOORUUP_MORK
   // or we could just drop the database
   mDB->BeginTransaction();
   mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kRemoveAll));
-  mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM"));
   mDB->CommitTransaction();
 
   return NS_OK;
@@ -522,7 +571,7 @@ nsDanbooruTagHistory::RemoveAllEntries()
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRBool *retval)
+nsDanbooruTagHistoryService::IncrementValueForName(const nsAString &aName, PRBool *retval)
 {
 	if(aName.IsEmpty())
 		return NS_ERROR_INVALID_ARG;
@@ -580,7 +629,7 @@ nsDanbooruTagHistory::IncrementValueForName(const nsAString &aName, PRBool *retv
 //// nsIObserver
 
 NS_IMETHODIMP
-nsDanbooruTagHistory::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
+nsDanbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
 {
   if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     //mPrefBranch->GetBoolPref(PREF_FORMFILL_ENABLE, &gTagHistoryEnabled);
@@ -593,7 +642,7 @@ nsDanbooruTagHistory::Observe(nsISupports *aSubject, const char *aTopic, const P
 //// nsIFormSubmitObserver
 #if 0
 NS_IMETHODIMP
-nsDanbooruTagHistory::Notify(nsIContent* aFormNode, nsIDOMWindowInternal* aWindow, nsIURI* aActionURL, PRBool* aCancelSubmit)
+nsDanbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal* aWindow, nsIURI* aActionURL, PRBool* aCancelSubmit)
 {
   if (!FormHistoryEnabled())
     return NS_OK;
@@ -704,7 +753,7 @@ DanbooruErrorHook::OnAbortHintYarn(nsIMdbEnv *ev, const mdbYarn *inYarn)
 #endif
 
 nsresult
-nsDanbooruTagHistory::OpenDatabase()
+nsDanbooruTagHistoryService::OpenDatabase()
 {
 #ifndef DANBOORUUP_MORK
   if (mDB)
@@ -726,10 +775,18 @@ nsDanbooruTagHistory::OpenDatabase()
 
   mDB->CreateTable(kTagTableName, kTagHistorySchema);
 
-  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
-  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
-  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
-  mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kMaxID), getter_AddRefs(mMaxIDStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRowCount), getter_AddRefs(mRowCountStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 
@@ -785,7 +842,7 @@ nsDanbooruTagHistory::OpenDatabase()
 }
 
 nsresult
-nsDanbooruTagHistory::CloseDatabase()
+nsDanbooruTagHistoryService::CloseDatabase()
 {
 #ifdef DANBOORUUP_MORK
   Flush();
@@ -810,7 +867,7 @@ nsDanbooruTagHistory::CloseDatabase()
 
 #if 0 || defined(DANBOORUUP_MORK)
 nsresult
-nsDanbooruTagHistory::OpenExistingFile(const char *aPath)
+nsDanbooruTagHistoryService::OpenExistingFile(const char *aPath)
 {
   nsCOMPtr<nsIMdbFile> oldFile;
   nsIMdbHeap* dbHeap = 0;
@@ -852,7 +909,7 @@ nsDanbooruTagHistory::OpenExistingFile(const char *aPath)
 }
 
 nsresult
-nsDanbooruTagHistory::CreateNewFile(const char *aPath)
+nsDanbooruTagHistoryService::CreateNewFile(const char *aPath)
 {
   nsIMdbHeap* dbHeap = 0;
   nsCOMPtr<nsIMdbFile> newFile;
@@ -889,7 +946,7 @@ nsDanbooruTagHistory::CreateNewFile(const char *aPath)
 }
 
 nsresult
-nsDanbooruTagHistory::CreateTokens()
+nsDanbooruTagHistoryService::CreateTokens()
 {
   mdb_err err;
 
@@ -912,7 +969,7 @@ nsDanbooruTagHistory::CreateTokens()
 }
 
 nsresult
-nsDanbooruTagHistory::Flush()
+nsDanbooruTagHistoryService::Flush()
 {
   if (!mStore || !mTable)
     return NS_OK;
@@ -929,7 +986,7 @@ nsDanbooruTagHistory::Flush()
 }
 
 mdb_err
-nsDanbooruTagHistory::UseThumb(nsIMdbThumb *aThumb, PRBool *aDone)
+nsDanbooruTagHistoryService::UseThumb(nsIMdbThumb *aThumb, PRBool *aDone)
 {
   mdb_count total;
   mdb_count current;
@@ -948,7 +1005,7 @@ nsDanbooruTagHistory::UseThumb(nsIMdbThumb *aThumb, PRBool *aDone)
 }
 
 nsresult
-nsDanbooruTagHistory::CopyRowsFromTable(nsIMdbTable *sourceTable)
+nsDanbooruTagHistoryService::CopyRowsFromTable(nsIMdbTable *sourceTable)
 {
   nsCOMPtr<nsIMdbTableRowCursor> rowCursor;
   mdb_err err = sourceTable->GetTableRowCursor(mEnv, -1, getter_AddRefs(rowCursor));
@@ -974,7 +1031,7 @@ nsDanbooruTagHistory::CopyRowsFromTable(nsIMdbTable *sourceTable)
 }
 
 nsresult
-nsDanbooruTagHistory::AppendRow(const nsAString &aName, const PRInt32 aValue, nsIMdbRow **aResult)
+nsDanbooruTagHistoryService::AppendRow(const nsAString &aName, const PRInt32 aValue, nsIMdbRow **aResult)
 {
   if (!mTable)
     return NS_ERROR_NOT_INITIALIZED;
@@ -1004,7 +1061,7 @@ nsDanbooruTagHistory::AppendRow(const nsAString &aName, const PRInt32 aValue, ns
 }
 
 nsresult
-nsDanbooruTagHistory::AppendRow(const nsAString &aName, nsIMdbRow **aResult)
+nsDanbooruTagHistoryService::AppendRow(const nsAString &aName, nsIMdbRow **aResult)
 {
   if (!mTable)
     return NS_ERROR_NOT_INITIALIZED;
@@ -1034,7 +1091,7 @@ nsDanbooruTagHistory::AppendRow(const nsAString &aName, nsIMdbRow **aResult)
 }
 
 nsresult
-nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAString &aValue)
+nsDanbooruTagHistoryService::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAString &aValue)
 {
 	PRInt32 len = aValue.Length() * sizeof(PRUnichar);
 
@@ -1046,7 +1103,7 @@ nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAStr
 }
 
 nsresult
-nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue)
+nsDanbooruTagHistoryService::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue)
 {
 	nsCAutoString buf; buf.AppendInt(aValue);
 
@@ -1058,7 +1115,7 @@ nsDanbooruTagHistory::SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt3
 }
 
 nsresult
-nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue)
+nsDanbooruTagHistoryService::GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue)
 {
 
 	mdbYarn yarn;
@@ -1081,7 +1138,7 @@ nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &a
 }
 
 nsresult
-nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol,
+nsDanbooruTagHistoryService::GetRowValue(nsIMdbRow *aRow, mdb_column aCol,
 				PRInt32 *aResult)
 {
 	mdbYarn yarn;
@@ -1097,7 +1154,7 @@ nsDanbooruTagHistory::GetRowValue(nsIMdbRow *aRow, mdb_column aCol,
 #endif
 
 nsresult
-nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
+nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 #ifdef DANBOORUUP_MORK
                                   nsIAutoCompleteMdbResult *aPrevResult,
 #else
@@ -1245,7 +1302,7 @@ nsDanbooruTagHistory::AutoCompleteSearch(const nsAString &aInputName,
 
 #if 0 || defined(DANBOORUUP_MORK)
 int PR_CALLBACK
-nsDanbooruTagHistory::SortComparison(const void *v1, const void *v2, void *closureVoid)
+nsDanbooruTagHistoryService::SortComparison(const void *v1, const void *v2, void *closureVoid)
 {
 	PRUint32 *index1 = (PRUint32 *)v1;
 	PRUint32 *index2 = (PRUint32 *)v2;
@@ -1264,7 +1321,7 @@ nsDanbooruTagHistory::SortComparison(const void *v1, const void *v2, void *closu
 }
 
 PRBool
-nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue)
+nsDanbooruTagHistoryService::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue)
 {
 	nsAutoString name;
 	GetRowValue(aRow, kToken_NameColumn, name);
@@ -1283,7 +1340,7 @@ nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, con
 }
 
 PRBool
-nsDanbooruTagHistory::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRInt32 *aValue)
+nsDanbooruTagHistoryService::RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRInt32 *aValue)
 {
 	nsAutoString name;
 	GetRowValue(aRow, kToken_NameColumn, name);
@@ -1324,7 +1381,7 @@ if (console)
 
 #ifdef DANBOORUUP_MORK
 nsresult
-nsDanbooruTagHistory::EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval)
+nsDanbooruTagHistoryService::EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval)
 {
   // Unfortunately we have to do a brute force search through the database
   // because mork didn't bother to implement any indexing functionality
@@ -1364,7 +1421,7 @@ nsDanbooruTagHistory::EntriesExistInternal(const nsAString *aName, const PRInt32
 }
 
 nsresult
-nsDanbooruTagHistory::RemoveEntriesInternal(const nsAString *aName)
+nsDanbooruTagHistoryService::RemoveEntriesInternal(const nsAString *aName)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);

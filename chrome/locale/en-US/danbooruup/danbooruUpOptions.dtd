@@ -21,12 +21,16 @@
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
 <!ENTITY danbooruUpOptions.updateOnStartup.label	"Update on startup">
 <!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"s">
+<!ENTITY danbooruUpOptions.fastUpdate.label		"Faster startup updating">
+<!ENTITY danbooruUpOptions.fastUpdate.accesskey		"F">
 <!ENTITY danbooruUpOptions.updateOnUpload.label		"Update on upload">
-<!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"p">
+<!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"l">
 <!ENTITY danbooruUpOptions.updateOnUpload.before.label	"Update before update dialog appears">
 <!ENTITY danbooruUpOptions.updateOnUpload.after.label	"Update after confirming upload">
-<!ENTITY danbooruUpOptions.updateOnTimer.label		"Update on timer">
+<!ENTITY danbooruUpOptions.updateOnTimer.label		"Update on timer every">
 <!ENTITY danbooruUpOptions.updateOnTimer.accesskey	"t">
-<!ENTITY danbooruUpOptions.clearTagHistory.label	"Clear tag history">
-<!ENTITY danbooruUpOptions.updateNow.label		"Update now">
+<!ENTITY danbooruUpOptions.min.label			"minutes">
+<!ENTITY danbooruUpOptions.clearTagHistory.label	"Clear Tag History">
+<!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
+<!ENTITY danbooruUpOptions.updateNow.accesskey		"N">
 

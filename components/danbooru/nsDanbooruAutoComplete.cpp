@@ -46,7 +46,7 @@
 #include <stdio.h>
 
 #include "nsDanbooruAutoComplete.h"
-#include "nsDanbooruTagHistory.h"
+#include "nsDanbooruTagHistoryService.h"
 
 #include "nsIXPConnect.h"
 
@@ -159,123 +159,6 @@ GetResolvedURI(const nsAString& aSchemaURI,
   return NS_OK;
 }
 
-#if 0
-static nsresult
-ProcessTagXML(void *document)
-{
-	NS_ENSURE_ARG(document);
-
-	nsCOMPtr<nsIDOMNodeList> nodeList;
-	PRUint32 index = 0;
-	PRUint32 length = 0;
-	
-	((nsIDOMElement *)document)->GetChildNodes(getter_AddRefs(nodeList));
-
-	if (nodeList) {
-		nodeList->GetLength(&length);
-	} else {
-		// no tags?
-		return NS_ERROR_FAILURE;
-	}
-
-	nsCOMPtr<nsIDOMNode> child;
-	nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
-	while (index < length) {
-		nodeList->Item(index++, getter_AddRefs(child));
-		nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
-		if (!childElement) {
-			continue;
-		}
-
-		nsAutoString tagname, tagid;
-		PRUint32 idnum;
-
-		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
-		childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
-		idnum = atoi(PromiseFlatString(tagid));
-		if (history) {
-			if (!tagname.IsEmpty()) {
-				history->AddNameEntry(tagname, idnum);
-#ifdef DANBOORUUP_TESTING
-				PRUint32 count = 0;
-				history->GetRowCount(&count);
-				char *ctagname = ToNewCString(tagname);
-				fprintf(stderr, "%d\t%s\n", count, ctagname);
-				nsMemory::Free(ctagname);
-#endif
-			}
-		}
-#ifdef DANBOORUUP_TESTING
-		else { printf("nohistory\n"); }
-#endif
-	}
-	NS_RELEASE(history);
-
-	return NS_OK;
-}
-
-/* used to be the nsISchema load */
-NS_IMETHODIMP
-nsDanbooruAutoComplete::UpdateTagListFromURI(const nsAString &aXmlURI)
-{
-	nsCOMPtr<nsIURI> resolvedURI;
-	nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-	nsCAutoString spec;
-	resolvedURI->GetSpec(spec);
-
-	nsCOMPtr<nsIXMLHttpRequest> request(do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv));
-	if (!request) {
-		return rv;
-	}
-
-	const nsAString& empty = EmptyString();
-	rv = request->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty, empty);
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-
-	// Force the mimetype of the returned stream to be xml.
-	rv = request->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-
-	// keep-alive, more like zombie
-	rv = request->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-#ifdef DANBOORUUP_TESTING
-	fprintf(stderr,"getting\n", rv);
-#endif
-
-	rv = request->Send(nsnull);
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-
-	nsCOMPtr<nsIDOMDocument> document;
-	rv = request->GetResponseXML(getter_AddRefs(document));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-
-	nsCOMPtr<nsIDOMElement> element;
-	document->GetDocumentElement(getter_AddRefs(element));
-	if (element) {
-		ProcessTagXML(element);
-	}
-	else {
-		rv = NS_ERROR_CANNOT_CONVERT_DATA;
-	}
-
-	return rv;
-}
-#endif
-
 ////////////////////////////////////////////////////////////////////////
 //// nsIAutoCompleteSearch
 
@@ -301,7 +184,7 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 	nsCOMPtr<nsIAutoCompleteResult> result;
 	nsCOMPtr<nsIAutoCompleteMdbResult> mdbResult = do_QueryInterface(aPreviousResult);
 
-	nsDanbooruTagHistory *history = nsDanbooruTagHistory::GetInstance();
+	nsDanbooruTagHistoryService *history = nsDanbooruTagHistoryService::GetInstance();
 	if (history) {
 		nsresult rv = history->AutoCompleteSearch(aSearchString,
 				NS_STATIC_CAST(nsIAutoCompleteArrayResult *,

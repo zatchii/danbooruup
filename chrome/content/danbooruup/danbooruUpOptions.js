@@ -1,56 +1,3 @@
-// This is a list of ids to elements of the following type: radiogroup, textbox, 
-// checkbox, menulist that can be prefilled automatically from preferences (default
-// or user) by the Options dialog's framework. To benefit from this prefilling each
-// checkbox etc that you use should be annotated with the pref identifier that 
-// it is tied to, the type of pref, and a unique id, which is added to this array.
-//
-// e.g for this XUL element:
-//
-// <checkbox id="showSampleWindow" label="Show Sample Window"
-//           preftype="bool" prefstring="sample.options.showSampleWindow"/>
-//
-// _elementIDs would look like this:
-//
-// var _elementIDs = ["showSampleWindow"];
-//
-//var _elementIDs = [];
-
-// This function is called before the dialog is shown, and before the preferences
-// auto-filling code has initialized the state of any of the UI elements in this
-// dialog. Thus it is not possible to do enabling or disabling at this point since
-// you won't correctly know the state of your UI.
-//function onLoad()
-//{
-  // We ask the parent dialog (which is the Firebird Options dialog) to initialize
-  // this by using the preferences auto-prefill code.
-  //window.opener.top.initPanel(window.location.href, window);  
-//}
-
-// This is a special function that is called by the preferences auto-prefilling code
-// AFTER all of the UI elements defined in _elementIDs above have been prefilled from
-// the user or default preferences. You can execute code in this method that enables
-// or disables elements based on the state of various UI elements, since their state
-// has already been established. 
-//function Startup()
-//{
-  // Enabling code can execute here. 
-//}
-
-// The user pressed the OK button on the dialog. 
-//function onOK()
-//{
-  // Tell the preferences framework to save the user's modifications for this 
-  // panel, but don't actually save them to disk until the user presses "OK" in
-  // the master Options dialog. 
-  //window.opener.top.hPrefWindow.wsm.savePageData(window.location.href, window);
-
-  // Dialog OK handlers must return true. 
-//  return true;
-//}
-
-// Any specialized enabling code and code for other UI controls in the options dialog
-// goes here. 
-
 function Danbooru(host)
 {
 	this.rawHost = host;
@@ -163,8 +110,19 @@ var gDanbooruManager = {
 
   onHostKeyPress: function (aEvent)
   {
-    if (aEvent.keyCode == 13)
+    if (aEvent.keyCode == aEvent.DOM_VK_RETURN || aEvent.keyCode == aEvent.DOM_VK_ENTER ) {
       gDanbooruManager.addDanbooru();
+      return false;
+    }
+  },
+
+  onWindowKeyPress: function (aEvent)
+  {
+    switch (aEvent.keyCode) {
+    case aEvent.DOM_VK_ESCAPE:
+      close();
+      return true;
+    }
   },
 
   // load function only for danbooruUpOptions
@@ -220,6 +178,7 @@ var gDanbooruManager = {
     }
   },
 
+  // Options OK event
   onOK: function ()
   {
     if(!this._danbooru.length) {
@@ -322,6 +281,68 @@ var gDanbooruManager = {
     aTree.treeBoxObject.ensureRowIsVisible(0);
     
     return ascending;
+  },
+
+  onWriteEnableAC: function ()
+  {
+    var pref = document.getElementById("extensions.danbooruUp.autocomplete.enabled");
+    return pref.value;
+  },
+
+  onReadEnableAC: function ()
+  {
+    var pref = document.getElementById("extensions.danbooruUp.autocomplete.enabled");
+    this.onEnableACChanged(pref.value);
+    return pref.value;
+  },
+
+  onEnableACChanged: function (aWhat)
+  {
+    var pref = document.getElementById("enableAC");
+    var elements = [	"updateURL",
+			"clearTagHistory",
+			"updateNow",
+			"updateOnStartup",
+			"fastUpdate",
+			"updateBeforeDialog",
+			"updateAfterDialog",
+			"updateOnTimer",
+			"updateInterval",];
+    for(var e in elements) {
+      document.getElementById(elements[e]).disabled = !aWhat;
+    }
+    if (aWhat) {
+      this.onReadUpdateOnStartup();
+      this.onReadUpdateOnTimer();
+    }
+  },
+
+  onWriteUpdateOnStartup: function ()
+  {
+    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.onstartup");
+    return pref.value;
+  },
+
+  onReadUpdateOnStartup: function ()
+  {
+    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.onstartup");
+    var box = document.getElementById("fastUpdate");
+    box.disabled = !pref.value;
+    return pref.value;
+  },
+
+  onWriteUpdateOnTimer: function ()
+  {
+    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.ontimer");
+    return pref.value;
+  },
+
+  onReadUpdateOnTimer: function ()
+  {
+    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.ontimer");
+    var box = document.getElementById("updateInterval");
+    box.disabled = !pref.value;
+    return pref.value;
   },
 
   _loadDanbooru: function ()

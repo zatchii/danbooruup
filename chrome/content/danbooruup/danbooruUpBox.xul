@@ -18,7 +18,7 @@
 <script>
 function init()
 {
-	document.getElementById('source').value = window.arguments[0].imageURI;
+	document.getElementById('source').value = window.arguments[0].imageURI.spec;
 	var ml = document.getElementById('danbooru');
 	ml.selectedIndex = -1;
 	ml.removeAllItems();
@@ -33,15 +33,18 @@ function doOK()
 	gDanbooruManager.uninit();
 
 	if(tags.length) {
+		// compact tag input
 		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
 		var flat=[];
+		var needupdate = false;
 		for(var a in tagarr) {
 			flat[tagarr[a]]=null;
 		}
-		var taghist = Components.classes["@mozilla.org/danbooru/taghistory;1"]
-				.getService(Components.interfaces.nsIDanbooruTagHistory);
+		var taghist = Components.classes["@mozilla.org/danbooru/taghistory-service;1"]
+				.getService(Components.interfaces.nsIDanbooruTagHistoryService);
 		for(var a in flat) {
-			taghist.incrementValueForName(a);
+			if (!taghist.incrementValueForName(a))
+				needupdate = true;
 		}
 	}
 
@@ -52,7 +55,8 @@ function doOK()
 		document.getElementById('title').value,
 		ml.label,
 		window.arguments[0].imageNode,
-		window.arguments[0].wind);
+		window.arguments[0].wind,
+		needupdate);
 	window.arguments[0].imageNode = null;
 	window.arguments[0].wind = null;
 	window.arguments=null;

@@ -38,7 +38,7 @@
 #ifndef __nsDanbooruTagHistory__
 #define __nsDanbooruTagHistory__
 
-#include "nsIDanbooruTagHistory.h"
+#include "nsIDanbooruTagHistoryService.h"
 #include "nsIAutoCompleteResultTypes.h"
 #include "nsIAutoCompleteArrayResult.h"
 #include "nsString.h"
@@ -50,25 +50,25 @@
 #include "mozIStorageStatement.h"
 #include "mdb.h"
 
-#define NS_DANBOORUTAGHISTORY_CID \
+#define NS_DANBOORUTAGHISTORYSERVICE_CID \
 { 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x47 } }
-#define NS_DANBOORUTAGHISTORY_CONTRACTID "@mozilla.org/danbooru/taghistory;1"
+#define NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID "@mozilla.org/danbooru/taghistory-service;1"
 
-class nsDanbooruTagHistory : public nsIDanbooruTagHistory,
+class nsDanbooruTagHistoryService : public nsIDanbooruTagHistoryService,
                       public nsIObserver,
 //                      public nsIFormSubmitObserver,
                       public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIDANBOORUTAGHISTORY
+  NS_DECL_NSIDANBOORUTAGHISTORYSERVICE
   NS_DECL_NSIOBSERVER
 
   // nsIFormSubmitObserver
   //NS_IMETHOD Notify(nsIContent* formNode, nsIDOMWindowInternal* window, nsIURI* actionURL, PRBool* cancelSubmit);
 
-  nsDanbooruTagHistory();
-  virtual ~nsDanbooruTagHistory();
+  nsDanbooruTagHistoryService();
+  virtual ~nsDanbooruTagHistoryService();
   nsresult Init();
 
   static nsDanbooruTagHistory *GetInstance();
@@ -125,6 +125,8 @@ protected:
   nsCOMPtr<mozIStorageStatement> mIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mSearchStmt;
   nsCOMPtr<mozIStorageStatement> mExistsStmt;
+  nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
+  nsCOMPtr<mozIStorageStatement> mRowCountStmt;
 
   nsresult ProcessTagXML(void *);
 #endif

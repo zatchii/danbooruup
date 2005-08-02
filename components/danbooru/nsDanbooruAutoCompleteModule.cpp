@@ -38,7 +38,7 @@
 #include "nsIGenericFactory.h"
 
 #include "nsDanbooruAutoComplete.h"
-#include "nsDanbooruTagHistory.h"
+#include "nsDanbooruTagHistoryService.h"
 #include "nsAutoCompleteArrayResult.h"
 
 ////////////////////////////////////////////////////////////////////////
@@ -66,12 +66,12 @@
 //		 constructor nsSampleImpl::nsSampleImpl()
 //
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsDanbooruAutoComplete)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDanbooruTagHistory, nsDanbooruTagHistory::GetInstance)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDanbooruTagHistoryService, nsDanbooruTagHistoryService::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteArrayResult)
 
 static void PR_CALLBACK nsDanbooruAutoCompleteDestructor(nsIModule* self)
 {
-	nsDanbooruTagHistory::ReleaseInstance();
+	nsDanbooruTagHistoryService::ReleaseInstance();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -120,7 +120,7 @@ static NS_METHOD nsDanbooruAutoCompleteUnregistrationProc(nsIComponentManager *a
 static const nsModuleComponentInfo components[] =
 {
   { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor },
-  { "Danbooru Tag History Service", NS_DANBOORUTAGHISTORY_CID, NS_DANBOORUTAGHISTORY_CONTRACTID, nsDanbooruTagHistoryConstructor },
+  { "Danbooru Tag History Service", NS_DANBOORUTAGHISTORYSERVICE_CID, NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID, nsDanbooruTagHistoryServiceConstructor },
   { "AutoComplete Array Result",
 	  NS_AUTOCOMPLETEARRAYRESULT_CID,
 	  NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID,
