@@ -98,7 +98,7 @@ static const char *kTagTableName = "tags";
 #endif
 
 NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistoryService)
-  NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistory)
+  NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
@@ -201,7 +201,7 @@ nsDanbooruTagHistoryService::TagHistoryEnabled()
 
 
 ////////////////////////////////////////////////////////////////////////
-//// nsIDanbooruTagHistory
+//// nsIDanbooruTagHistoryService
 
 /* pilfered from nsSchemaLoader */
 static nsresult

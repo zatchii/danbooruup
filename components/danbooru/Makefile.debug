@@ -94,14 +94,14 @@ MODULE_NAME	= nsDanbooruAutoCompleteModule
 CPPSRCS		=		   \
 		nsDanbooruAutoComplete.cpp	   \
 		nsDanbooruAutoCompleteModule.cpp \
-		nsDanbooruTagHistory.cpp \
+		nsDanbooruTagHistoryService.cpp \
 		nsAutoCompleteArrayResult.cpp \
 		$(NULL)
 
 # XPIDLSRCS specified IDL files. The build system runs the xpidl tool on these
 # files to generate C++ headers and .xpt typelib files.
 XPIDLSRCS	= nsIDanbooruAutoComplete.idl \
-		  nsIDanbooruTagHistory.idl \
+		  nsIDanbooruTagHistoryService.idl \
 		  nsIAutoCompleteArrayResult.idl
 
 MOZ_DEBUG = 1

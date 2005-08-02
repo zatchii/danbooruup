@@ -71,7 +71,7 @@ public:
   virtual ~nsDanbooruTagHistoryService();
   nsresult Init();
 
-  static nsDanbooruTagHistory *GetInstance();
+  static nsDanbooruTagHistoryService *GetInstance();
   static void ReleaseInstance(void);
 
   nsresult AutoCompleteSearch(const nsAString &aInputName,
@@ -132,7 +132,7 @@ protected:
 #endif
   static PRBool TagHistoryEnabled();
 
-  static nsDanbooruTagHistory *gTagHistory;
+  static nsDanbooruTagHistoryService *gTagHistory;
 
   static PRBool gTagHistoryEnabled;
   static PRBool gPrefsInitialized;
