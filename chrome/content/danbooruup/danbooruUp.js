@@ -47,7 +47,7 @@ var danbooruTagUpdater = {
 	update: function(aFull)
 	{
 		tagService.updateTagListFromURI("http://danbooru.donmai.us/tag/list_raw"
-						+ ((this.mMaxID>0 && !aFull)?"after/"+(this.mMaxID+1):"") );
+						+ ((this.mMaxID>0 && !aFull)?"/after/"+(this.mMaxID+1):"") );
 		this.mMaxID = tagService.maxID;
 		prefService.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
 		timer = null;
