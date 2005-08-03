@@ -23,10 +23,12 @@
 <!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"s">
 <!ENTITY danbooruUpOptions.fastUpdate.label		"Faster startup updating">
 <!ENTITY danbooruUpOptions.fastUpdate.accesskey		"F">
+<!ENTITY danbooruUpOptions.fastUpdate.tooltip		"This option speeds up startup by only retrieving fron the server tags that are new instead of the entire list.">
 <!ENTITY danbooruUpOptions.updateOnUpload.label		"Update on upload">
 <!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"l">
 <!ENTITY danbooruUpOptions.updateOnUpload.before.label	"Update before update dialog appears">
 <!ENTITY danbooruUpOptions.updateOnUpload.after.label	"Update after confirming upload">
+<!ENTITY danbooruUpOptions.updateOnUpload.after.tooltip	"If this box is unchecked, tags that are not already in the local database will not be remembered.">
 <!ENTITY danbooruUpOptions.updateOnTimer.label		"Update on timer every">
 <!ENTITY danbooruUpOptions.updateOnTimer.accesskey	"t">
 <!ENTITY danbooruUpOptions.min.label			"minutes">

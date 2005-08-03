@@ -104,11 +104,11 @@
 		<groupbox align="start">
 			<caption label="&danbooruUpOptions.updategroup.label;"/>
 			<checkbox id="updateOnStartup" preference="extensions.danbooruUp.autocomplete.update.onstartup" label="&danbooruUpOptions.updateOnStartup.label;" accesskey="&danbooruUpOptions.updateOnStartup.accesskey;" onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();" onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
-			<checkbox id="fastUpdate" preference="extensions.danbooruUp.autocomplete.update.faststartup" label="&danbooruUpOptions.fastUpdate.label;" accesskey="&danbooruUpOptions.fastUpdate.accesskey;" class="indent" />
+			<checkbox id="fastUpdate" preference="extensions.danbooruUp.autocomplete.update.faststartup" label="&danbooruUpOptions.fastUpdate.label;" accesskey="&danbooruUpOptions.fastUpdate.accesskey;" tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;" class="indent"/>
 			<groupbox>
 				<caption label="&danbooruUpOptions.updateOnUpload.label;" />
 				<checkbox id="updateBeforeDialog" preference="extensions.danbooruUp.autocomplete.update.beforedialog" label="&danbooruUpOptions.updateOnUpload.before.label;"/>
-				<checkbox id="updateAfterDialog" preference="extensions.danbooruUp.autocomplete.update.afterdialog" label="&danbooruUpOptions.updateOnUpload.after.label;"/>
+				<checkbox id="updateAfterDialog" preference="extensions.danbooruUp.autocomplete.update.afterdialog" label="&danbooruUpOptions.updateOnUpload.after.label;" tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
 			</groupbox>
 			<hbox align="center" pack="start">
 				<checkbox id="updateOnTimer" preference="extensions.danbooruUp.autocomplete.update.ontimer" label="&danbooruUpOptions.updateOnTimer.label;" accesskey="&danbooruUpOptions.updateOnTimer.accesskey;" onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();" onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>

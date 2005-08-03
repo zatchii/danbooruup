@@ -15,56 +15,7 @@
         ondialogcancel="return doCancel();">
 
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
-<script>
-function init()
-{
-	document.getElementById('source').value = window.arguments[0].imageURI.spec;
-	var ml = document.getElementById('danbooru');
-	ml.selectedIndex = -1;
-	ml.removeAllItems();
-	gDanbooruManager.init(ml);
-	document.getElementById('tags').focus();
-}
-function doOK()
-{
-	var ml = document.getElementById('danbooru');
-	var tags = document.getElementById('tags').value;
-	gDanbooruManager.selectDanbooru(ml.selectedIndex);
-	gDanbooruManager.uninit();
-
-	if(tags.length) {
-		// compact tag input
-		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
-		var flat=[];
-		var needupdate = false;
-		for(var a in tagarr) {
-			flat[tagarr[a]]=null;
-		}
-		var taghist = Components.classes["@mozilla.org/danbooru/taghistory-service;1"]
-				.getService(Components.interfaces.nsIDanbooruTagHistoryService);
-		for(var a in flat) {
-			if (!taghist.incrementValueForName(a))
-				needupdate = true;
-		}
-	}
-
-	window.arguments[0].start(
-		window.arguments[0].imageURI,
-		document.getElementById('source').value,
-		tags,
-		document.getElementById('title').value,
-		ml.label,
-		window.arguments[0].imageNode,
-		window.arguments[0].wind,
-		needupdate);
-	window.arguments[0].imageNode = null;
-	window.arguments[0].wind = null;
-	window.arguments=null;
-
-	return true;
-}
-function doCancel() {return true;}
-</script>
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpBox.js"/>
 <grid>
 <columns>
 <column>
@@ -75,7 +26,7 @@ function doCancel() {return true;}
 </column>
 <column flex="1">
 	<textbox id="source" flex="1"/>
-	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1" onsettextvalue="alert(1)"/>
+	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1"/>
 	<textbox id="title" flex="1"/>
 	<menulist id="danbooru" flex="1" crop="end"/>
 </column>

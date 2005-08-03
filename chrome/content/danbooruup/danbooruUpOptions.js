@@ -121,6 +121,7 @@ var gDanbooruManager = {
     switch (aEvent.keyCode) {
     case aEvent.DOM_VK_ESCAPE:
       close();
+    default:
       return true;
     }
   },
@@ -191,6 +192,8 @@ var gDanbooruManager = {
     }
     this._saveDanbooru();
     this.uninit();
+    var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+    os.notifyObservers(null, "danbooru-options-changed", null);
     return true;
   },
 
@@ -362,7 +365,7 @@ var gDanbooruManager = {
     var selhost = '';
     try { var hosts = pbi.getCharPref(pref); } catch(ex) { return; }
 
-    hostList = hosts.split("`");
+    var hostList = hosts.split("`");
     for (var j = 0; j < hostList.length; ++j) {
       // trim leading and trailing spaces
       var host = hostList[j].replace(/^\s*/,"").replace(/\s*$/,"");
@@ -415,6 +418,6 @@ var gDanbooruManager = {
   _addDanbooruToList: function (aDanbooru)
   {
     this._danbooru.push(new Danbooru(aDanbooru));
-  },
+  }
 };
 
