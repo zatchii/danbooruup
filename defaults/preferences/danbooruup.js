@@ -1,5 +1,5 @@
 /* Default prefs for DanbooruUp */
-pref("extensions.danbooruUp.postadduri", "http://danbooru.donmai.us/post/add");
+pref("extensions.danbooruUp.postadduri", "http://danbooru.donmai.us/api/add_post");
 pref("extensions.danbooruUp.postadduri.selected", 0);
 pref("extensions.danbooruUp.updateuri", "http://danbooru.donmai.us/tag/list_raw");
 pref("extensions.danbooruUp.autocomplete.enabled", true);

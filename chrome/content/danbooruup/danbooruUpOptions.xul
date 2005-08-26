@@ -125,10 +125,10 @@
 	<hbox align="end" flex="1">
 		<hbox class="actionButtons" flex="1">
 			<spacer flex="1"/>
-			<button oncommand="close();"
-				label="&danbooruUpOptions.cancel.label;" accesskey="&danbooruUpOptions.cancel.accesskey;"/>
 			<button oncommand="if (gDanbooruManager.onOK()) close();"
 				label="&danbooruUpOptions.ok.label;" accesskey="&danbooruUpOptions.ok.accesskey;"/>
+			<button oncommand="close();"
+				label="&danbooruUpOptions.cancel.label;" accesskey="&danbooruUpOptions.cancel.accesskey;"/>
 		</hbox>
 		<resizer dir="bottomright"/>
 	</hbox>

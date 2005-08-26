@@ -159,7 +159,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aDest, aNode, 
 		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aDest, aWind, true, aWind.contentDocument.location, aUpdate);
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
-		imgChannel.asyncOpen(uploader, null);
+		imgChannel.asyncOpen(uploader, imgChannel);
 	} else {
 		var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
 				.getService(Components.interfaces.nsICookieService);
@@ -177,7 +177,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aDest, aNode, 
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
 		listener.init(uploader.mOutStr, uploader);
-		imgChannel.asyncOpen(listener, null);
+		imgChannel.asyncOpen(listener, imgChannel);
 	}
 }
 
@@ -213,6 +213,7 @@ function danbooruUploader(aRealSource, aSource, aTags, aTitle, aDest, aTab, aLoc
 	this.mTab = aTab;
 	this.mLocation = aLocation;
 	this.mUpdateTags = aUpdateTags;
+	//this.mChannel = aChannel;
 
 	this.mStorage = Components.classes["@mozilla.org/storagestream;1"]
 			.createInstance(Components.interfaces.nsIStorageStream);
@@ -246,10 +247,16 @@ mUpdateTags:false,
 
 upload: function ()
 {
-	var fieldFile	="post[file]";
-	var fieldSource	="post[source_url]";
-	var fieldTags	="post[tags]";
-	var fieldTitle	="post[title]";
+	//var fieldFile	="post[file]";
+	//var fieldSource	="post[source_url]";
+	//var fieldTags	="post[tags]";
+	//var fieldTitle	="post[title]";
+	var fieldLogin		= "login";
+	var fieldPassHash	= "password_hash";
+	var fieldFile		= "file";
+	var fieldSource		= "source";
+	var fieldTitle		= "title";
+	var fieldTags		= "tags";
 
 	var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
 			.getService(Components.interfaces.nsIIOService);
@@ -260,6 +267,7 @@ upload: function ()
 	var boundary	= "---------------------------" + Math.floor(Math.random()*0xFFFFFFFF)
 			+ Math.floor(Math.random()*0xFFFFFFFF) + Math.floor(Math.random()*0xFFFFFFFF);
 
+	// create the file name
 	var fn = "danbooruup" + new Date().getTime() + Math.floor(Math.random()*0xFFFFFFFF);
 	try {
 		var mimeService = Components.classes["@mozilla.org/mime;1"].getService(Components.interfaces.nsIMIMEService);
@@ -267,8 +275,29 @@ upload: function ()
 		fn += "." + ext;
 	}catch(e){}
 
+	// upload URI and cookie info
+	var upURI = ioService.newURI(this.mDest, null, null);
+
+	try {
+		var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
+				.getService(Components.interfaces.nsICookieService);
+		var cookieStr	= cookieJar.getCookieString(upURI, null);
+		var loginM	= cookieStr.match(/(?:;\s*)?login=(\w+)(?:;|$)/);
+		var passM	= cookieStr.match(/(?:;\s*)?pass_hash=([0-9A-Fa-f]+)(?:;|$)/);
+
+		if(loginM && passM) {
+			postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldLogin
+				+ "\"\r\n\r\n" + loginM[1] + "\r\n";
+			postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldPassHash
+				+ "\"\r\n\r\n" + passM[1] + "\r\n";
+		}
+	} catch(e) {
+		// can anything even blow up?
+	}
+	// Source field
 	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldSource
 		+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mSource) + "\r\n";
+	// Tags field
 	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldTags
 		+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mTags) + "\r\n";
 
@@ -291,6 +320,7 @@ upload: function ()
 	postDS.appendStream(strIS);
 
 	// the middle
+	this.mInStr.init(this.mStorage.newInputStream(0), 8192);
 	postDS.appendStream(this.mInStr);
 
 	// the end
@@ -299,17 +329,11 @@ upload: function ()
 	endIS.setData("\r\n--" + boundary + "--\r\n", -1);
 	postDS.appendStream(endIS);
 
-	// upload URI and cookie info
-	var upURI = ioService.newURI(this.mDest, null, null);
-	var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
-			.getService(Components.interfaces.nsICookieService);
-	var cookieStr = cookieJar.getCookieString(upURI, null);
-
 	// turn it into a MIME stream
 	var mimeIS = Components.classes["@mozilla.org/network/mime-input-stream;1"]
 			.createInstance(Components.interfaces.nsIMIMEInputStream);
 	mimeIS.addHeader("Content-Type", "multipart/form-data; boundary="+ boundary, false);
-	mimeIS.addHeader("Cookie", cookieStr, false);
+	//mimeIS.addHeader("Cookie", cookieStr, false);
 
 	mimeIS.addContentLength = true;
 	mimeIS.setData(postDS);
@@ -350,7 +374,8 @@ onDataAvailable: function (channel, ctxt, inStr, sourceOffset, count)
 },
 onStartRequest: function (channel, ctxt)
 {
-	if( channel.contentType.substring(0, 6) != "image/" ) {
+	channel.QueryInterface(Components.interfaces.nsIChannel);
+	if( channel.contentType && channel.contentType.substring(0, 6) != "image/" ) {
 		alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.notimage'));
 		throw Components.results.NS_ERROR_UNEXPECTED;
 	}
@@ -358,7 +383,7 @@ onStartRequest: function (channel, ctxt)
 	this.mChannel = channel;
 	if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 		getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.gif",
-			danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource,
+			danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource.spec,
 			commondlgMsg.GetStringFromName('cancelButtonText'),
 			null, "danbooru-down", null, "top", true, commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'));
 },
@@ -370,7 +395,6 @@ onStopRequest: function (channel, ctxt, status)
 		this.mOutStr.close();
 		this.mInStr = Components.classes["@mozilla.org/network/buffered-input-stream;1"]
 				.createInstance(Components.interfaces.nsIBufferedInputStream);
-		this.mInStr.init(this.mStorage.newInputStream(0), 8192);
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		os.removeObserver(this, "danbooru-down");
 		this.upload();
@@ -480,14 +504,15 @@ danbooruPoster.prototype = {
 		return false;
 	},
 
-	onDataAvailable: function (channel, ctxt, inStr, sourceOffset, count)
+	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
 	{
+	debugger;
 		try {
-			channel.QueryInterface(Components.interfaces.nsIHttpChannel);
+			aRequest.QueryInterface(Components.interfaces.nsIHttpChannel);
 			var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
 				.createInstance(Components.interfaces.nsIBinaryInputStream);
-			bis.setInputStream(inStr);
-			this.mOutStr.writeByteArray(bis.readByteArray(count), count);
+			bis.setInputStream(aInputStream);
+			this.mOutStr.writeByteArray(bis.readByteArray(aCount), aCount);
 		} catch(e) {
 			alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.read')+e);
 		}
@@ -504,6 +529,8 @@ danbooruPoster.prototype = {
 		const kErrorNetTimeout	= 0x804B000E;
 		const kErrorNetRefused	= 0x804B000D;
 
+		channel.QueryInterface(Components.interfaces.nsIHttpChannel);
+
 		this.mOutStr.close();
 
 		if(status == Components.results.NS_OK)
@@ -514,6 +541,7 @@ danbooruPoster.prototype = {
 				var viewurl="";
 				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
 				try { viewurl = channel.getResponseHeader("X-Danbooru-View-Url"); } catch(e) {}
+				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs) {	// what
 					if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
@@ -535,6 +563,7 @@ danbooruPoster.prototype = {
 				var viewurl="";
 				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
 				try { viewurl = channel.getResponseHeader("X-Danbooru-View-Url"); } catch(e) {}
+				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs.search("(^|;)duplicate(;|$)") != -1) {
 					if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
@@ -551,11 +580,22 @@ danbooruPoster.prototype = {
 						null, "", "", null, "top", true, "");
 				}
 			} else {
-				var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
-					.createInstance(Components.interfaces.nsIBinaryInputStream);
-				var sis = this.mStorage.newInputStream(0);
-				bis.setInputStream(sis);
-				var str=bis.readBytes(sis.available());
+				var str = "";
+				try {
+					var sis = this.mStorage.newInputStream(0);
+					var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
+						.createInstance(Components.interfaces.nsIBinaryInputStream);
+					bis.setInputStream(sis);
+					str=bis.readBytes(sis.available());
+				} catch (e) {
+					if( e.result != Components.results.NS_ERROR_ILLEGAL_VALUE )
+					{
+						// not a no-data case (actual failure is seeking to position 0
+						// when there is nothing there), 
+						alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+e);
+						return;
+					}
+				}
 
 				// FIXME: newlines do not work in any fashion
 				if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
@@ -563,7 +603,12 @@ danbooruPoster.prototype = {
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + ' '
 						+ channel.responseStatus + ' ' + channel.responseStatusText + "\n" + str,
 						null, "", "", null, "top", true, "");
-				bis.close(); sis.close();
+
+				if (sis)
+				{
+					bis.close();
+					sis.close();
+				}
 			}
 		} else if (status == kErrorNetTimeout) {
 			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
