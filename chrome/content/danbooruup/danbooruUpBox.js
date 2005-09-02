@@ -1,11 +1,17 @@
 function init()
 {
-	document.getElementById('source').value = window.arguments[0].imageURI.spec;
+	var prefSvc = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 	var ml = document.getElementById('danbooru');
 	ml.selectedIndex = -1;
 	ml.removeAllItems();
 	gDanbooruManager.init(ml);
+
 	document.getElementById('tags').focus();
+
+	if (prefSvc.getBoolPref("extensions.danbooruUp.fileurlsource") || !(window.arguments[0].imageURI.scheme == 'file') )
+	{
+		document.getElementById('source').value = window.arguments[0].imageURI.spec;
+	}
 }
 
 function doOK()

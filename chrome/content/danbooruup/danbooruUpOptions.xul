@@ -15,6 +15,8 @@
 
 	<prefpane id="danbooruUpPane" style="padding: 1px;" flex="1" >
 	<preferences>
+		<preference id="extensions.danbooruUp.fileurlsource"
+			name="extensions.danbooruUp.fileurlsource"			type="bool"/>
 		<preference id="extensions.danbooruUp.autocomplete.enabled"
 			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
 		<preference id="extensions.danbooruUp.updateuri"
@@ -43,10 +45,16 @@
 
 	<tabbox id="danbooruUpOptionsTabs" flex="1">
 	<tabs>
+		<tab label="&danbooruUpOptions.generalTab.label;"/>
 		<tab label="&danbooruUpOptions.danbooruTab.label;"/>
 		<tab label="&danbooruUpOptions.autocompleteTab.label;"/>
 	</tabs>
 	<tabpanels flex="1">
+	<tabpanel orient="vertical">
+		<hbox>
+			<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="extensions.danbooruUp.fileurlsource" />
+		</hbox>
+	</tabpanel>
 	<tabpanel orient="vertical">
 	<vbox class="contentPane" flex="1">
 		<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>

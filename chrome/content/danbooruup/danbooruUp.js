@@ -269,11 +269,18 @@ upload: function ()
 
 	// create the file name
 	var fn = "danbooruup" + new Date().getTime() + Math.floor(Math.random()*0xFFFFFFFF);
+	var conttype = "";
 	try {
 		var mimeService = Components.classes["@mozilla.org/mime;1"].getService(Components.interfaces.nsIMIMEService);
 		var ext = mimeService.getPrimaryExtension(this.mChannel.contentType, null);
 		fn += "." + ext;
+		conttype = this.mChannel.contentType;
 	}catch(e){}
+
+	if(!conttype)
+	{
+		conttype = "application/octet-stream";
+	}
 
 	// upload URI and cookie info
 	var upURI = ioService.newURI(this.mDest, null, null);
@@ -311,7 +318,7 @@ upload: function ()
 	postChunk += "--" + boundary + "\r\n" +
 		"Content-Transfer-Encoding: binary\r\n"+
 		"Content-Disposition: form-data; name=\"" + fieldFile + "\"; filename=\"" + fn + "\"\r\n"+
-		"Content-Type: application/octet-stream\r\n\r\n";
+		"Content-Type: " + conttype + "\r\n\r\n";
 
 	// the beginning
 	var strIS = Components.classes["@mozilla.org/io/string-input-stream;1"]
@@ -498,7 +505,7 @@ danbooruPoster.prototype = {
 			if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
-					null, "", "", null, "top", true, "");
+					"", "", "", null, "top", true, "");
 			return true;
 		}
 		return false;
@@ -506,7 +513,6 @@ danbooruPoster.prototype = {
 
 	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
 	{
-	debugger;
 		try {
 			aRequest.QueryInterface(Components.interfaces.nsIHttpChannel);
 			var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
@@ -540,19 +546,18 @@ danbooruPoster.prototype = {
 				var errs="";
 				var viewurl="";
 				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
-				try { viewurl = channel.getResponseHeader("X-Danbooru-View-Url"); } catch(e) {}
 				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs) {	// what
 					if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 							danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
-							null, "", "", null, "top", true, "");
+							"", "", "", null, "top", true, "");
 				} else {
 					if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
-							null, "", "", null, "top", true, "");
+							"", "", "", null, "top", true, "");
 					if (viewurl)
 						this.addLinkToBrowserMessage(viewurl);
 					if (this.mUpdateTags)
@@ -562,14 +567,13 @@ danbooruPoster.prototype = {
 				var errs="";
 				var viewurl="";
 				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
-				try { viewurl = channel.getResponseHeader("X-Danbooru-View-Url"); } catch(e) {}
 				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs.search("(^|;)duplicate(;|$)") != -1) {
 					if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
 						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 							danbooruUpMsg.GetStringFromName('danbooruUp.err.duplicate'),
-							null, "", "", null, "top", true, "");
+							"", "", "", null, "top", true, "");
 
 						if (viewurl)
 							this.addLinkToBrowserMessage(viewurl);
@@ -577,7 +581,7 @@ danbooruPoster.prototype = {
 				} else if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
 					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.unhandled') + ' ' + errs,
-						null, "", "", null, "top", true, "");
+						"", "", "", null, "top", true, "");
 				}
 			} else {
 				var str = "";
@@ -601,8 +605,8 @@ danbooruPoster.prototype = {
 				if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
 					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + ' '
-						+ channel.responseStatus + ' ' + channel.responseStatusText + "\n" + str,
-						null, "", "", null, "top", true, "");
+						+ channel.responseStatus + ' ' + channel.responseStatusText + "\n" + str.substr(0,511),
+						"", "", "", null, "top", true, "");
 
 				if (sis)
 				{
@@ -617,7 +621,7 @@ danbooruPoster.prototype = {
 			if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
 				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
-					null, "", "", null, "top", true, "");
+					"", "", "", null, "top", true, "");
 		} else if (status == kErrorNetRefused) {
 			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
 			var str = errmsg.FormatStringFromName('connectionFailure', [channel.URI.spec])
@@ -625,7 +629,7 @@ danbooruPoster.prototype = {
 			if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
 				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
-					null, "", "", null, "top", true, "");
+					"", "", "", null, "top", true, "");
 		} else { // not NS_OK
 			alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+status.toString(16));
 		}

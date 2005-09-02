@@ -1,17 +1,22 @@
 <!-- Entities for the Sample Extension Options Dialog go here -->
 
 <!ENTITY danbooruUpOptions.title			"DanbooruUp Options">
+<!ENTITY danbooruUpOptions.cancel.label			"Cancel">
+<!ENTITY danbooruUpOptions.cancel.accesskey		"C">
+<!ENTITY danbooruUpOptions.ok.label			"OK">
+<!ENTITY danbooruUpOptions.ok.accesskey			"O">
+<!ENTITY danbooruUpOptions.generalTab.label		"General">
+<!ENTITY danbooruUpOptions.fileURISource.label		"Show file:// URLs in Source field">
+<!ENTITY danbooruUpOptions.fileURISource.accesskey	"S">
+
+<!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
 <!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here.">
 <!ENTITY danbooruUpOptions.posturi.label		"URL of post/add:">
 <!ENTITY danbooruUpOptions.posturi.accesskey		"U">
 <!ENTITY danbooruUpOptions.add.label			"Add Site">
 <!ENTITY danbooruUpOptions.treehead.sitename.label	"Site">
 <!ENTITY danbooruUpOptions.removedanbooru.label		"Remove Site">
-<!ENTITY danbooruUpOptions.cancel.label			"Cancel">
-<!ENTITY danbooruUpOptions.cancel.accesskey		"C">
-<!ENTITY danbooruUpOptions.ok.label			"OK">
-<!ENTITY danbooruUpOptions.ok.accesskey			"O">
-<!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
+
 <!ENTITY danbooruUpOptions.autocompleteTab.label	"Tag Autocomplete">
 <!ENTITY danbooruUpOptions.urlgroup.label		"Tag History">
 <!ENTITY danbooruUpOptions.updategroup.label		"Updating">
@@ -19,6 +24,8 @@
 <!ENTITY danbooruUpOptions.enableAC.accesskey		"E">
 <!ENTITY danbooruUpOptions.updateURL.label		"Update URL:">
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
+<!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
+<!ENTITY danbooruUpOptions.updateNow.accesskey		"N">
 <!ENTITY danbooruUpOptions.updateOnStartup.label	"Update on startup">
 <!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"s">
 <!ENTITY danbooruUpOptions.fastUpdate.label		"Faster startup updating">
@@ -33,6 +40,4 @@
 <!ENTITY danbooruUpOptions.updateOnTimer.accesskey	"t">
 <!ENTITY danbooruUpOptions.min.label			"minutes">
 <!ENTITY danbooruUpOptions.clearTagHistory.label	"Clear Tag History">
-<!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
-<!ENTITY danbooruUpOptions.updateNow.accesskey		"N">
 
