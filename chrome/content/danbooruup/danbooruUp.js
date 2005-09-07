@@ -6,6 +6,8 @@ var cacheService	= Components.classes["@mozilla.org/network/cache-service;1"]
 			.getService(Components.interfaces.nsICacheService);
 var prefService		= Components.classes["@mozilla.org/preferences-service;1"]
 			.getService(Components.interfaces.nsIPrefBranch);
+var ioService		= Components.classes["@mozilla.org/network/io-service;1"]
+			.getService(Components.interfaces.nsIIOService);
 
 var danbooruUpMsg	= StrBundleSvc.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
 var commondlgMsg	= StrBundleSvc.createBundle('chrome://mozapps/locale/extensions/update.properties');
@@ -91,8 +93,13 @@ var danbooruTagUpdater = {
 	},
 	update: function(aFull)
 	{
-		tagService.updateTagListFromURI("http://danbooru.donmai.us/tag/list_raw"
-						+ ((this.mMaxID>0 && !aFull)?"/after/"+(this.mMaxID+1):"") );
+		var locationURL	= ioService.newURI(prefService.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+				.QueryInterface(Components.interfaces.nsIURL);
+		if(this.mMaxID>0 && !aFull)
+		{
+			locationURL.query = "after="+(this.mMaxID+1);
+		}
+		tagService.updateTagListFromURI(locationURL.spec);
 		this.mMaxID = this.getMaxID();
 		prefService.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
 
@@ -126,8 +133,6 @@ function danbooruUploadImage() {
 	var browser	= getBrowser();
 	var thistab	= browser.getBrowserForTab(browser.selectedTab);
 
-	var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
-			.getService(Components.interfaces.nsIIOService);
 	var locationURI	= ioService.newURI(danbooruImgNode.ownerDocument.location,
 					danbooruImgNode.ownerDocument.characterSet, null);
 	var imgURI = ioService.newURI(imgURIStr, danbooruImgNode.ownerDocument.characterSet, locationURI);
@@ -147,8 +152,6 @@ function danbooruUploadImage() {
 
 function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aDest, aNode, aWind, aUpdate)
 {
-	var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
-			.getService(Components.interfaces.nsIIOService);
 	var uploader;
 	var imgChannel	= ioService.newChannelFromURI(aRealSource);
 	var os		= Components.classes["@mozilla.org/observer-service;1"]
@@ -258,8 +261,6 @@ upload: function ()
 	var fieldTitle		= "title";
 	var fieldTags		= "tags";
 
-	var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
-			.getService(Components.interfaces.nsIIOService);
 	var postDS	= Components.classes["@mozilla.org/io/multiplex-input-stream;1"]
 			.createInstance(Components.interfaces.nsIMultiplexInputStream)
 			.QueryInterface(Components.interfaces.nsIInputStream);
@@ -448,8 +449,6 @@ danbooruPoster.prototype = {
 	mUpdateTags:false,
 
 	start:function(aDatastream, aImgURI, aUpURIStr, aTab, aUpdateTags) {
-		var ioService	= Components.classes["@mozilla.org/network/io-service;1"]
-				.getService(Components.interfaces.nsIIOService);
 		this.mUpdateTags = aUpdateTags;
 		// upload URI and cookie info
 		this.mChannel = ioService.newChannel(aUpURIStr, "", null)
