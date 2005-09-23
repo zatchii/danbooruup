@@ -5,7 +5,7 @@ call vim -o install.rdf chrome\content\danbooruup\contents.rdf
 del /f danbooruup.xpi > nul
 del /f chrome\danbooruup.jar > nul
 cd chrome
-zip -9r danbooruup.jar .
+zip -9r danbooruup.jar . -x .cvsignore
 cd ..
 rem components\*.xpt components\*.js
 zip -9r danbooruup.xpi chrome.manifest install.rdf chrome\danbooruup.jar defaults

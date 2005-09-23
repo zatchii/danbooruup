@@ -97,7 +97,7 @@ var danbooruTagUpdater = {
 				.QueryInterface(Components.interfaces.nsIURL);
 		if(this.mMaxID>0 && !aFull)
 		{
-			locationURL.query = "after="+(this.mMaxID+1);
+			locationURL.query = "after_id="+(this.mMaxID+1);
 		}
 		tagService.updateTagListFromURI(locationURL.spec);
 		this.mMaxID = this.getMaxID();
