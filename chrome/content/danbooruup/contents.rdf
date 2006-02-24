@@ -19,7 +19,7 @@
 	</RDF:Seq>
 
 	<RDF:Description RDF:about="urn:mozilla:package:danbooruup"
-        	chrome:displayName="Danbooru Uploader 0.2.4"
+        	chrome:displayName="Danbooru Uploader 0.2.5"
 	        chrome:author="Buffered"
 		chrome:authorURL="http://unbuffered.info/danbooruup/"
 		chrome:settingsURL="chrome://danbooruup/content/danbooruUpOptions.xul"

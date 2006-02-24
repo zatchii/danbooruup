@@ -41,6 +41,8 @@
 #include "nsIDanbooruTagHistoryService.h"
 #include "nsIAutoCompleteResultTypes.h"
 #include "nsIAutoCompleteArrayResult.h"
+#include "nsIXMLHttpRequest.h"
+#include "nsIDOMEventListener.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
@@ -50,12 +52,15 @@
 #include "mozIStorageStatement.h"
 #include "mdb.h"
 
+class nsIXMLHttpRequest;
+
 #define NS_DANBOORUTAGHISTORYSERVICE_CID \
 { 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x47 } }
 #define NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID "@mozilla.org/danbooru/taghistory-service;1"
 
 class nsDanbooruTagHistoryService : public nsIDanbooruTagHistoryService,
                       public nsIObserver,
+                      public nsIDOMEventListener,
 //                      public nsIFormSubmitObserver,
                       public nsSupportsWeakReference
 {
@@ -66,6 +71,9 @@ public:
 
   // nsIFormSubmitObserver
   //NS_IMETHOD Notify(nsIContent* formNode, nsIDOMWindowInternal* window, nsIURI* actionURL, PRBool* cancelSubmit);
+
+  // nsIDOMEventListener
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
   nsDanbooruTagHistoryService();
   virtual ~nsDanbooruTagHistoryService();
@@ -130,6 +138,8 @@ protected:
 
   nsresult ProcessTagXML(void *);
 #endif
+  nsCOMPtr<nsIXMLHttpRequest> mRequest;
+
   static PRBool TagHistoryEnabled();
 
   static nsDanbooruTagHistoryService *gTagHistory;

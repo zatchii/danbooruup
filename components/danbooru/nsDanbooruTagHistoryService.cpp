@@ -65,6 +65,7 @@
 // Update/Process
 #include "nsIXMLHttpRequest.h"
 #include "nsNetUtil.h"
+#include "nsIDOMEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIDOM3Node.h"
@@ -297,6 +298,26 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document)
 	return NS_OK;
 }
 
+NS_IMETHODIMP
+nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
+{
+	nsCOMPtr<nsIDOMDocument> document;
+	nsresult rv = mRequest->GetResponseXML(getter_AddRefs(document));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+
+	nsCOMPtr<nsIDOMElement> element;
+	document->GetDocumentElement(getter_AddRefs(element));
+	if (element) {
+		ProcessTagXML(element);
+		rv = NS_OK;
+	} else {
+		rv = NS_ERROR_CANNOT_CONVERT_DATA;
+	}
+	return rv;
+}
+
 /* used to be the nsISchema load */
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI)
@@ -309,25 +330,25 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI)
 	nsCAutoString spec;
 	resolvedURI->GetSpec(spec);
 
-	nsCOMPtr<nsIXMLHttpRequest> request(do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv));
-	if (!request) {
+	mRequest = do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv);
+	if (!mRequest) {
 		return rv;
 	}
 
 	const nsAString& empty = EmptyString();
-	rv = request->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty, empty);
+	rv = mRequest->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty, empty);
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
 
 	// Force the mimetype of the returned stream to be xml.
-	rv = request->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
+	rv = mRequest->OverrideMimeType(NS_LITERAL_CSTRING("application/xml"));
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
 
 	// keep-alive, more like zombie
-	rv = request->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"));
+	rv = mRequest->SetRequestHeader(NS_LITERAL_CSTRING("Connection"), NS_LITERAL_CSTRING("close"));
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
@@ -335,24 +356,19 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI)
 	fprintf(stderr,"getting\n", rv);
 #endif
 
-	rv = request->Send(nsnull);
+	// async handler
+	nsCOMPtr<nsIDOMEventTarget> target(do_QueryInterface(mRequest));
+	if (!target) {
+		return NS_ERROR_UNEXPECTED;
+	}
+	rv = target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
 
-	nsCOMPtr<nsIDOMDocument> document;
-	rv = request->GetResponseXML(getter_AddRefs(document));
+	rv = mRequest->Send(nsnull);
 	if (NS_FAILED(rv)) {
 		return rv;
-	}
-
-	nsCOMPtr<nsIDOMElement> element;
-	document->GetDocumentElement(getter_AddRefs(element));
-	if (element) {
-		ProcessTagXML(element);
-	}
-	else {
-		rv = NS_ERROR_CANNOT_CONVERT_DATA;
 	}
 
 	return rv;
@@ -377,7 +393,7 @@ nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
 		  *aRowCount = 0;
 	  else
-		  mRowCountStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
+		  *aRowCount = mRowCountStmt->AsInt32(0);
 	  mRowCountStmt->Reset();
   } else {
 	  return NS_ERROR_FAILURE;
@@ -401,7 +417,7 @@ nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
 	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
 		  *aRowCount = -1;
 	  else
-		  mMaxIDStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
+		  *aRowCount = mMaxIDStmt->AsInt32(0);
 	  mMaxIDStmt->Reset();
   } else {
 	  return NS_ERROR_FAILURE;
@@ -1278,7 +1294,8 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		mSearchStmt->ExecuteStep(&row);
 		while (row)
 		{
-			mSearchStmt->GetAsString(0, name);
+			// schema: tags.name varchar(255)
+			name = mSearchStmt->AsSharedWString(0, nsnull);
 			result->AddRow(name);
 			mSearchStmt->ExecuteStep(&row);
 		}
@@ -1379,7 +1396,7 @@ if (console)
 }
 #endif
 
-#ifdef DANBOORUUP_MORK
+#if 0 || defined(DANBOORUUP_MORK)
 nsresult
 nsDanbooruTagHistoryService::EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval)
 {
