@@ -63,13 +63,13 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
 // Update/Process
-#include "nsIXMLHttpRequest.h"
 #include "nsNetUtil.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
 #include "nsIDOM3Node.h"
 #include "nsIDOMNodeList.h"
+#include "nsIDOMEventTarget.h"
 
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
@@ -100,9 +100,10 @@ static const char *kTagTableName = "tags";
 
 NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistoryService)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDanbooruTagHistoryService)
 NS_INTERFACE_MAP_END_THREADSAFE
 
 NS_IMPL_THREADSAFE_ADDREF(nsDanbooruTagHistoryService)
@@ -270,8 +271,16 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document)
 		nodeList->GetLength(&length);
 	} else {
 		// no tags?
+#ifdef DANBOORUUP_TESTING
+		fprintf(stderr,"no tags\n", rv);
+#endif
 		return NS_OK;
 	}
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+{
+	fprintf(stderr, "got %d nodes\n", length);
+}
+#endif
 
 	nsCOMPtr<nsIDOMNode> child;
 	//nsDanbooruTagHistoryService *history = nsDanbooruTagHistoryService::GetInstance();
@@ -310,6 +319,9 @@ nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 	nsCOMPtr<nsIDOMElement> element;
 	document->GetDocumentElement(getter_AddRefs(element));
 	if (element) {
+#ifdef DANBOORUUP_TESTING
+	fprintf(stderr,"processing\n", rv);
+#endif
 		ProcessTagXML(element);
 		rv = NS_OK;
 	} else {
@@ -329,6 +341,9 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI)
 	}
 	nsCAutoString spec;
 	resolvedURI->GetSpec(spec);
+#ifdef DANBOORUUP_TESTING
+	fprintf(stderr,"using %s\n", spec.get());
+#endif
 
 	mRequest = do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv);
 	if (!mRequest) {
@@ -336,7 +351,7 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI)
 	}
 
 	const nsAString& empty = EmptyString();
-	rv = mRequest->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_FALSE, empty, empty);
+	rv = mRequest->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_TRUE, empty, empty);
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
@@ -393,7 +408,11 @@ nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
 		  *aRowCount = 0;
 	  else
-		  *aRowCount = mRowCountStmt->AsInt32(0);
+#ifdef DANBOORUUP_BRANCH_STORAGE
+		  mRowCountStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
+#else
+		  mRowCountStmt->GetInt32(0, (PRInt32 *)aRowCount);
+#endif
 	  mRowCountStmt->Reset();
   } else {
 	  return NS_ERROR_FAILURE;
@@ -417,7 +436,11 @@ nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
 	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
 		  *aRowCount = -1;
 	  else
-		  *aRowCount = mMaxIDStmt->AsInt32(0);
+#ifdef DANBOORUUP_BRANCH_STORAGE
+		  mMaxIDStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
+#else
+		  mMaxIDStmt->GetInt32(0, (PRInt32 *)aRowCount);
+#endif
 	  mMaxIDStmt->Reset();
   } else {
 	  return NS_ERROR_FAILURE;
@@ -854,7 +877,7 @@ nsDanbooruTagHistoryService::OpenDatabase()
   historyFile->GetFileSize(&mFileSizeOnDisk);
 
   return NS_OK;
-#endif
+#endif //ifndef DANBOORUUP_MORK
 }
 
 nsresult
@@ -1294,13 +1317,17 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		mSearchStmt->ExecuteStep(&row);
 		while (row)
 		{
+#ifdef DANBOORUUP_BRANCH_STORAGE
+			mSearchStmt->GetAsString(0, name);
+#else
 			// schema: tags.name varchar(255)
 			name = mSearchStmt->AsSharedWString(0, nsnull);
+#endif
 			result->AddRow(name);
 			mSearchStmt->ExecuteStep(&row);
 		}
 		mSearchStmt->Reset();
-#endif
+#endif //DANBOORUUP_MORK
 		PRUint32 matchCount;
 		result->GetMatchCount(&matchCount);
 		if (matchCount > 0) {
@@ -1394,9 +1421,7 @@ if (console)
 
 	return PR_FALSE;
 }
-#endif
 
-#if 0 || defined(DANBOORUUP_MORK)
 nsresult
 nsDanbooruTagHistoryService::EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval)
 {

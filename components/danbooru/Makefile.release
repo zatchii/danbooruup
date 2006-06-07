@@ -141,6 +141,7 @@ endif
 
 include $(topsrcdir)/config/rules.mk
 
+DEFINES += -DDANBOORUUP_BRANCH_STORAGE
 #DEFINES += -DDANBOORUUP_TESTING
 
 libs:: $(TARGETS)

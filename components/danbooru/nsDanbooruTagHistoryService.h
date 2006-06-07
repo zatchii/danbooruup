@@ -46,6 +46,8 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
+#include "nsIDOMEventListener.h"
+#include "nsIXMLHttpRequest.h"
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
 #include "mozIStorageConnection.h"
@@ -68,12 +70,13 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDANBOORUTAGHISTORYSERVICE
   NS_DECL_NSIOBSERVER
+  NS_DECL_NSIDOMEVENTLISTENER
 
   // nsIFormSubmitObserver
   //NS_IMETHOD Notify(nsIContent* formNode, nsIDOMWindowInternal* window, nsIURI* actionURL, PRBool* cancelSubmit);
 
   // nsIDOMEventListener
-  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  //NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
   nsDanbooruTagHistoryService();
   virtual ~nsDanbooruTagHistoryService();
@@ -138,8 +141,6 @@ protected:
 
   nsresult ProcessTagXML(void *);
 #endif
-  nsCOMPtr<nsIXMLHttpRequest> mRequest;
-
   static PRBool TagHistoryEnabled();
 
   static nsDanbooruTagHistoryService *gTagHistory;
@@ -147,6 +148,7 @@ protected:
   static PRBool gTagHistoryEnabled;
   static PRBool gPrefsInitialized;
 
+  nsCOMPtr<nsIXMLHttpRequest> mRequest;
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
 };
 

@@ -1,6 +1,8 @@
 Makefile
 dependentLibs.h
 *.obj
+*.pdb
+*.ilk
 module.rc
 module.res
 fake-import
