@@ -8,7 +8,7 @@
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel"
 	width="500px"
-	height="175px"
+	height="190px"
 	persist="screenX screenY width height"
 	onload="init();"
         ondialogaccept="return doOK();"
@@ -22,12 +22,20 @@
 <box align="center"><label control="source" accesskey="&danbooru-box-source-accesskey;" value="&danbooru-box-source-label;"/></box>
 <box align="center"><label control="tags" accesskey="&danbooru-box-tags-accesskey;" value="&danbooru-box-tags-label;"/></box>
 <box align="center"><label control="title" accesskey="&danbooru-box-title-accesskey;" value="&danbooru-box-title-label;"/></box>
+<box align="center"><label control="rating" value="&danbooru-box-rating-label;"/></box>
 <box align="center"><label control="danbooru" accesskey="&danbooru-box-danbooru-accesskey;" value="&danbooru-box-danbooru-label;"/></box>
 </column>
 <column flex="1">
 	<textbox id="source" flex="1"/>
 	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1"/>
 	<textbox id="title" flex="1"/>
+	<radiogroup id="ratinggrp">
+		<hbox>
+		<radio id="rexp" accesskey="&danbooru-box-explicit-accesskey;" label="&danbooru-box-explicit-label;"/>
+		<radio id="rques" accesskey="&danbooru-box-questionable-accesskey;" label="&danbooru-box-questionable-label;" selected="true"/>
+		<radio id="rsafe" accesskey="&danbooru-box-safe-accesskey;" label="&danbooru-box-safe-label;"/>
+		</hbox>
+	</radiogroup>
 	<menulist id="danbooru" flex="1" crop="end"/>
 </column>
 </columns>

@@ -9,6 +9,13 @@
 <!ENTITY danbooru-box-tags-accesskey "g">
 <!ENTITY danbooru-box-title-label "Title:">
 <!ENTITY danbooru-box-title-accesskey "i">
+<!ENTITY danbooru-box-rating-label "Rating:">
+<!ENTITY danbooru-box-explicit-accesskey "E">
+<!ENTITY danbooru-box-explicit-label "Explicit">
+<!ENTITY danbooru-box-questionable-accesskey "Q">
+<!ENTITY danbooru-box-questionable-label "Questionable">
+<!ENTITY danbooru-box-safe-accesskey "S">
+<!ENTITY danbooru-box-safe-label "Safe">
 <!ENTITY danbooru-box-danbooru-label "Danbooru:">
 <!ENTITY danbooru-box-danbooru-accesskey "d">
 

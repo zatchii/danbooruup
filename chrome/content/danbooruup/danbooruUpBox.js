@@ -18,6 +18,7 @@ function doOK()
 {
 	var ml = document.getElementById('danbooru');
 	var tags = document.getElementById('tags').value;
+	var rating = ['Explicit','Questionable','Safe'][document.getElementById('ratinggrp').selectedIndex];
 	gDanbooruManager.selectDanbooru(ml.selectedIndex);
 	gDanbooruManager.uninit();
 
@@ -49,6 +50,7 @@ function doOK()
 		document.getElementById('source').value,
 		tags,
 		document.getElementById('title').value,
+		rating,
 		ml.label,
 		window.arguments[0].imageNode,
 		window.arguments[0].wind,

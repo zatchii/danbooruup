@@ -150,7 +150,7 @@ function danbooruUploadImage() {
 		{imageNode:danbooruImgNode, imageURI:imgURI, wind:thistab, start:danbooruStartUpload});
 }
 
-function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aDest, aNode, aWind, aUpdate)
+function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aRating, aDest, aNode, aWind, aUpdate)
 {
 	var uploader;
 	var imgChannel	= ioService.newChannelFromURI(aRealSource);
@@ -159,7 +159,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aDest, aNode, 
 
 	if (aRealSource.scheme == "file") {
 		imgChannel = imgChannel.QueryInterface(Components.interfaces.nsIFileChannel);
-		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aDest, aWind, true, aWind.contentDocument.location, aUpdate);
+		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aRating, aDest, aWind, true, aWind.contentDocument.location, aUpdate);
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
 		imgChannel.asyncOpen(uploader, imgChannel);
@@ -175,7 +175,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aDest, aNode, 
 		// don't need to bother with Uploader's array transfer
 		var listener = Components.classes["@mozilla.org/network/simple-stream-listener;1"]
 				.createInstance(Components.interfaces.nsISimpleStreamListener);
-		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aDest, aWind, false, aWind.contentDocument.location, aUpdate);
+		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aRating, aDest, aWind, false, aWind.contentDocument.location, aUpdate);
 
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
@@ -206,12 +206,15 @@ function getSize(url) {
 /*
  * retrieves an image and constructs the multipart POST data
  */
-function danbooruUploader(aRealSource, aSource, aTags, aTitle, aDest, aTab, aLocal, aLocation, aUpdateTags)
+function danbooruUploader(aRealSource, aSource, aTags, aTitle, aRating, aDest, aTab, aLocal, aLocation, aUpdateTags)
 {
 	this.mRealSource = aRealSource;
 	this.mSource = aSource;
 	this.mTags = aTags;
 	this.mTitle = aTitle;
+	if(aRating) {
+		this.mRating = aRating;
+	}
 	this.mDest = aDest;
 	this.mTab = aTab;
 	this.mLocation = aLocation;
@@ -239,6 +242,7 @@ danbooruUploader.prototype = {
 mSource:"",
 mTags:"",
 mTitle:"",
+mRating:"Questionable",
 mDest:"",
 mTab:null,
 mChannel:null,
@@ -260,11 +264,14 @@ upload: function ()
 	var fieldSource		= "source";
 	var fieldTitle		= "title";
 	var fieldTags		= "tags";
+	var fieldRating		= "rating";
+	var fieldMD5		= "md5";
 
 	var postDS	= Components.classes["@mozilla.org/io/multiplex-input-stream;1"]
 			.createInstance(Components.interfaces.nsIMultiplexInputStream)
 			.QueryInterface(Components.interfaces.nsIInputStream);
 	var postChunk	= "";
+	var endPostChunk	= "";
 	var boundary	= "---------------------------" + Math.floor(Math.random()*0xFFFFFFFF)
 			+ Math.floor(Math.random()*0xFFFFFFFF) + Math.floor(Math.random()*0xFFFFFFFF);
 
@@ -281,6 +288,24 @@ upload: function ()
 	if(!conttype)
 	{
 		conttype = "application/octet-stream";
+	}
+
+	// MD5
+	var hasher = Components.classes["@mozilla.org/security/hash;1"].createInstance(Components.interfaces.nsICryptoHash);
+	var hashInStr = Components.classes["@mozilla.org/network/buffered-input-stream;1"]
+				.createInstance(Components.interfaces.nsIBufferedInputStream);
+	hashInStr.init(this.mStorage.newInputStream(0), 8192);
+	hasher.init(hasher.MD5);
+	hasher.updateFromStream(hashInStr, 0xFFFFFFFF); /* PR_UINT32_MAX */
+	var outMD5 = hasher.finish(false);
+	var outMD5Hex = '';
+	var n;
+
+        var alpha = "0123456789abcdef";
+        for(var qx=0; qx<outMD5.length; qx++)
+	{
+		n = outMD5.charCodeAt(qx);
+		outMD5Hex += alpha.charAt(n>>4) + alpha.charAt(n & 0xF);
 	}
 
 	// upload URI and cookie info
@@ -305,9 +330,6 @@ upload: function ()
 	// Source field
 	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldSource
 		+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mSource) + "\r\n";
-	// Tags field
-	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldTags
-		+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mTags) + "\r\n";
 
 	// thanks to http://aaiddennium.online.lt/tools/js-tool-symbols-entities-symbols.html for
 	// pointing out what turned out to be obvious
@@ -316,25 +338,38 @@ upload: function ()
 	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldTitle
 		+ "\"\r\n\r\n" + toEnts(this.mTitle) + "\r\n";
 
+	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldRating
+		+ "\"\r\n\r\n" + this.mRating + "\r\n";
+
+	postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldMD5
+		+ "\"\r\n\r\n" + outMD5Hex + "\r\n";
+
 	postChunk += "--" + boundary + "\r\n" +
 		"Content-Transfer-Encoding: binary\r\n"+
 		"Content-Disposition: form-data; name=\"" + fieldFile + "\"; filename=\"" + fn + "\"\r\n"+
 		"Content-Type: " + conttype + "\r\n\r\n";
 
-	// the beginning
+	// the beginning -- text fields
 	var strIS = Components.classes["@mozilla.org/io/string-input-stream;1"]
 		.createInstance(Components.interfaces.nsIStringInputStream);
 	strIS.setData(postChunk, -1);
 	postDS.appendStream(strIS);
 
-	// the middle
+	// the middle -- binary data
 	this.mInStr.init(this.mStorage.newInputStream(0), 8192);
 	postDS.appendStream(this.mInStr);
 
 	// the end
 	var endIS = Components.classes["@mozilla.org/io/string-input-stream;1"]
 		.createInstance(Components.interfaces.nsIStringInputStream);
-	endIS.setData("\r\n--" + boundary + "--\r\n", -1);
+
+	// required Tags field goes at the end
+	endPostChunk = "\r\n--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldTags
+		+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mTags) + "\r\n";
+
+	endPostChunk += "\r\n--" + boundary + "--\r\n";
+
+	endIS.setData(endPostChunk, -1);
 	postDS.appendStream(endIS);
 
 	// turn it into a MIME stream
@@ -500,7 +535,7 @@ danbooruPoster.prototype = {
 		{
 			var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 			this.mChannel.cancel(0x804b0002);
-			os.removeObserver(this, "danbooru-up");
+			try { os.removeObserver(this, "danbooru-up"); } catch(e) {}
 			if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
@@ -530,7 +565,7 @@ danbooruPoster.prototype = {
 	onStopRequest: function (channel, ctxt, status)
 	{
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-		os.removeObserver(this, "danbooru-up");
+		try { os.removeObserver(this, "danbooru-up"); } catch(e) {}
 		const kErrorNetTimeout	= 0x804B000E;
 		const kErrorNetRefused	= 0x804B000D;
 
@@ -549,7 +584,7 @@ danbooruPoster.prototype = {
 
 				if (errs) {	// what
 					if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
-						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 							danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
 							"", "", "", null, "top", true, "");
 				} else {
@@ -570,15 +605,21 @@ danbooruPoster.prototype = {
 
 				if (errs.search("(^|;)duplicate(;|$)") != -1) {
 					if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
-						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 							danbooruUpMsg.GetStringFromName('danbooruUp.err.duplicate'),
 							"", "", "", null, "top", true, "");
 
 						if (viewurl)
 							this.addLinkToBrowserMessage(viewurl);
 					}
+				} else if (errs.search("(^|;)mismatched md5(;|$)") != -1) {
+					if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
+						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
+							danbooruUpMsg.GetStringFromName('danbooruUp.err.corruptupload'),
+							"", "", "", null, "top", true, "");
+					}
 				} else if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
-					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.unhandled') + ' ' + errs,
 						"", "", "", null, "top", true, "");
 				}
@@ -602,7 +643,7 @@ danbooruPoster.prototype = {
 
 				// FIXME: newlines do not work in any fashion
 				if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
-					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + ' '
 						+ channel.responseStatus + ' ' + channel.responseStatusText + "\n" + str.substr(0,511),
 						"", "", "", null, "top", true, "");
@@ -618,7 +659,7 @@ danbooruPoster.prototype = {
 			var str = errmsg.FormatStringFromName('netTimeout', [channel.URI.spec])
 
 			if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
-				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
 					"", "", "", null, "top", true, "");
 		} else if (status == kErrorNetRefused) {
@@ -626,7 +667,7 @@ danbooruPoster.prototype = {
 			var str = errmsg.FormatStringFromName('connectionFailure', [channel.URI.spec])
 
 			if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
-				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
 					"", "", "", null, "top", true, "");
 		} else { // not NS_OK
