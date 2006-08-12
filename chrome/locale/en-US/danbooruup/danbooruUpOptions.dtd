@@ -26,6 +26,8 @@
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
 <!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
 <!ENTITY danbooruUpOptions.updateNow.accesskey		"N">
+<!ENTITY danbooruUpOptions.cleanup.label		"Remove 0-post tags">
+<!ENTITY danbooruUpOptions.cleanup.accesskey		"R">
 <!ENTITY danbooruUpOptions.updateOnStartup.label	"Update on startup">
 <!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"s">
 <!ENTITY danbooruUpOptions.fastUpdate.label		"Faster startup updating">

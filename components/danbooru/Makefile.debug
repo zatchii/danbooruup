@@ -36,8 +36,8 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../../../../moz-cvs/debug/mozilla
-topsrcdir	= ../../../../moz-cvs/debug/mozilla
+DEPTH		= /cygdrive/c/mingw/work/mozilla-cvs/debug/mozilla/obj-i686-pc-cygwin/
+topsrcdir	= /cygdrive/c/mingw/work/mozilla-cvs/debug/mozilla/
 srcdir		= .
 VPATH		= .
 
@@ -47,6 +47,7 @@ MOZILLA_INTERNAL_API = 1
 
 REQUIRES =	\
 		autocomplete \
+		content \
 		xpcom \
 		mork \
 		unicharutil \
@@ -141,7 +142,7 @@ endif
 
 include $(topsrcdir)/config/rules.mk
 
-DEFINES += -DDANBOORUUP_BRANCH_STORAGE
+#DEFINES += -DDANBOORUUP_1_8_0_STORAGE
 #DEFINES += -DDANBOORUUP_TESTING
 
 libs:: $(TARGETS)

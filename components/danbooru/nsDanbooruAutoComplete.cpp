@@ -182,7 +182,7 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 #endif
 
 	nsCOMPtr<nsIAutoCompleteResult> result;
-	nsCOMPtr<nsIAutoCompleteMdbResult> mdbResult = do_QueryInterface(aPreviousResult);
+	nsCOMPtr<nsIAutoCompleteArrayResult> mdbResult = do_QueryInterface(aPreviousResult);
 
 	nsDanbooruTagHistoryService *history = nsDanbooruTagHistoryService::GetInstance();
 	if (history) {
@@ -202,6 +202,9 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 NS_IMETHODIMP
 nsDanbooruAutoComplete::StopSearch()
 {
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+	fprintf(stderr, "nsDanbooruAutoComplete::StopSearch()\n");
+#endif
 	return NS_OK;
 }
 

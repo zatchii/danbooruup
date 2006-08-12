@@ -86,7 +86,8 @@
 	<hbox align="end">
 		<hbox class="actionButtons" flex="1">
 			<button id="removeHost" disabled="true"
-				icon="remove" label="&danbooruUpOptions.removedanbooru.label;" 
+				icon="remove"
+				label="&danbooruUpOptions.removedanbooru.label;" 
 				oncommand="gDanbooruManager.onDanbooruDeleted();"/>
 			<spacer flex="1"/>
 		</hbox>
@@ -94,33 +95,70 @@
 	</tabpanel>
 	<tabpanel orient="vertical">
 		<hbox>
-			<checkbox id="enableAC" label="&danbooruUpOptions.enableAC.label;" accesskey="&danbooruUpOptions.enableAC.accesskey;" preference="extensions.danbooruUp.autocomplete.enabled" onsyncfrompreference="gDanbooruManager.onReadEnableAC();" onsynctopreference="gDanbooruManager.onWriteEnableAC();"/>
+			<checkbox id="enableAC"
+				label="&danbooruUpOptions.enableAC.label;"
+				accesskey="&danbooruUpOptions.enableAC.accesskey;"
+				preference="extensions.danbooruUp.autocomplete.enabled"
+				onsyncfrompreference="gDanbooruManager.onReadEnableAC();"
+				onsynctopreference="gDanbooruManager.onWriteEnableAC();"/>
 		</hbox>
 		<groupbox>
 			<caption label="&danbooruUpOptions.urlgroup.label;"/>
 			<hbox align="center" flex="1">
-				<label control="updateURL" value="&danbooruUpOptions.updateURL.label;" accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
-				<textbox id="updateURL" flex="1" preference="extensions.danbooruUp.updateuri" />
+				<label control="updateURL"
+					value="&danbooruUpOptions.updateURL.label;"
+					accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
+				<textbox id="updateURL" flex="1"
+					preference="extensions.danbooruUp.updateuri" />
 			</hbox>
 			<hbox align="center" pack="end">
-				<button id="clearTagHistory" label="&danbooruUpOptions.clearTagHistory.label;"
+				<button id="clearTagHistory"
+					label="&danbooruUpOptions.clearTagHistory.label;"
 					oncommand="Components.classes['@mozilla.org/danbooru/taghistory-service;1'].getService(Components.interfaces.nsIDanbooruTagHistoryService).removeAllEntries();"/>
-				<button id="updateNow" label="&danbooruUpOptions.updateNow.label;"
-					oncommand="Components.classes['@mozilla.org/observer-service;1'].getService(Components.interfaces.nsIObserverService).notifyObservers(null, 'danbooru-update', 'full');"/>
+				<button id="updateNow"
+					label="&danbooruUpOptions.updateNow.label;"
+					accesskey="&danbooruUpOptions.updateNow.accesskey;"
+					oncommand="Components.classes['@mozilla.org/observer-service;1'].getService(Components.interfaces.nsIObserverService).notifyObservers(null, 'danbooru-update', '{full:true,interactive:true}');"/>
+				<button id="updateNow"
+					label="&danbooruUpOptions.cleanup.label;"
+					accesskey="&danbooruUpOptions.cleanup.accesskey;"
+					oncommand="Components.classes['@mozilla.org/observer-service;1'].getService(Components.interfaces.nsIObserverService).notifyObservers(null, 'danbooru-cleanup', '{interactive:true}');"/>
 			</hbox>
 		</groupbox>
 		<groupbox align="start">
 			<caption label="&danbooruUpOptions.updategroup.label;"/>
-			<checkbox id="updateOnStartup" preference="extensions.danbooruUp.autocomplete.update.onstartup" label="&danbooruUpOptions.updateOnStartup.label;" accesskey="&danbooruUpOptions.updateOnStartup.accesskey;" onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();" onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
-			<checkbox id="fastUpdate" preference="extensions.danbooruUp.autocomplete.update.faststartup" label="&danbooruUpOptions.fastUpdate.label;" accesskey="&danbooruUpOptions.fastUpdate.accesskey;" tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;" class="indent"/>
+			<checkbox id="updateOnStartup"
+				preference="extensions.danbooruUp.autocomplete.update.onstartup"
+				label="&danbooruUpOptions.updateOnStartup.label;"
+				accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"
+				onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();"
+				onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
+			<checkbox id="fastUpdate"
+				preference="extensions.danbooruUp.autocomplete.update.faststartup"
+				label="&danbooruUpOptions.fastUpdate.label;"
+				accesskey="&danbooruUpOptions.fastUpdate.accesskey;"
+				tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;"
+				class="indent"/>
 			<groupbox>
 				<caption label="&danbooruUpOptions.updateOnUpload.label;" />
-				<checkbox id="updateBeforeDialog" preference="extensions.danbooruUp.autocomplete.update.beforedialog" label="&danbooruUpOptions.updateOnUpload.before.label;"/>
-				<checkbox id="updateAfterDialog" preference="extensions.danbooruUp.autocomplete.update.afterdialog" label="&danbooruUpOptions.updateOnUpload.after.label;" tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
+				<checkbox id="updateBeforeDialog"
+					preference="extensions.danbooruUp.autocomplete.update.beforedialog"
+					label="&danbooruUpOptions.updateOnUpload.before.label;"/>
+				<checkbox id="updateAfterDialog"
+					preference="extensions.danbooruUp.autocomplete.update.afterdialog"
+					label="&danbooruUpOptions.updateOnUpload.after.label;"
+					tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
 			</groupbox>
 			<hbox align="center" pack="start">
-				<checkbox id="updateOnTimer" preference="extensions.danbooruUp.autocomplete.update.ontimer" label="&danbooruUpOptions.updateOnTimer.label;" accesskey="&danbooruUpOptions.updateOnTimer.accesskey;" onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();" onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
-				<textbox id="updateInterval" preference="extensions.danbooruUp.autocomplete.update.interval" style="width: 5em;" />
+				<checkbox id="updateOnTimer"
+					preference="extensions.danbooruUp.autocomplete.update.ontimer"
+					label="&danbooruUpOptions.updateOnTimer.label;"
+					accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"
+					onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();"
+					onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
+				<textbox id="updateInterval"
+					preference="extensions.danbooruUp.autocomplete.update.interval"
+					style="width: 5em;" />
 				<label value="&danbooruUpOptions.min.label;" />
 			</hbox>
 			<separator class="thick"/>
@@ -134,9 +172,11 @@
 		<hbox class="actionButtons" flex="1">
 			<spacer flex="1"/>
 			<button oncommand="if (gDanbooruManager.onOK()) close();"
-				label="&danbooruUpOptions.ok.label;" accesskey="&danbooruUpOptions.ok.accesskey;"/>
+				label="&danbooruUpOptions.ok.label;"
+				accesskey="&danbooruUpOptions.ok.accesskey;"/>
 			<button oncommand="close();"
-				label="&danbooruUpOptions.cancel.label;" accesskey="&danbooruUpOptions.cancel.accesskey;"/>
+				label="&danbooruUpOptions.cancel.label;"
+				accesskey="&danbooruUpOptions.cancel.accesskey;"/>
 		</hbox>
 		<resizer dir="bottomright"/>
 	</hbox>

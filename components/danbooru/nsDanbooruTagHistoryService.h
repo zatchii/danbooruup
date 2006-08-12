@@ -93,54 +93,19 @@ protected:
   nsresult OpenDatabase();
   nsresult CloseDatabase();
 
-#ifdef DANBOORUUP_MORK
-  static mdb_column kToken_NameColumn;
-  static mdb_column kToken_ValueColumn;
-  nsresult OpenExistingFile(const char *aPath);
-  nsresult CreateNewFile(const char *aPath);
-  nsresult CreateTokens();
-  nsresult Flush();
-  nsresult CopyRowsFromTable(nsIMdbTable *sourceTable);
-  nsresult AppendRow(const nsAString &aName, const PRUint32 aID, const PRInt32 aValue, nsIMdbRow **aResult);
-  nsresult AppendRow(const nsAString &aName, const PRUint32 aID, nsIMdbRow **aResult);
-  nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const nsAString &aValue);
-  nsresult SetRowValue(nsIMdbRow *aRow, mdb_column aCol, const PRInt32 aValue);
-  nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, nsAString &aValue);
-  nsresult GetRowValue(nsIMdbRow *aRow, mdb_column aCol, PRInt32 *aValue);
-
-  mdb_err UseThumb(nsIMdbThumb *aThumb, PRBool *aDone);
-
-  PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, const PRInt32 aInputValue, PRInt32 *aValue);
-  PRBool RowMatch(nsIMdbRow *aRow, const nsAString &aInputName, PRInt32 *aValue);
-
-  PR_STATIC_CALLBACK(int) SortComparison(const void *v1, const void *v2, void *closureVoid);
-
-  nsresult EntriesExistInternal(const nsAString *aName, const PRInt32 aValue, PRBool *_retval);
-
-  nsresult RemoveEntriesInternal(const nsAString *aName);
-
-  nsCOMPtr<nsIMdbFactory> mMdbFactory;
-  nsIMdbEnv* mEnv;
-  nsIMdbStore* mStore;
-  nsIMdbTable* mTable;
-  PRInt64 mFileSizeOnDisk;
-
-  // database tokens
-  mdb_scope kToken_RowScope;
-  mdb_kind kToken_Kind;
-#else
   // mozStorage
   nsCOMPtr<mozIStorageConnection> mDB;
 
   nsCOMPtr<mozIStorageStatement> mInsertStmt;
+  nsCOMPtr<mozIStorageStatement> mRemoveByIDStmt;
   nsCOMPtr<mozIStorageStatement> mIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mSearchStmt;
   nsCOMPtr<mozIStorageStatement> mExistsStmt;
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
   nsCOMPtr<mozIStorageStatement> mRowCountStmt;
 
-  nsresult ProcessTagXML(void *);
-#endif
+  nsresult ProcessTagXML(void *, PRBool);
+
   static PRBool TagHistoryEnabled();
 
   static nsDanbooruTagHistoryService *gTagHistory;
@@ -149,6 +114,8 @@ protected:
   static PRBool gPrefsInitialized;
 
   nsCOMPtr<nsIXMLHttpRequest> mRequest;
+  PRBool mInserting;
+
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
 };
 

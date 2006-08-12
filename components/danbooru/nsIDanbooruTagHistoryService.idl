@@ -52,8 +52,10 @@ interface nsIDanbooruTagHistoryService : nsISupports
 
   /**
    * Updates the tag database from a given XML source.
+   * @param aXmlURI The URI from which to retrieve tags from.
+   * @param insert True if retrieving tags for insertion, false if retrieving tags for clean up.
    */
-  void updateTagListFromURI(in AString aXmlURI);
+  void updateTagListFromURI(in AString aXmlURI, in boolean insert);
 
   /**
    * Gets the name and value at a position in the tag history.

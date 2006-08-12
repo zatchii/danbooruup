@@ -42,14 +42,18 @@ var danbooruTagUpdater = {
 		}
 		return 0;
 	},
-	observe: function(aS, aT, aD)
+	observe: function(aSubject, aTopic, aData)
 	{
 		//var os	= Components.classes["@mozilla.org/observer-service;1"]
 		//	.getService(Components.interfaces.nsIObserverService);
 		//os.removeObserver(this, "browser-window-before-show");
-		switch (aT) {
+		eval("aData="+aData);
+		switch (aTopic) {
 		case 'danbooru-update':
-			this.update(aD == "full");
+			this.update(aData.full, aData.interactive);
+			break;
+		case 'danbooru-cleanup':
+			this.cleanup(aData.interactive);
 			break;
 		case 'danbooru-options-changed':
 			this.startTimer();
@@ -77,7 +81,7 @@ var danbooruTagUpdater = {
 			full = false;
 			this.mMaxID = this.getMaxID();
 		}
-		this.update(full);
+		this.update(full, false);
 	},
 	notify: function(aTimer)
 	{
@@ -89,9 +93,9 @@ var danbooruTagUpdater = {
 			this.mTimer = null;
 			return;
 		}
-		this.update(false);
+		this.update(false, false);
 	},
-	update: function(aFull)
+	update: function(aFull, aInteractive)
 	{
 		var locationURL	= ioService.newURI(prefService.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Components.interfaces.nsIURL);
@@ -99,13 +103,37 @@ var danbooruTagUpdater = {
 		{
 			locationURL.query = "after_id="+(this.mMaxID+1);
 		}
-		tagService.updateTagListFromURI(locationURL.spec);
+		try {
+			tagService.updateTagListFromURI(locationURL.spec, true);
+		} catch (e) {
+			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
+			{
+				if(aInteractive)
+					alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
+			}
+			else {alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);}
+		}
 		this.mMaxID = this.getMaxID();
 		prefService.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
 
 		if (prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer") && !this.mTimer)
 		{
 			this.startTimer();
+		}
+	},
+	cleanup: function(aInteractive)
+	{
+		var locationURL	= ioService.newURI(prefService.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+				.QueryInterface(Components.interfaces.nsIURL);
+		try {
+			tagService.updateTagListFromURI(locationURL.spec, false);
+		} catch (e) {
+			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
+			{
+				if(aInteractive)
+					alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
+			}
+			else {alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);}
 		}
 	}
 };
@@ -595,7 +623,7 @@ danbooruPoster.prototype = {
 					if (viewurl)
 						this.addLinkToBrowserMessage(viewurl);
 					if (this.mUpdateTags)
-						os.notifyObservers(null, "danbooru-update", null);
+						os.notifyObservers(null, "danbooru-update", "{full:false,interactive:false}");
 				}
 			} else if (channel.responseStatus == 409) {
 				var errs="";
@@ -688,6 +716,7 @@ danbooruPoster.prototype = {
 window.addEventListener("load", danbooruImageInit, false);
 var os = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 os.addObserver(danbooruTagUpdater, "danbooru-update", false);
+os.addObserver(danbooruTagUpdater, "danbooru-cleanup", false);
 os.addObserver(danbooruTagUpdater, "danbooru-options-changed", false);
 
 danbooruTagUpdater.startupUpdate();

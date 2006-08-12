@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-
+<!-- Firefox's autocomplete.xml mangled for tag autocomplete -->
+<!--  Components.classes['@mozilla.org/consoleservice;1'].getService(Components.interfaces.nsIConsoleService).logStringMessage('danAC: '); -->
 <bindings id="danbooruUpBindings"
           xmlns="http://www.mozilla.org/xbl"
           xmlns:html="http://www.w3.org/1999/xhtml"
@@ -139,7 +140,8 @@
 		var front=fr.lastIndexOf(' ');
 		var ba=this.value.substr(p);
 		var back=ba.indexOf(' ');
-		return this.value.substr(1+front,p-front+(back==-1?ba.length:back)-1)
+		//this.LOG('danAC: p '+p+' front '+front+' back '+back+' ba.length '+ba.length);
+		return this.value.substr(1+front,p-front+(back==-1?ba.length:back)-1);
 	]]></body>
       </method>
 
@@ -403,6 +405,7 @@
             aEvent.preventDefault();
           }
 
+	  //this.LOG('danAC: kp-cw '+this.currentWord());
           return true;
         ]]></body>
       </method>
@@ -430,6 +433,12 @@
         ]]></body>
       </method>
 
+      <method name="LOG">
+        <parameter name="aMsg"/>
+        <body><![CDATA[
+            Components.classes['@mozilla.org/consoleservice;1'].getService(Components.interfaces.nsIConsoleService).logStringMessage(aMsg);
+        ]]></body>
+      </method>
     </implementation>
 
     <handlers>
