@@ -178,7 +178,7 @@ function danbooruUploadImage() {
 		{imageNode:danbooruImgNode, imageURI:imgURI, wind:thistab, start:danbooruStartUpload});
 }
 
-function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aRating, aDest, aNode, aWind, aUpdate)
+function danbooruStartUpload(aRealSource, aSource, aTags, aRating, aDest, aNode, aWind, aUpdate)
 {
 	var uploader;
 	var imgChannel	= ioService.newChannelFromURI(aRealSource);
@@ -187,7 +187,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aRating, aDest
 
 	if (aRealSource.scheme == "file") {
 		imgChannel = imgChannel.QueryInterface(Components.interfaces.nsIFileChannel);
-		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aRating, aDest, aWind, true, aWind.contentDocument.location, aUpdate);
+		uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, true, aWind.contentDocument.location, aUpdate);
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
 		imgChannel.asyncOpen(uploader, imgChannel);
@@ -203,7 +203,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aTitle, aRating, aDest
 		// don't need to bother with Uploader's array transfer
 		var listener = Components.classes["@mozilla.org/network/simple-stream-listener;1"]
 				.createInstance(Components.interfaces.nsISimpleStreamListener);
-		uploader = new danbooruUploader(aRealSource, aSource, aTags, aTitle, aRating, aDest, aWind, false, aWind.contentDocument.location, aUpdate);
+		uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, false, aWind.contentDocument.location, aUpdate);
 
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
@@ -234,12 +234,11 @@ function getSize(url) {
 /*
  * retrieves an image and constructs the multipart POST data
  */
-function danbooruUploader(aRealSource, aSource, aTags, aTitle, aRating, aDest, aTab, aLocal, aLocation, aUpdateTags)
+function danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aTab, aLocal, aLocation, aUpdateTags)
 {
 	this.mRealSource = aRealSource;
 	this.mSource = aSource;
 	this.mTags = aTags;
-	this.mTitle = aTitle;
 	if(aRating) {
 		this.mRating = aRating;
 	}
@@ -424,10 +423,32 @@ cancel:function()
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		this.mChannel.cancel(0x804b0002);
 		os.removeObserver(this, "danbooru-down");
-		if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
-			getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.png",
-				danbooruUpMsg.GetStringFromName('danbooruUp.msg.readcancel'), "",
-				"", "danbooru-up", null, "top", true, "");
+		//if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
+		//{//Fx2 notification box
+		var notificationBox = getBrowser().getNotificationBox(this.mTab);
+		var notification = notificationBox.getNotificationWithValue("danbooru-up");
+		if (notification) {
+			notification.label = message;
+		}
+		else {
+			var buttons = [{
+				label: popupButtonText,
+				accessKey: null,
+				popup: null,
+				callback: null
+			}];
+
+			//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+			var priority = notificationBox.PRIORITY_INFO_MEDIUM;
+			notificationBox.appendNotification(message, "danbooru-up",
+				"chrome://global/skin/throbber/Throbber-small.png",
+				priority, null);
+		}
+
+		//}
+		//	getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.png",
+		//		danbooruUpMsg.GetStringFromName('danbooruUp.msg.readcancel'), "",
+		//		"", "danbooru-up", null, "top", true, "");
 		return true;
 	}
 	}catch(e){alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);}
@@ -452,11 +473,33 @@ onStartRequest: function (channel, ctxt)
 	}
 
 	this.mChannel = channel;
+
+	var notificationBox = getBrowser().getNotificationBox(this.mTab);
+	var notification = notificationBox.getNotificationWithValue("danbooru-up");
+	if (notification) {
+		notificationBox.removeNotification(notification);
+	}
+	var buttons = [{
+		label: commondlgMsg.GetStringFromName('cancelButtonText'),
+		accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
+		popup: null,
+		callback: this.cancel
+	}];
+
+	//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+	var priority = notificationBox.PRIORITY_INFO_MEDIUM;
+	notificationBox.appendNotification(danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource.spec,
+		"danbooru-up",
+		"chrome://global/skin/throbber/Throbber-small.gif",
+		priority, buttons);
+
+	/*
 	if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 		getBrowser().showMessage(this.mTab, "chrome://global/skin/throbber/Throbber-small.gif",
 			danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource.spec,
 			commondlgMsg.GetStringFromName('cancelButtonText'),
 			null, "danbooru-down", null, "top", true, commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'));
+	*/
 },
 onStopRequest: function (channel, ctxt, status)
 {
@@ -528,6 +571,7 @@ danbooruPoster.prototype = {
 		var size = getSize(aImgURI.spec);
 		var kbSize = Math.round((size/1024)*100)/100;
 
+		/*
 		if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 			getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-uploading.gif",
 				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+aImgURI.spec+
@@ -535,6 +579,29 @@ danbooruPoster.prototype = {
 				commondlgMsg.GetStringFromName('cancelButtonText'),
 				null, "danbooru-up", null, "top", true,
 				commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'));
+		*/
+
+		var notificationBox = getBrowser().getNotificationBox(this.mTab);
+		var notification = notificationBox.getNotificationWithValue("danbooru-up");
+		if (notification) {
+			notificationBox.removeNotification(notification);
+		}
+		var buttons = [{
+			label: commondlgMsg.GetStringFromName('cancelButtonText'),
+			accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
+			popup: null,
+			callback: this.cancel
+		}];
+
+		//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+		var priority = notificationBox.PRIORITY_INFO_MEDIUM;
+		notificationBox.appendNotification(
+				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+aImgURI.spec+
+				((size != -1) ?(' ('+kbSize+' KB)') : ''),
+				"danbooru-up",
+				"chrome://global/skin/throbber/Throbber-small.gif",
+				priority, buttons);
+
 		try{
 			this.mChannel.asyncOpen(this, null);
 			return true;
@@ -544,10 +611,12 @@ danbooruPoster.prototype = {
 		return false;
 	},
 
+	// hack to get a clickable link in the browser message
 	addLinkToBrowserMessage:function(viewurl)
 	{
-		var top = getBrowser().getMessageForBrowser(this.mTab, "top");
-		var msgtext = document.getAnonymousElementByAttribute(top, "anonid", "messageText");
+		//var top = getBrowser().getMessageForBrowser(this.mTab, "top");
+		var notification = notificationBox.getNotificationWithValue("danbooru-up");
+		var msgtext = document.getAnonymousElementByAttribute(notification, "anonid", "messageText");
 		var link=document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
 		link.setAttribute("class", "danboorumsglink");
 		link.setAttribute("anonid", "danboorulink");
@@ -564,10 +633,20 @@ danbooruPoster.prototype = {
 			var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 			this.mChannel.cancel(0x804b0002);
 			try { os.removeObserver(this, "danbooru-up"); } catch(e) {}
-			if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
-				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
+
+			var notificationBox = getBrowser().getNotificationBox(this.mTab);
+			var notification = notificationBox.getNotificationWithValue("danbooru-up");
+			if (notification) {
+				notificationBox.removeNotification(notification);
+			}
+
+			var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+			//const priority = notificationBox.PRIORITY_INFO_MEDIUM;
+			notificationBox.appendNotification(
 					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
-					"", "", "", null, "top", true, "");
+					"danbooru-up",
+					"chrome://danbooruup/skin/icon.ico",
+					priority, null);
 			return true;
 		}
 		return false;
@@ -611,15 +690,47 @@ danbooruPoster.prototype = {
 				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs) {	// what
+					/*
 					if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 							danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
 							"", "", "", null, "top", true, "");
+					*/
+					var notificationBox = getBrowser().getNotificationBox(this.mTab);
+					var notification = notificationBox.getNotificationWithValue("danbooru-up");
+					if (notification) {
+						notificationBox.removeNotification(notification);
+					}
+
+					var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+					//const priority = notificationBox.PRIORITY_INFO_MEDIUM;
+					notificationBox.appendNotification(
+							danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
+							"danbooru-up",
+							"chrome://danbooruup/skin/danbooru-attention.gif",
+							priority, null);
 				} else {
+					/*
 					if(getBrowser().getMessageForBrowser(this.mTab, 'top'))
 						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/icon.ico",
 							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
 							"", "", "", null, "top", true, "");
+					*/
+
+					var notificationBox = getBrowser().getNotificationBox(this.mTab);
+					var notification = notificationBox.getNotificationWithValue("danbooru-up");
+					if (notification) {
+						notificationBox.removeNotification(notification);
+					}
+
+					//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+					var priority = notificationBox.PRIORITY_INFO_MEDIUM;
+					notificationBox.appendNotification(
+							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
+							"danbooru-up",
+							"chrome://danbooruup/skin/icon.ico",
+							priority, null);
+
 					if (viewurl)
 						this.addLinkToBrowserMessage(viewurl);
 					if (this.mUpdateTags)
@@ -628,29 +739,33 @@ danbooruPoster.prototype = {
 			} else if (channel.responseStatus == 409) {
 				var errs="";
 				var viewurl="";
+				var message="";
 				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
 				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs.search("(^|;)duplicate(;|$)") != -1) {
-					if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
-						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
-							danbooruUpMsg.GetStringFromName('danbooruUp.err.duplicate'),
-							"", "", "", null, "top", true, "");
-
-						if (viewurl)
-							this.addLinkToBrowserMessage(viewurl);
-					}
+					message = danbooruUpMsg.GetStringFromName('danbooruUp.err.duplicate');
 				} else if (errs.search("(^|;)mismatched md5(;|$)") != -1) {
-					if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
-						getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
-							danbooruUpMsg.GetStringFromName('danbooruUp.err.corruptupload'),
-							"", "", "", null, "top", true, "");
-					}
+					message = danbooruUpMsg.GetStringFromName('danbooruUp.err.corruptupload');
 				} else if (getBrowser().getMessageForBrowser(this.mTab, 'top')) {
-					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
-						danbooruUpMsg.GetStringFromName('danbooruUp.err.unhandled') + ' ' + errs,
-						"", "", "", null, "top", true, "");
+					message = danbooruUpMsg.GetStringFromName('danbooruUp.err.unhandled') + ' ' + errs;
 				}
+
+				var notificationBox = getBrowser().getNotificationBox(this.mTab);
+				var notification = notificationBox.getNotificationWithValue("danbooru-up");
+				if (notification) {
+					notificationBox.removeNotification(notification);
+				}
+
+				var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+				//const priority = notificationBox.PRIORITY_INFO_MEDIUM;
+				notificationBox.appendNotification(message, "danbooru-up",
+						"chrome://danbooruup/skin/danbooru-attention.gif",
+						priority, null);
+
+				if (viewurl)
+					this.addLinkToBrowserMessage(viewurl);
+
 			} else {
 				var str = "";
 				try {
@@ -670,11 +785,24 @@ danbooruPoster.prototype = {
 				}
 
 				// FIXME: newlines do not work in any fashion
+				/*
 				if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
 					getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 						danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + ' '
 						+ channel.responseStatus + ' ' + channel.responseStatusText + "\n" + str.substr(0,511),
 						"", "", "", null, "top", true, "");
+				*/
+				var notificationBox = getBrowser().getNotificationBox(this.mTab);
+				var notification = notificationBox.getNotificationWithValue("danbooru-up");
+				if (notification) {
+					notificationBox.removeNotification(notification);
+				}
+
+				var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+				//const priority = notificationBox.PRIORITY_INFO_MEDIUM;
+				notificationBox.appendNotification(message, "danbooru-up",
+						"chrome://danbooruup/skin/danbooru-attention.gif",
+						priority, null);
 
 				if (sis)
 				{
@@ -682,22 +810,36 @@ danbooruPoster.prototype = {
 					sis.close();
 				}
 			}
-		} else if (status == kErrorNetTimeout) {
+		} else if (status == kErrorNetTimeout || status == kErrorNetRefused) {
 			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
-			var str = errmsg.FormatStringFromName('netTimeout', [channel.URI.spec])
+			var str;
 
+			if (status == kErrorNetTimeout)
+				str = errmsg.FormatStringFromName('netTimeout', [channel.URI.spec])
+			else if (status == kErrorNetRefused)
+				str = errmsg.FormatStringFromName('connectionFailure', [channel.URI.spec])
+
+			/*
 			if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
 				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
 					"", "", "", null, "top", true, "");
-		} else if (status == kErrorNetRefused) {
-			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
-			var str = errmsg.FormatStringFromName('connectionFailure', [channel.URI.spec])
+			*/
 
-			if (getBrowser().getMessageForBrowser(this.mTab, 'top'))
-				getBrowser().showMessage(this.mTab, "chrome://danbooruup/skin/danbooru-attention.gif",
+			var notificationBox = getBrowser().getNotificationBox(this.mTab);
+			var notification = notificationBox.getNotificationWithValue("danbooru-up");
+			if (notification) {
+				notificationBox.removeNotification(notification);
+			}
+
+			var priority = notificationBox.PRIORITY_WARNING_MEDIUM;
+			//const priority = notificationBox.PRIORITY_INFO_MEDIUM;
+			notificationBox.appendNotification(
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
-					"", "", "", null, "top", true, "");
+					"danbooru-up",
+					"chrome://danbooruup/skin/danbooru-attention.gif",
+					priority, null);
+
 		} else { // not NS_OK
 			alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+status.toString(16));
 		}

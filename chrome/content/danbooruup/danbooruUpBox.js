@@ -49,7 +49,6 @@ function doOK()
 		window.arguments[0].imageURI,
 		document.getElementById('source').value,
 		tags,
-		document.getElementById('title').value,
 		rating,
 		ml.label,
 		window.arguments[0].imageNode,

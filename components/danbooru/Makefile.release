@@ -36,14 +36,14 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= /cygdrive/c/mingw/work/mozilla-cvs/mozilla/obj-i686-pc-cygwin/
-topsrcdir	= /cygdrive/c/mingw/work/mozilla-cvs/mozilla/
+DEPTH		= /cygdrive/c/mingw/work/mozilla/obj-i686-pc-cygwin/
+topsrcdir	= /cygdrive/c/mingw/work/mozilla/
 srcdir		= .
 VPATH		= .
 
 include $(DEPTH)/config/autoconf.mk
 
-MOZILLA_INTERNAL_API = 1
+LIBXUL_LIBRARY = 1
 
 REQUIRES =	\
 		autocomplete \
@@ -142,8 +142,8 @@ endif
 
 include $(topsrcdir)/config/rules.mk
 
-DEFINES += -DDANBOORUUP_1_8_0_STORAGE
-DEFINES += -DDANBOORUUP_TESTING
+#DEFINES += -DDANBOORUUP_1_8_0_STORAGE
+#DEFINES += -DDANBOORUUP_TESTING
 
 libs:: $(TARGETS)
 #	$(INSTALL) $(srcdir)/xpconnect-sample.html $(DIST)/bin/res/samples

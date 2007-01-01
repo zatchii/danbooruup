@@ -36,14 +36,14 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= /cygdrive/c/mingw/work/mozilla-cvs/debug/mozilla/obj-i686-pc-cygwin/
-topsrcdir	= /cygdrive/c/mingw/work/mozilla-cvs/debug/mozilla/
+DEPTH		= /cygdrive/c/mingw/work/mozilla/obj-debug-i686-pc-cygwin/
+topsrcdir	= /cygdrive/c/mingw/work/mozilla/
 srcdir		= .
 VPATH		= .
 
 include $(DEPTH)/config/autoconf.mk
 
-MOZILLA_INTERNAL_API = 1
+LIBXUL_LIBRARY = 1
 
 REQUIRES =	\
 		autocomplete \
