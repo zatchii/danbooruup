@@ -615,6 +615,7 @@ danbooruPoster.prototype = {
 	addLinkToBrowserMessage:function(viewurl)
 	{
 		//var top = getBrowser().getMessageForBrowser(this.mTab, "top");
+		var notificationBox = getBrowser().getNotificationBox(this.mTab);
 		var notification = notificationBox.getNotificationWithValue("danbooru-up");
 		var msgtext = document.getAnonymousElementByAttribute(notification, "anonid", "messageText");
 		var link=document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
