@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://danbooruup/locale/danbooruUp.dtd">
+<!--
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://browser/skin/pageInfo.css" type="text/css"?>
+<?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
+-->
+<overlay id="danbooruUpMeta" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpMeta.js" insertbefore="dialogKeys"/>
+<!--	<row id="image-md5" insertafter="image-filesize,image-height,image-width,image-url,image-alt,image-desc">
+		<separator orient="vertical"/>
+		<label value="&image-md5.label; "/>
+		<textbox readonly="true" id="image-md5-text"/>
+	</row>
+</overlay>
+

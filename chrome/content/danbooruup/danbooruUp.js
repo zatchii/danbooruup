@@ -186,7 +186,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aRating, aDest, aNode,
 			.getService(Components.interfaces.nsIObserverService);
 
 	if (aRealSource.scheme == "file") {
-		imgChannel = imgChannel.QueryInterface(Components.interfaces.nsIFileChannel);
+		imgChannel.QueryInterface(Components.interfaces.nsIFileChannel);
 		uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, true, aWind.contentDocument.location, aUpdate);
 		// add entry to the observer
 		os.addObserver(uploader, "danbooru-down", false);
@@ -196,7 +196,7 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aRating, aDest, aNode,
 				.getService(Components.interfaces.nsICookieService);
 		var cookieStr = cookieJar.getCookieString(ioService.newURI(aNode.ownerDocument.location, "", null), null);
 
-		imgChannel = imgChannel.QueryInterface(Components.interfaces.nsIHttpChannel);
+		imgChannel.QueryInterface(Components.interfaces.nsIHttpChannel);
 		imgChannel.referrer = ioService.newURI(aNode.ownerDocument.location, "", null);
 		imgChannel.setRequestHeader("Cookie", cookieStr, true);
 
