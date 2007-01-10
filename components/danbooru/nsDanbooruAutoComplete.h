@@ -48,7 +48,7 @@
 #include "nsIAutoCompleteController.h"
 #include "nsIAutoCompleteInput.h"
 #include "nsIAutoCompletePopup.h"
-#include "nsIAutoCompleteResultTypes.h"
+//#include "nsIAutoCompleteResultTypes.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsArray.h"
 #include "nsITimer.h"

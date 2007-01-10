@@ -190,6 +190,10 @@ var gDanbooruManager = {
       promptService.alert(window, title, message);
       return false;
     }
+    var pbi = Components.classes["@mozilla.org/preferences-service;1"]
+	      .getService(Components.interfaces.nsIPrefBranch);
+    pbi.setCharPref("extensions.danbooruUp.tooltipcrop", document.getElementById("cropGroup").value);
+
     this._saveDanbooru();
     this.uninit();
     var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
@@ -346,6 +350,12 @@ var gDanbooruManager = {
     var box = document.getElementById("updateInterval");
     box.disabled = !pref.value;
     return pref.value;
+  },
+
+  changeTooltipCrop: function ()
+  {
+    var grp = document.getElementById("cropGroup");
+    return grp.value;
   },
 
   _loadDanbooru: function ()

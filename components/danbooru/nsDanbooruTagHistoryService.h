@@ -39,7 +39,7 @@
 #define __nsDanbooruTagHistory__
 
 #include "nsIDanbooruTagHistoryService.h"
-#include "nsIAutoCompleteResultTypes.h"
+//#include "nsIAutoCompleteResultTypes.h"
 #include "nsIAutoCompleteArrayResult.h"
 #include "nsIXMLHttpRequest.h"
 #include "nsIDOMEventListener.h"
@@ -52,7 +52,6 @@
 #include "nsWeakReference.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
-#include "mdb.h"
 
 class nsIXMLHttpRequest;
 
@@ -100,11 +99,13 @@ protected:
   nsCOMPtr<mozIStorageStatement> mRemoveByIDStmt;
   nsCOMPtr<mozIStorageStatement> mIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mSearchStmt;
+  nsCOMPtr<mozIStorageStatement> mSearchCountStmt;
   nsCOMPtr<mozIStorageStatement> mExistsStmt;
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
   nsCOMPtr<mozIStorageStatement> mRowCountStmt;
 
   nsresult ProcessTagXML(void *, PRBool);
+  void CleanupTagArray(PRUnichar**&, PRUint32&);
 
   static PRBool TagHistoryEnabled();
 
@@ -114,6 +115,7 @@ protected:
   static PRBool gPrefsInitialized;
 
   nsCOMPtr<nsIXMLHttpRequest> mRequest;
+  // no way to get XHR to send this along with the load event, but there's only one request at a time per XHR anyway
   PRBool mInserting;
 
   nsCOMPtr<nsIPrefBranch> mPrefBranch;

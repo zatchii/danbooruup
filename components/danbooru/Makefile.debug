@@ -49,7 +49,6 @@ REQUIRES =	\
 		autocomplete \
 		content \
 		xpcom \
-		mork \
 		unicharutil \
 		intl \
 		locale \

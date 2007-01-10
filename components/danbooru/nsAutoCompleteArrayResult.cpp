@@ -4,7 +4,6 @@
 
 NS_INTERFACE_MAP_BEGIN(nsAutoCompleteArrayResult)
   NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteResult)
-  NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteBaseResult)
   NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteArrayResult)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIAutoCompleteResult)
 NS_INTERFACE_MAP_END
@@ -130,7 +129,7 @@ nsAutoCompleteArrayResult::SetDefaultIndex(PRInt32 aDefaultIndex)
 }
 
 NS_IMETHODIMP
-nsAutoCompleteArrayResult::SetSearchResult(PRUint32 aSearchResult)
+nsAutoCompleteArrayResult::SetSearchResult(PRUint16 aSearchResult)
 {
   mSearchResult = aSearchResult;
   return NS_OK;

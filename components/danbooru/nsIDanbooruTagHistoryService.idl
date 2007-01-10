@@ -51,6 +51,11 @@ interface nsIDanbooruTagHistoryService : nsISupports
   readonly attribute unsigned long maxID;
 
   /**
+   * Scriptable manual search for tags.
+   */
+  void searchTags(in AString inputname, [array, size_is(count)] out wstring result, out PRUint32 count);
+
+  /**
    * Updates the tag database from a given XML source.
    * @param aXmlURI The URI from which to retrieve tags from.
    * @param insert True if retrieving tags for insertion, false if retrieving tags for clean up.

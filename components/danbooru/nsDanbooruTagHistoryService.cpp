@@ -94,6 +94,7 @@ static const char *kTagTableName = "tags";
 #define kTagInsert "INSERT OR IGNORE INTO tags (id, name) VALUES (?1, ?2)"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
 #define kTagSearch "SELECT name FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
+#define kTagSearchCount "SELECT COUNT(*) FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
 #define kRemoveAll "TRUNCATE TABLE tags"
@@ -705,7 +706,7 @@ nsDanbooruTagHistoryService::OpenDatabase()
   nsCOMPtr <nsIFile> historyFile;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
   NS_ENSURE_SUCCESS(rv, rv);
-  historyFile->Append(NS_ConvertUTF8toUCS2(kTagHistoryFileName));
+  historyFile->Append(NS_ConvertUTF8toUTF16(kTagHistoryFileName));
   
   //rv = storage->GetProfileStorage("profile", getter_AddRefs(mDB));
   rv = storage->OpenDatabase(historyFile, getter_AddRefs(mDB));
@@ -722,6 +723,8 @@ nsDanbooruTagHistoryService::OpenDatabase()
   rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearchCount), getter_AddRefs(mSearchCountStmt));
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -831,5 +834,65 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 	NS_IF_ADDREF(*aResult);
 
 	return NS_OK;
+}
+
+nsresult
+nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
+					PRUnichar ***aResult,
+					PRUint32 *aCount)
+{
+	NS_ENSURE_ARG(aCount);
+	NS_ENSURE_ARG_POINTER(aResult);
+
+	nsresult rv = OpenDatabase();
+	NS_ENSURE_SUCCESS(rv, rv);
+
+	PRBool row;
+	PRUint32 ct;
+	mSearchCountStmt->BindStringParameter(0, aInputName);
+	mSearchCountStmt->ExecuteStep(&row);
+	ct = (PRUint32)mSearchCountStmt->AsInt32(0);
+	mSearchCountStmt->Reset();
+
+	if(ct)
+	{
+	 	PRUnichar** array = (PRUnichar **)nsMemory::Alloc(*aCount * sizeof(PRUnichar *)); 
+		if (!array)
+			return NS_ERROR_OUT_OF_MEMORY;
+
+		mSearchStmt->BindStringParameter(0, aInputName);
+		mSearchStmt->ExecuteStep(&row);
+		PRUint32 index = 0;
+		nsAutoString name;
+		while (row && index < *aCount)
+		{
+#ifdef DANBOORUUP_1_8_0_STORAGE
+			mSearchStmt->GetAsString(0, name);
+#else
+			name = mSearchStmt->AsSharedWString(0, nsnull);
+#endif
+			array[index] = ToNewUnicode(name);
+			if (!array[index] || !*(array[index])) {
+				CleanupTagArray(array, ct);
+				return NS_ERROR_OUT_OF_MEMORY;
+			}
+			mSearchStmt->ExecuteStep(&row);
+			index++;
+		}
+		*aResult = array;
+		*aCount = ct;
+	}
+	return NS_OK;
+}
+
+void
+nsDanbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCount)
+{
+	for (PRInt32 i = aCount - 1; i >= 0; i--) {
+		nsMemory::Free(aArray[i]);
+	}
+	nsMemory::Free(aArray);
+	aArray = NULL;
+	aCount = 0;
 }
 

@@ -13,5 +13,6 @@
 		<label value="&image-md5.label; "/>
 		<textbox readonly="true" id="image-md5-text"/>
 	</row>
+-->
 </overlay>
 

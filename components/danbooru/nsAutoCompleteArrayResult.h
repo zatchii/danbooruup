@@ -2,10 +2,10 @@
 #define __nsAutoCompleteArrayResult__
 
 #include "nsIAutoCompleteResult.h"
-#include "nsIAutoCompleteResultTypes.h"
+//#include "nsIAutoCompleteResultTypes.h"
 #include "nsIAutoCompleteArrayResult.h"
 #include "nsString.h"
-#include "nsArray.h"
+#include "nsVoidArray.h"
 
 // {683D9ABF-BFDE-4c93-9D96-7181865B1257}
 #define NS_AUTOCOMPLETEARRAYRESULT_CID \
@@ -21,7 +21,6 @@ public:
 	nsAutoCompleteArrayResult();
 	virtual ~nsAutoCompleteArrayResult();
 
-	NS_DECL_NSIAUTOCOMPLETEBASERESULT
 	NS_DECL_NSIAUTOCOMPLETEARRAYRESULT
 
 protected:

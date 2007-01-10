@@ -57,6 +57,8 @@ var danbooruTagUpdater = {
 			break;
 		case 'danbooru-options-changed':
 			this.startTimer();
+			document.getElementById("aHTMLTooltip").setAttribute("crop",
+								prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
 			break;
 		}
 	},
@@ -863,4 +865,5 @@ os.addObserver(danbooruTagUpdater, "danbooru-cleanup", false);
 os.addObserver(danbooruTagUpdater, "danbooru-options-changed", false);
 
 danbooruTagUpdater.startupUpdate();
+document.getElementById("aHTMLTooltip").setAttribute("crop", prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
 
