@@ -43,6 +43,7 @@
 #include "nsIObserverService.h"
 #include "nsICategoryManager.h"
 #include "nsIDirectoryService.h"
+#include "nsDirectoryServiceDefs.h"
 #include "nsAppDirectoryServiceDefs.h"
 
 #include "nsAutoCompleteArrayResult.h"
@@ -52,7 +53,7 @@
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
 
-// GetResolvedURI 
+// GetResolvedURI
 #include "nsIXPConnect.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
@@ -705,9 +706,14 @@ nsDanbooruTagHistoryService::OpenDatabase()
   // Get a handle to the database file
   nsCOMPtr <nsIFile> historyFile;
   nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if(NS_FAILED(rv))
+  {
+    // probably using xpcshell
+    rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(historyFile));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
   historyFile->Append(NS_ConvertUTF8toUTF16(kTagHistoryFileName));
-  
+
   //rv = storage->GetProfileStorage("profile", getter_AddRefs(mDB));
   rv = storage->OpenDatabase(historyFile, getter_AddRefs(mDB));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -769,7 +775,7 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 				result->RemoveValueAt(i, PR_FALSE);
 		}
 	} else {
-		result = do_CreateInstance("@mozilla.org/autocomplete/array-result;1");
+		result = do_CreateInstance(NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID);
 		/*nsCOMPtr<nsIComponentManager> compMgr;
 		rv = NS_GetComponentManager(getter_AddRefs(compMgr));
 		if (NS_FAILED(rv))
@@ -836,6 +842,17 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 	return NS_OK;
 }
 
+void
+nsDanbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCount)
+{
+	for (PRInt32 i = aCount - 1; i >= 0; i--) {
+		nsMemory::Free(aArray[i]);
+	}
+	nsMemory::Free(aArray);
+	aArray = NULL;
+	aCount = 0;
+}
+
 nsresult
 nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 					PRUnichar ***aResult,
@@ -856,7 +873,7 @@ nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 
 	if(ct)
 	{
-	 	PRUnichar** array = (PRUnichar **)nsMemory::Alloc(*aCount * sizeof(PRUnichar *)); 
+	 	PRUnichar** array = (PRUnichar **)nsMemory::Alloc(ct * sizeof(PRUnichar *));
 		if (!array)
 			return NS_ERROR_OUT_OF_MEMORY;
 
@@ -864,7 +881,7 @@ nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 		mSearchStmt->ExecuteStep(&row);
 		PRUint32 index = 0;
 		nsAutoString name;
-		while (row && index < *aCount)
+		while (row && index < ct)
 		{
 #ifdef DANBOORUUP_1_8_0_STORAGE
 			mSearchStmt->GetAsString(0, name);
@@ -883,16 +900,5 @@ nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 		*aCount = ct;
 	}
 	return NS_OK;
-}
-
-void
-nsDanbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCount)
-{
-	for (PRInt32 i = aCount - 1; i >= 0; i--) {
-		nsMemory::Free(aArray[i]);
-	}
-	nsMemory::Free(aArray);
-	aArray = NULL;
-	aCount = 0;
 }
 

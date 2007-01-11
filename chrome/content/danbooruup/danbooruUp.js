@@ -17,6 +17,8 @@ httpCacheSession.doomEntriesIfExpired = false;
 var ftpCacheSession = cacheService.createSession("FTP", 0, true);
 ftpCacheSession.doomEntriesIfExpired = false;
 
+const cMinTagUpdateInterval = 5 * 60 * 1000;
+
 var tagService;
 try {
 	tagService = Components.classes["@mozilla.org/danbooru/taghistory-service;1"]
@@ -73,6 +75,7 @@ var danbooruTagUpdater = {
 	},
 	startupUpdate: function()
 	{
+		if (!tagService) return;
 		var full = true;
 		if (!prefService.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
 			return;
@@ -99,6 +102,8 @@ var danbooruTagUpdater = {
 	},
 	update: function(aFull, aInteractive)
 	{
+		if (!tagService) return;
+		if (prefService.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval) return;
 		var locationURL	= ioService.newURI(prefService.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Components.interfaces.nsIURL);
 		if(this.mMaxID>0 && !aFull)
