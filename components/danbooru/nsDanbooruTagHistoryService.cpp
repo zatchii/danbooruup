@@ -148,23 +148,19 @@ nsDanbooruTagHistoryService *nsDanbooruTagHistoryService::gTagHistory = nsnull;
 nsDanbooruTagHistoryService *
 nsDanbooruTagHistoryService::GetInstance()
 {
-  if (!gTagHistory) {
-    gTagHistory = new nsDanbooruTagHistoryService();
-    if (!gTagHistory)
-      return nsnull;
+	if (gTagHistory) {
+		NS_ADDREF(gTagHistory);
+		return gTagHistory;
+	}
 
-    NS_ADDREF(gTagHistory);  // addref for the global
-
-    if (NS_FAILED(gTagHistory->Init())) {
-      NS_RELEASE(gTagHistory);
-
-      return nsnull;
-    }
-  }
-
-  NS_ADDREF(gTagHistory);   // addref for the getter
-
-  return gTagHistory;
+	gTagHistory = new nsDanbooruTagHistoryService();
+	if (gTagHistory) {
+		NS_ADDREF(gTagHistory);  // addref for the global
+		if (NS_FAILED(gTagHistory->Init())) {
+			NS_RELEASE(gTagHistory);
+		}
+	}
+	return gTagHistory;
 }
 
 
