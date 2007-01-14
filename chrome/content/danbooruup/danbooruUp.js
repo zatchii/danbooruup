@@ -21,12 +21,17 @@ const cMinTagUpdateInterval = 5 * 60 * 1000;
 
 var tagService;
 try {
-	tagService = Components.classes["@mozilla.org/danbooru/taghistory-service;1"]
+	tagService = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
 			.getService(Components.interfaces.nsIDanbooruTagHistoryService);
 } catch(x) {
 	var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 			.getService(Components.interfaces.nsIPromptService);
 	promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.component'));
+}
+
+function danbooruUpHitch(ctx, what)
+{
+	return function() { return ctx[what].apply(ctx, arguments); }
 }
 
 var danbooruTagUpdater = {
@@ -59,8 +64,9 @@ var danbooruTagUpdater = {
 			break;
 		case 'danbooru-options-changed':
 			this.startTimer();
-			document.getElementById("aHTMLTooltip").setAttribute("crop",
-								prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
+			if(prefService.getCharPref("extensions.danbooruUp.tooltipcrop") != "default")
+				document.getElementById("aHTMLTooltip").setAttribute("crop",
+					prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
 			break;
 		}
 	},
@@ -145,10 +151,19 @@ var danbooruTagUpdater = {
 	}
 };
 
-function danbooruImageInit(e) {
+function danbooruUpInit(e) {
 	var menu = document.getElementById("contentAreaContextMenu");
 	menu.addEventListener("popupshowing",danbooruImageContext,false);
 	menu.addEventListener("onpopupshowing",danbooruImageContext,false);
+
+	if(prefService.getCharPref("extensions.danbooruUp.tooltipcrop") != "default")
+	{
+		document.getElementById("aHTMLTooltip").setAttribute("crop",
+			prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
+	}
+
+	document.getElementById("appcontent").addEventListener("DOMContentLoaded",
+		danbooruUpHitch(danbooruSiteAutocompleter, "contentLoad"), false);
 	return;
 }
 
@@ -168,7 +183,7 @@ function danbooruUploadImage() {
 	var browser	= getBrowser();
 	var thistab	= browser.getBrowserForTab(browser.selectedTab);
 
-	var locationURI	= ioService.newURI(danbooruImgNode.ownerDocument.location,
+	var locationURI	= ioService.newURI(danbooruImgNode.ownerDocument.location.href,
 					danbooruImgNode.ownerDocument.characterSet, null);
 	var imgURI = ioService.newURI(imgURIStr, danbooruImgNode.ownerDocument.characterSet, locationURI);
 
@@ -182,10 +197,10 @@ function danbooruUploadImage() {
 	// dialog=yes raises asserts that I don't feel like ignoring all the time using a debug build
 	window.openDialog("chrome://danbooruup/content/danbooruUpBox.xul",
 		"danbooruUpBox", "centerscreen,chrome,dialog=no,resizable=yes",
-		{imageNode:danbooruImgNode, imageURI:imgURI, wind:thistab, start:danbooruStartUpload});
+		{imageLocation:locationURI, imageURI:imgURI, wind:thistab, start:danbooruStartUpload});
 }
 
-function danbooruStartUpload(aRealSource, aSource, aTags, aRating, aDest, aNode, aWind, aUpdate)
+function danbooruStartUpload(aRealSource, aSource, aTags, aRating, aDest, aLocation, aWind, aUpdate)
 {
 	var uploader;
 	var imgChannel	= ioService.newChannelFromURI(aRealSource);
@@ -201,10 +216,10 @@ function danbooruStartUpload(aRealSource, aSource, aTags, aRating, aDest, aNode,
 	} else {
 		var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
 				.getService(Components.interfaces.nsICookieService);
-		var cookieStr = cookieJar.getCookieString(ioService.newURI(aNode.ownerDocument.location, "", null), null);
+		var cookieStr = cookieJar.getCookieString(aLocation, null);
 
 		imgChannel.QueryInterface(Components.interfaces.nsIHttpChannel);
-		imgChannel.referrer = ioService.newURI(aNode.ownerDocument.location, "", null);
+		imgChannel.referrer = aLocation;
 		imgChannel.setRequestHeader("Cookie", cookieStr, true);
 
 		// don't need to bother with Uploader's array transfer
@@ -863,12 +878,96 @@ danbooruPoster.prototype = {
 	}
 };
 
-window.addEventListener("load", danbooruImageInit, false);
+danbooruSiteAutompleter = {
+	contentLoad: function (e)
+	{
+		var unsafeWin = e.target.defaultView.wrappedJSObject;
+		var unsafeLoc = new XPCNativeWrapper(unsafeWin, "location").location;
+		var href = new XPCNativeWrapper(unsafeLoc, "href").href;
+		var winUri = ioService.newURI(href, null, null);
+
+		var sites = prefService.getCharPref("extensions.danbooruUp.postadduri").split("`");
+		for (var i = 0; i < sites.length; ++i) {
+			try {
+				var uri = ioService.newURI(sites[i], null, null);
+				if (winUri.prePath != uri.prePath) continue;
+				if (winUri.path.match(/\/post\/(list|view)\/?/)) {
+					this.inject(href, unsafeWin);
+					return;
+				}
+			} catch(x) {}
+		}
+		return;
+	},
+
+	searchTags: function (s)
+	{
+		var t={}, c={};
+		Components.classes["@unbuffered.info/danbooru/taghistory-service;1"].getService(Components.interfaces.nsIDanbooruTagHistoryService).searchTags(s,t,c);
+		return t;
+	},
+
+	inject: function (url, unsafeContentWin)
+	{
+		// we want our prototype/effects/control.js scripts to run in a sandbox
+		var safeWin = new XPCNativeWrapper(unsafeContentWin);
+		var sandbox = new Components.utils.Sandbox(safeWin);
+		sandbox.window = safeWin;
+		sandbox.document = sandbox.window.document;
+		sandbox.unsafeWindow = unsafeContentWin;
+		sandbox.danbooruUpSearchTags = this.hitch(this, "searchTags");
+		sandbox.__proto__ = safeWin;
+		try {
+			var files = 	["chrome://danbooruup/content/extra/prototype.js",
+					"chrome://danbooruup/content/extra/effects.js",
+					"chrome://danbooruup/content/extra/controls.js",
+					"chrome://danbooruup/content/extra/ac-insert.js"];
+
+			for(file in files) {
+				var script = ioService.newURI(file,null,null)
+				Components.utils.evalInSandbox(getContents(script), sandbox);
+			}
+		} catch (x) {
+			Components.utils.reportError(x);
+		}
+	},
+
+	function getContents(aURL, charset){
+		if( !charset ) {
+			charset = "UTF-8"
+		}
+		var ioService=Components.classes["@mozilla.org/network/io-service;1"]
+			.getService(Components.interfaces.nsIIOService);
+		var scriptableStream=Components
+			.classes["@mozilla.org/scriptableinputstream;1"]
+			.getService(Components.interfaces.nsIScriptableInputStream);
+		var unicodeConverter = Components
+			.classes["@mozilla.org/intl/scriptableunicodeconverter"]
+			.createInstance(Components.interfaces.nsIScriptableUnicodeConverter);
+		unicodeConverter.charset = charset;
+
+		var channel=ioService.newChannelFromURI(aURL);
+		var input=channel.open();
+		scriptableStream.init(input);
+		var str=scriptableStream.read(input.available());
+		scriptableStream.close();
+		input.close();
+
+		try {
+			return unicodeConverter.ConvertToUnicode(str);
+		} catch( e ) {
+			return str;
+		}
+	}
+
+};
+
+window.addEventListener("load", danbooruUpInit, false);
+
 var os = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 os.addObserver(danbooruTagUpdater, "danbooru-update", false);
 os.addObserver(danbooruTagUpdater, "danbooru-cleanup", false);
 os.addObserver(danbooruTagUpdater, "danbooru-options-changed", false);
 
 danbooruTagUpdater.startupUpdate();
-document.getElementById("aHTMLTooltip").setAttribute("crop", prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
 

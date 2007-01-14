@@ -56,8 +56,8 @@
 class nsIXMLHttpRequest;
 
 #define NS_DANBOORUTAGHISTORYSERVICE_CID \
-{ 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x47 } }
-#define NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID "@mozilla.org/danbooru/taghistory-service;1"
+{ 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x48 } }
+#define NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID "@unbuffered.info/danbooru/taghistory-service;1"
 
 class nsDanbooruTagHistoryService : public nsIDanbooruTagHistoryService,
                       public nsIObserver,
@@ -82,7 +82,6 @@ public:
   nsresult Init();
 
   static nsDanbooruTagHistoryService *GetInstance();
-  static void ReleaseInstance(void);
 
   nsresult AutoCompleteSearch(const nsAString &aInputName,
                               nsIAutoCompleteArrayResult *aPrevResult, nsIAutoCompleteResult **aNewResult);

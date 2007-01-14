@@ -11,4 +11,4 @@ pref("extensions.danbooruUp.autocomplete.update.afterdialog", true);
 pref("extensions.danbooruUp.autocomplete.update.ontimer", false);
 pref("extensions.danbooruUp.autocomplete.update.interval", 120);
 pref("extensions.danbooruUp.autocomplete.update.lastupdate", 0);
-pref("extensions.danbooruUp.tooltipcrop", "end");
+pref("extensions.danbooruUp.tooltipcrop", "default");

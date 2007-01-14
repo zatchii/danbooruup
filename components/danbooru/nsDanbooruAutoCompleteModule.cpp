@@ -69,11 +69,6 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsDanbooruAutoComplete)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDanbooruTagHistoryService, nsDanbooruTagHistoryService::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteArrayResult)
 
-static void PR_CALLBACK nsDanbooruAutoCompleteDestructor(nsIModule* self)
-{
-	nsDanbooruTagHistoryService::ReleaseInstance();
-}
-
 ////////////////////////////////////////////////////////////////////////
 // Define a table of CIDs implemented by this module along with other
 // information like the function to create an instance, contractid, and
@@ -137,5 +132,5 @@ static const nsModuleComponentInfo components[] =
 //		NS_IMPL_NSGETMODULE()
 //
 //NS_IMPL_NSGETMODULE(nsDanbooruAutoCompleteModule, components)
-NS_IMPL_NSGETMODULE_WITH_DTOR(nsDanbooruAutoCompleteModule, components, nsDanbooruAutoCompleteDestructor)
+NS_IMPL_NSGETMODULE(nsDanbooruAutoCompleteModule, components)
 

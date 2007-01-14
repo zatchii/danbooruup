@@ -37,7 +37,7 @@
 
 #include "nsISupports.idl"
 
-[scriptable, uuid(0afd6b91-10db-485e-a6e2-455e704af671)]
+[scriptable, uuid(0afd6b91-10db-485e-a6e2-455e704af672)]
 interface nsIDanbooruTagHistoryService : nsISupports
 {
   /**

@@ -129,6 +129,7 @@ nsDanbooruTagHistoryService::nsDanbooruTagHistoryService() :
 
 nsDanbooruTagHistoryService::~nsDanbooruTagHistoryService()
 {
+  gTagHistory = nsnull;
   CloseDatabase();
 }
 
@@ -163,12 +164,6 @@ nsDanbooruTagHistoryService::GetInstance()
 	return gTagHistory;
 }
 
-
-void
-nsDanbooruTagHistoryService::ReleaseInstance()
-{
-  NS_IF_RELEASE(gTagHistory);
-}
 
 /* static */ PRBool
 nsDanbooruTagHistoryService::TagHistoryEnabled()
@@ -886,12 +881,14 @@ nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 #endif
 			array[index] = ToNewUnicode(name);
 			if (!array[index] || !*(array[index])) {
-				CleanupTagArray(array, ct);
+				CleanupTagArray(array, index);
+				mSearchStmt->Reset();
 				return NS_ERROR_OUT_OF_MEMORY;
 			}
 			mSearchStmt->ExecuteStep(&row);
 			index++;
 		}
+		mSearchStmt->Reset();
 		*aResult = array;
 		*aCount = ct;
 	}

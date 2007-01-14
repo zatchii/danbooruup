@@ -73,6 +73,9 @@
 			<radio id="cropNone" value="none"
 				accesskey="&danbooruUpOptions.toolTipCrop.none.accesskey;"
 				label="&danbooruUpOptions.toolTipCrop.none.label;"/>
+			<radio id="cropNone" value="default"
+				accesskey="&danbooruUpOptions.toolTipCrop.default.accesskey;"
+				label="&danbooruUpOptions.toolTipCrop.default.label;"/>
 			</radiogroup>
 		</groupbox>
 	</tabpanel>
@@ -135,7 +138,7 @@
 			<hbox align="center" pack="end">
 				<button id="clearTagHistory"
 					label="&danbooruUpOptions.clearTagHistory.label;"
-					oncommand="Components.classes['@mozilla.org/danbooru/taghistory-service;1'].getService(Components.interfaces.nsIDanbooruTagHistoryService).removeAllEntries();"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/taghistory-service;1'].getService(Components.interfaces.nsIDanbooruTagHistoryService).removeAllEntries();"/>
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"

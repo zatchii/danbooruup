@@ -44,7 +44,7 @@ interface nsITimerCallback;
 interface nsITreeView;
 interface nsIAutoCompleteSearch;
 
-[scriptable, uuid(1d28d383-b5b1-4ad4-a35a-71673702a5d6)]
+[scriptable, uuid(1d28d383-b5b1-4ad4-a35a-71673702a5d7)]
 interface nsIDanbooruAutoComplete : nsISupports
 {
 	//void updateTagListFromURI(in AString aXmlURI);

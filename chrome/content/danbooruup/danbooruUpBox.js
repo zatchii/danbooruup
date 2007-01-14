@@ -31,7 +31,7 @@ function doOK()
 			flat[tagarr[a]]=null;
 		}
 		try { 		
-			var taghist = Components.classes["@mozilla.org/danbooru/taghistory-service;1"]
+			var taghist = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
 					.getService(Components.interfaces.nsIDanbooruTagHistoryService);
 			for(var a in flat) {
 				if (!taghist.incrementValueForName(a))
@@ -51,10 +51,10 @@ function doOK()
 		tags,
 		rating,
 		ml.label,
-		window.arguments[0].imageNode,
+		window.arguments[0].imageLocation,
 		window.arguments[0].wind,
 		needupdate);
-	window.arguments[0].imageNode = null;
+	window.arguments[0].imageLocation = null;
 	window.arguments[0].wind = null;
 	window.arguments=null;
 
