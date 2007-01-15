@@ -27,6 +27,7 @@
 <column flex="1">
 	<textbox id="source" flex="1"/>
 	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1"/>
+	<hbox>
 	<radiogroup id="ratinggrp">
 		<hbox>
 		<radio id="rexp" accesskey="&danbooru-box-explicit-accesskey;" label="&danbooru-box-explicit-label;"/>
@@ -34,6 +35,9 @@
 		<radio id="rsafe" accesskey="&danbooru-box-safe-accesskey;" label="&danbooru-box-safe-label;"/>
 		</hbox>
 	</radiogroup>
+	<spacer flex="1"/>
+	<toolbarbutton image="chrome://help/skin/Weblink.png" tooltiptext="&danbooru-box-switch-tab-tooltip;" onclick="return doSwitchTab();"/>
+	</hbox>
 	<menulist id="danbooru" flex="1" crop="end"/>
 </column>
 </columns>

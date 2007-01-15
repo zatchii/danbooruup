@@ -12,6 +12,7 @@ function init()
 	{
 		document.getElementById('source').value = window.arguments[0].imageURI.spec;
 	}
+	window.focus();
 }
 
 function doOK()
@@ -30,7 +31,7 @@ function doOK()
 		for(var a in tagarr) {
 			flat[tagarr[a]]=null;
 		}
-		try { 		
+		try {
 			var taghist = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
 					.getService(Components.interfaces.nsIDanbooruTagHistoryService);
 			for(var a in flat) {
@@ -45,15 +46,18 @@ function doOK()
 		needupdate = prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.afterdialog") && needupdate;
 	}
 
-	window.arguments[0].start(
-		window.arguments[0].imageURI,
-		document.getElementById('source').value,
-		tags,
-		rating,
-		ml.label,
-		window.arguments[0].imageLocation,
-		window.arguments[0].wind,
-		needupdate);
+	Components.classes["@unbuffered.info/danbooru/helper-service;1"]
+		.getService(Components.interfaces.danbooruIHelperService)
+		.startUpload(
+			window.arguments[0].imageURI,
+			document.getElementById('source').value,
+			tags,
+			rating,
+			ml.label,
+			window.arguments[0].imageLocation,
+			window.arguments[0].wind,
+			needupdate
+		);
 	window.arguments[0].imageLocation = null;
 	window.arguments[0].wind = null;
 	window.arguments=null;
@@ -63,4 +67,25 @@ function doOK()
 function doCancel() {
 	return true;
 }
+function doSwitchTab() {
+	var tab = window.arguments[0].wind;
+	var currentTab = tab.linkedBrowser.getTabBrowser().selectedTab;
 
+	if (currentTab != tab) {
+		tab.linkedBrowser.getTabBrowser().selectedTab = tab;
+	} else {
+		// the easy way, but not the right way
+		// tab.linkedBrowser.getTabBrowser().ownerDocument.__parent__.focus();
+		tab.linkedBrowser.contentWindow
+			.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+				.getInterface(Components.interfaces.nsIWebNavigation)
+			.QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+				.rootTreeItem
+			.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+				.getInterface(Components.interfaces.nsIDOMWindow)
+			.focus();
+	}
+	// tab (but not window) switching is on a timeout of 0 so we have to wait a bit before refocusing
+	setTimeout(function(){window.focus();}, 50, window);
+	return true;
+}

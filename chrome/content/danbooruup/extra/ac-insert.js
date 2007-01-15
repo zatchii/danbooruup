@@ -1,4 +1,23 @@
+// insert our prototype and scriptaculous scripts into the page
+try {
+for(var i=0; i < script_arr.length; i++)
+{
+	var s = document.createElement("script");
+	s.setAttribute("type","text/javascript");
+	s.appendChild(document.createTextNode(
+				"//<![CDATA[\n" +
+				script_arr[i] +
+				"\n//]]>"
+				)
+			);
+	document.getElementsByTagName("head")[0].appendChild(s);
+}
+}catch(e){GM_log(e);}
+var Autocompleter_DanbooruUp = unsafeWindow.Autocompleter.DanbooruUp;
+
+// the custom selector function for the Autocompleter
 function tagSelector(instance) {
+	var ret = [];
 	var entry	= instance.getToken();
 	var tags;
 
@@ -7,53 +26,46 @@ function tagSelector(instance) {
 	else
 		entry = entry.replace(/\*/g, '%');
 
-	tags = window.danbooruUpSearchTags(entry);
+	tags = danbooruUpSearchTags(entry);
 
-	if (!tags) return;
+	if (!tags || !tags.length) return;
 
-	for (var i = 0; i < tags.length &&
-			ret.length < instance.options.choices ; i++) {
-		var elem = tags[i];
-		ret.push("<li>" + elem + "</li>");
-	}
-
-	return "<ul>" + ret.join('') + "</ul>";
+	return "<ul><li>" + tags.slice(0, instance.options.choices).join('</li><li>') + "</li></ul>";
 }
 
-// get the pixel height of an LI element to size things in multiples of LI elements
-var lineHeight = document.getElementsByTagName("li")[0].offsetHeight;
+// get the pixel height of an A element to size things in multiples of lines
+try {
+var lineHeight = document.getElementsByTagName("a")[1].offsetHeight;
+} catch(e) { lineHeight = 16; }
 
 // create the CSS
 style = document.createElement("style");
-style.innerHTML = ".danbooruup-ac { border: 1px solid black; overflow: auto; background: #fff; min-height: "+lineHeight+"px;}\n.danbooruup-ac ul { min-width: inherit; }\n.danbooruup-ac li { display: block; text-align: left; background: #fff; margin: 0; padding: 0; padding-left: 4px; padding-right: 4px;}\n.danbooruup-ac li.selected { background: #ffc; }";
+style.innerHTML = ".danbooruup-ac { border: 1px solid black; overflow: auto; background: #fff; min-height: "+lineHeight+"px; z-index: 1000 !important; }\n" +
+		".danbooruup-ac ul { min-width: inherit; }\n" +
+		".danbooruup-ac li { display: block; text-align: left; background: #fff; margin: 0; padding: 0; padding-left: 4px; padding-right: 4px;}\n" +
+		".danbooruup-ac li.selected { background: #ffc; }";
 document.getElementsByTagName("head")[0].appendChild(style);
 
 // create the autocomplete popup
 div1 = document.createElement("div");
 div1.setAttribute("id","danbooruup-autocomplete");
 div1.setAttribute("class","danbooruup-ac");
-div1.style.minWidth = ($("search").offsetWidth+2)+'px';
-div1.style.height = (lineHeight*20) + 'px';
-$("search").parentNode.appendChild(div1);
+div1.style.display = 'none';
+document.body.appendChild(div1);
 
-ac = new Autocompleter.Local('search','danbooruup-autocomplete',[],{tokens:[' ','　'], choices:200, selector:tagSelector});
+try {
+ac = new Autocompleter_DanbooruUp("search","danbooruup-autocomplete",[],{tokens:[' ','　'], choices:100, selector:tagSelector});
+}catch(e){GM_log(e);}
 
 // for post/view
-if($('post_tags'))
+if(document.getElementById("post_tags"))
 {
-	div2 = document.createElement('div');
+	div2 = document.createElement("div");
 	div2.setAttribute("id","danbooruup-pt-autocomplete");
 	div2.setAttribute("class","danbooruup-ac");
-	div2.style.minWidth = ($("post_tags").offsetWidth+2)+'px';
+	div2.style.display = 'none';
+	document.getElementById("edit").appendChild(div2);
 
-	var height = $("edit").parentNode.clientHeight -	// post/view area
-		$("edit").offsetTop - $("edit").parentNode.offsetTop -	// minus the image and post bar, and the header
-		($("post_tags").offsetTop - $("edit").offsetTop + $("post_tags").offsetHeight);
-	// minus the space between the top of the edit div and the cottom of the post_tags input
-	height -= height % lineHeight;
-	div2.style.height = height+'px';
-
-	$('edit').appendChild(div2);
-	ac2 = new Autocompleter.Local('post_tags','danbooruup-pt-autocomplete',[],{tokens:[' ','　'], choices:200, selector:tagSelector});
+	ac2 = new Autocompleter_DanbooruUp("post_tags","danbooruup-pt-autocomplete",[],{tokens:[' ','　'], choices:100, selector:tagSelector});
 }
 

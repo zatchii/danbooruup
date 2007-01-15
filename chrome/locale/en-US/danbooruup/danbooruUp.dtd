@@ -18,5 +18,6 @@
 <!ENTITY danbooru-box-safe-label "Safe">
 <!ENTITY danbooru-box-danbooru-label "Danbooru:">
 <!ENTITY danbooru-box-danbooru-accesskey "d">
+<!ENTITY danbooru-box-switch-tab-tooltip "Switch to Original Tab">
 
 <!ENTITY image-md5.label "MD5 Hash:">

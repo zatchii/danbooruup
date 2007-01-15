@@ -1,0 +1,15 @@
+#include "nsISupports.idl"
+#include "nsIURI.idl"
+
+[scriptable, uuid(6cff8d23-68d8-41bf-a4cd-7f89b43e1484)]
+interface danbooruIHelperService : nsISupports
+{
+	void contentLoaded(in nsISupports win);
+
+	void update(in boolean full, in boolean interactive);
+	void cleanup(in boolean interactive);
+
+	void startUpload(in nsIURI aRealSource, in wstring aSource, in wstring aTags, in wstring aRating, in wstring aDest,
+			in nsIURI aLocation, in nsISupports aWind, in boolean aUpdate);
+};
+

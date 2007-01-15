@@ -142,11 +142,11 @@
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"
-					oncommand="Components.classes['@mozilla.org/observer-service;1'].getService(Components.interfaces.nsIObserverService).notifyObservers(null, 'danbooru-update', '{full:true,interactive:true}');"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].update(true,true);"/>
 				<button id="updateNow"
 					label="&danbooruUpOptions.cleanup.label;"
 					accesskey="&danbooruUpOptions.cleanup.accesskey;"
-					oncommand="Components.classes['@mozilla.org/observer-service;1'].getService(Components.interfaces.nsIObserverService).notifyObservers(null, 'danbooru-cleanup', '{interactive:true}');"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].cleanup(true);"/>
 			</hbox>
 		</groupbox>
 		<groupbox align="start">
