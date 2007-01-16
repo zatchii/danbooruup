@@ -9,7 +9,6 @@ const prefService	= Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPr
 const prefBranch	= Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
 const ioService		= Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 const promptService	= Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
-const tagService	= Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService);
 const obService		= Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
 
 const cMinTagUpdateInterval = 5 * 60 * 1000;
@@ -36,6 +35,7 @@ var danbooruUpHelperObject = {
 			.loadSubScript("chrome://global/content/XPCNativeWrapper.js");
 
 		//obService.addObserver(this, "danbooru-options-changed", false);
+		this.tagService	= Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService);
 
 		this._branch = prefService.getBranch("extensions.danbooruUp.");
 		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
@@ -91,7 +91,7 @@ this.log(this.browserWindows.length+' after unregistering');
 	getMaxID: function()
 	{
 		try {
-			return tagService.maxID;
+			return this.tagService.maxID;
 		} catch(e) {
 			promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.maxid'));
 		}
@@ -123,7 +123,8 @@ this.log(this.browserWindows.length+' after unregistering');
 		var wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
 		var en = wm.getEnumerator("");
 
-		if (cropping == "default") cropping = '';
+		// hackish, but setting it to an empty string is equivalent to "none"
+		if (cropping == "default") cropping = 'end';
 
 		while (en.hasMoreElements())
 		{
@@ -144,14 +145,14 @@ this.log(this.browserWindows.length+' after unregistering');
 	},
 	startupUpdate: function()
 	{
-		if (!tagService) return;
+		if (!this.tagService) return;
 		var full = true;
 		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
 			return;
 		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.onstartup"))
 			return;
 		if (prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.faststartup") &&
-			tagService.rowCount > 0) {
+			this.tagService.rowCount > 0) {
 			full = false;
 			this.mMaxID = this.getMaxID();
 		}
@@ -171,7 +172,7 @@ this.log(this.browserWindows.length+' after unregistering');
 	},
 	update: function(aFull, aInteractive)
 	{
-		if (!tagService) return;
+		if (!this.tagService) return;
 		if (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval) return;
 		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
@@ -180,7 +181,7 @@ this.log(this.browserWindows.length+' after unregistering');
 			locationURL.query = "after_id="+(this.mMaxID+1);
 		}
 		try {
-			tagService.updateTagListFromURI(locationURL.spec, true);
+			this.tagService.updateTagListFromURI(locationURL.spec, true);
 		} catch (e) {
 			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
 			{
@@ -204,7 +205,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
 		try {
-			tagService.updateTagListFromURI(locationURL.spec, false);
+			this.tagService.updateTagListFromURI(locationURL.spec, false);
 		} catch (e) {
 			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
 			{
@@ -276,6 +277,9 @@ this.log(this.browserWindows.length+' after unregistering');
 
 	contentLoaded: function (win)
 	{
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+			return;
+
 		var unsafeWin = win.wrappedJSObject;
 		var unsafeLoc = new XPCNativeWrapper(unsafeWin, "location").location;
 		var href = new XPCNativeWrapper(unsafeLoc, "href").href;
@@ -382,6 +386,12 @@ var HelperModule = new Object();
 
 HelperModule.registerSelf = function(compMgr, fileSpec, location, type)
 {
+	if (!this._deferred)
+	{
+		this._deferred = true;
+		throw Components.results.NS_ERROR_FACTORY_REGISTER_AGAIN;
+	}
+
 	compMgr = compMgr.QueryInterface(Ci.nsIComponentRegistrar);
 	compMgr.registerFactoryLocation(DANBOORUUPHELPER_CID,
 			"Danbooru Helper Service",
