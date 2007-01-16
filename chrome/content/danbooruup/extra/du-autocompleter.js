@@ -122,7 +122,7 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
           } catch(e) {lineHeight = 16;}
 
           // post/view has a dynamic length, so we need to recalculate it
-          if(element.id == 'post_tags') {
+          if(element.id == 'post_tags' && $("edit")) {
             // post/view area
             // minus the image and post bar, and the header
             // minus the space between the top of the edit div and the bottom of the post_tags input
@@ -133,9 +133,9 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
             height -= height % lineHeight;
             if (height > lineHeight*20) height = lineHeight*20;
             else if (height < lineHeight) height = lineHeight;
-            update.style.height = height+"px";
+            update.style.maxHeight = height+"px";
           } else {
-            update.style.height = (lineHeight*20) + "px";
+            update.style.maxHeight = (lineHeight*20) + "px";
           }
           Effect.Appear(update,{duration:0.15});
         }

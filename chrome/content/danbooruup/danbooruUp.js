@@ -1,5 +1,7 @@
 // vim: set ts=8 sw=8 noet :
+// crappy global that shouldn't be here, but since there is only one popup context menu
 var danbooruImgNode	= null;
+// namespace pollution ahoy
 var StrBundleSvc	= Components.classes['@mozilla.org/intl/stringbundle;1']
 			.getService(Components.interfaces.nsIStringBundleService);
 var prefService		= Components.classes["@mozilla.org/preferences-service;1"]
@@ -87,9 +89,16 @@ danbooruUpObject.init = function(e) {
 
 	document.getElementById("appcontent").addEventListener("DOMContentLoaded",
 		danbooruUpHitch(danbooruUpObject, "contentLoad"), false);
-	return;
+
+//	danbooruHelperService.registerBrowser(window);
 }
 
-window.addEventListener("load", danbooruUpHitch(danbooruUpObject,"init"), false);
+/*
+danbooruUpObject.unload = function(e) {
+	danbooruHelperService.unregisterBrowser(window);
+}
+window.addEventListener("load", danbooruUpHitch(danbooruUpObject,"unload"), false);
+/**/
 
+window.addEventListener("load", danbooruUpHitch(danbooruUpObject,"init"), false);
 

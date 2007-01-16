@@ -6,6 +6,9 @@ interface danbooruIHelperService : nsISupports
 {
 	void contentLoaded(in nsISupports win);
 
+	//void registerBrowser(in nsISupports window);
+	//void unregisterBrowser(in nsISupports window);
+
 	void update(in boolean full, in boolean interactive);
 	void cleanup(in boolean interactive);
 

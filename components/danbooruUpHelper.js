@@ -5,7 +5,8 @@ const DANBOORUUPHELPER_CID = Components.ID("{d989b279-ba03-4b12-adac-925c7f0c4b9
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-const prefService	= Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
+const prefService	= Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService);
+const prefBranch	= Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
 const ioService		= Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 const promptService	= Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 const tagService	= Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService);
@@ -34,7 +35,7 @@ var danbooruUpHelperObject = {
 			.getService(Ci.mozIJSSubScriptLoader)
 			.loadSubScript("chrome://global/content/XPCNativeWrapper.js");
 
-		obService.addObserver(this, "danbooru-options-changed", false);
+		//obService.addObserver(this, "danbooru-options-changed", false);
 
 		this._branch = prefService.getBranch("extensions.danbooruUp.");
 		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
@@ -57,6 +58,36 @@ var danbooruUpHelperObject = {
 	mMaxID:-1,
 	mTimer:null,
 
+	/*
+	browserWindows:[],
+	registerBrowser: function(browserWin) {
+		var existing;
+
+		for (var i = 0; existing = this.browserWindows[i]; i++) {
+			if (existing == browserWin) {
+				throw new Error("Browser window has already been registered.");
+			}
+		}
+this.log('registering a '+browserWin+'('+this.browserWindows.length+')');
+		this.browserWindows.push(browserWin);
+this.log('now have '+this.browserWindows.length);
+	},
+
+	unregisterBrowser: function(browserWin) {
+		var existing;
+
+		for (var i = 0; existing = this.browserWindows[i]; i++) {
+			if (existing == browserWin) {
+				this.browserWindows.splice(i, 1);
+				return;
+			}
+		}
+this.log(this.browserWindows.length+' after unregistering');
+
+		throw new Error("Browser window is not registered.");
+	},
+	/**/
+
 	getMaxID: function()
 	{
 		try {
@@ -71,6 +102,7 @@ var danbooruUpHelperObject = {
 		//var os	= Components.classes["@mozilla.org/observer-service;1"]
 		//	.getService(Components.interfaces.nsIObserverService);
 		//os.removeObserver(this, "browser-window-before-show");
+		//this.log("observing"+"\n"+aSubject + "\n" + aTopic + "\n" + aData);
 		switch (aTopic) {
 		case 'app-startup':
 			// cat. "app-startup"/topic "app-startup" is too soon, since we
@@ -82,30 +114,43 @@ var danbooruUpHelperObject = {
 			break;
 		case 'nsPref:changed':
 			this.startTimer();
-			if(prefService.getCharPref("extensions.danbooruUp.tooltipcrop") != "default")
-				document.getElementById("aHTMLTooltip").setAttribute("crop",
-					prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
+			this.setTooltipCrop();
 			break;
+		}
+	},
+	setTooltipCrop: function() {
+		var cropping = prefBranch.getCharPref("extensions.danbooruUp.tooltipcrop");
+		var wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
+		var en = wm.getEnumerator("");
+
+		if (cropping == "default") cropping = '';
+
+		while (en.hasMoreElements())
+		{
+			var w = en.getNext();
+			if (typeof w.getBrowser == "function") {
+				w.document.getElementById("aHTMLTooltip").setAttribute("crop",cropping);
+			}
 		}
 	},
 	startTimer: function()
 	{
 		if (this.mTimer)
 			this.mTimer.cancel();
-		if (!prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer"))
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer"))
 			return;
 		this.mTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-		this.mTimer.initWithCallback(this, prefService.getIntPref("extensions.danbooruUp.autocomplete.update.interval")*60*1000, this.mTimer.TYPE_REPEATING_SLACK);
+		this.mTimer.initWithCallback(this, prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.interval")*60*1000, this.mTimer.TYPE_REPEATING_SLACK);
 	},
 	startupUpdate: function()
 	{
 		if (!tagService) return;
 		var full = true;
-		if (!prefService.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
 			return;
-		if (!prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.onstartup"))
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.onstartup"))
 			return;
-		if (prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.faststartup") &&
+		if (prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.faststartup") &&
 			tagService.rowCount > 0) {
 			full = false;
 			this.mMaxID = this.getMaxID();
@@ -114,9 +159,9 @@ var danbooruUpHelperObject = {
 	},
 	notify: function(aTimer)
 	{
-		if (!prefService.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
 			return;
-		if (!prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer"))
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer"))
 		{
 			aTimer.cancel();
 			this.mTimer = null;
@@ -127,8 +172,8 @@ var danbooruUpHelperObject = {
 	update: function(aFull, aInteractive)
 	{
 		if (!tagService) return;
-		if (prefService.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval) return;
-		var locationURL	= ioService.newURI(prefService.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+		if (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval) return;
+		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
 		if(this.mMaxID>0 && !aFull)
 		{
@@ -147,16 +192,16 @@ var danbooruUpHelperObject = {
 			}
 		}
 		this.mMaxID = this.getMaxID();
-		prefService.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
+		prefBranch.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
 
-		if (prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer") && !this.mTimer)
+		if (prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer") && !this.mTimer)
 		{
 			this.startTimer();
 		}
 	},
 	cleanup: function(aInteractive)
 	{
-		var locationURL	= ioService.newURI(prefService.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
 		try {
 			tagService.updateTagListFromURI(locationURL.spec, false);
@@ -236,14 +281,15 @@ var danbooruUpHelperObject = {
 		var href = new XPCNativeWrapper(unsafeLoc, "href").href;
 		var winUri = ioService.newURI(href, null, null);
 
-		var sites = prefService.getCharPref("extensions.danbooruUp.postadduri").split("`");
+		var sites = prefBranch.getCharPref("extensions.danbooruUp.postadduri").split("`");
 
+		// determine injection based on URI and elements
 		for (var i = 0; i < sites.length; ++i) {
 			try {
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
-
-				if (winUri.path.match(/\/post\/(list|view)[^_]/)) {
+				//this.log(winUri.spec+' matched ' + uri.spec);
+				if (winUri.path.match(/\/post\/(list|view|add)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;
 				}
@@ -261,7 +307,7 @@ var danbooruUpHelperObject = {
 	{
 		var t={}, c={};
 		Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService).searchTags(s,t,c);
-		return t.value;
+		return (c.value ? t.value : null);
 	},
 
 	inject: function (url, unsafeContentWin)

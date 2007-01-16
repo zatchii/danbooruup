@@ -196,8 +196,8 @@ var gDanbooruManager = {
 
     this._saveDanbooru();
     this.uninit();
-    var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-    os.notifyObservers(null, "danbooru-options-changed", null);
+    //var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+    //os.notifyObservers(null, "danbooru-options-changed", null);
     return true;
   },
 
