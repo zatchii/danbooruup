@@ -1,6 +1,7 @@
 overlay	chrome://browser/content/browser.xul	chrome://danbooruup/content/danbooruUp.xul
 overlay	chrome://navigator/content/navigator.xul	chrome://danbooruup/content/danbooruUp.xul
 overlay	chrome://browser/content/metaData.xul	chrome://danbooruup/content/danbooruUpMeta.xul
+overlay	chrome://danbooru/content/toolbar.xul	chrome://danbooruup/content/danbooruToolbar.xul
 content	danbooruup	jar:chrome/danbooruup.jar!/content/danbooruup/	xpcnativewrappers=yes
 skin	danbooruup	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup/
 locale	danbooruup	en-US	jar:chrome/danbooruup.jar!/locale/en-US/danbooruup/

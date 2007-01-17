@@ -4,40 +4,22 @@
 
 <!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
 
-<prefwindow id="danbooruUpOptions" type="prefwindow" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+<prefwindow id="danbooruUpOptions" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	style="padding: 1px; width: 36em;"
-	buttons="none"
 	title="&danbooruUpOptions.title;"
 	onkeypress="return gDanbooruManager.onWindowKeyPress(event);"
 	onload="gDanbooruManager.onLoad();"
 	onunload="gDanbooruManager.uninit();"
+	onok="if (gDanbooruManager.onOK()) close();"
 	persist="screenX screenY width height">
 
-	<prefpane id="danbooruUpPane" style="padding: 1px;" flex="1" >
+	<prefpane id="danbooruUpGeneralPane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.generalTab.label;">
 	<preferences>
 		<preference id="extensions.danbooruUp.fileurlsource"
 			name="extensions.danbooruUp.fileurlsource"			type="bool"/>
 		<preference id="extensions.danbooruUp.tooltipcrop"
 			name="extensions.danbooruUp.tooltipcrop"			type="string"/>
-		<preference id="extensions.danbooruUp.autocomplete.enabled"
-			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
-		<preference id="extensions.danbooruUp.updateuri"
-			name="extensions.danbooruUp.updateuri"				type="string"/>
-		<preference id="extensions.danbooruUp.autocomplete.update.onstartup"
-			name="extensions.danbooruUp.autocomplete.update.onstartup"	type="bool"/>
-		<preference id="extensions.danbooruUp.autocomplete.update.faststartup"
-			name="extensions.danbooruUp.autocomplete.update.faststartup"	type="bool"/>
-		<preference id="extensions.danbooruUp.autocomplete.update.beforedialog"
-			name="extensions.danbooruUp.autocomplete.update.beforedialog"	type="bool"/>
-		<preference id="extensions.danbooruUp.autocomplete.update.afterdialog"
-			name="extensions.danbooruUp.autocomplete.update.afterdialog"	type="bool"/>
-		<preference id="extensions.danbooruUp.autocomplete.update.ontimer"
-			name="extensions.danbooruUp.autocomplete.update.ontimer"	type="bool"/>
-		<preference id="extensions.danbooruUp.autocomplete.update.interval"
-			name="extensions.danbooruUp.autocomplete.update.interval"	type="int"/>
 	</preferences>
-
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 
 	<!--<vbox>
 		<label control="text_postadduri" accesskey="&danbooruUpOptions.posturi.accesskey;"
@@ -45,14 +27,6 @@
 		<textbox id="text_postadduri" preference="postadduri" width="400px"/>
 	</vbox>-->
 
-	<tabbox id="danbooruUpOptionsTabs" flex="1">
-	<tabs>
-		<tab label="&danbooruUpOptions.generalTab.label;"/>
-		<tab label="&danbooruUpOptions.danbooruTab.label;"/>
-		<tab label="&danbooruUpOptions.autocompleteTab.label;"/>
-	</tabs>
-	<tabpanels flex="1">
-	<tabpanel orient="vertical">
 		<hbox>
 			<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="extensions.danbooruUp.fileurlsource" />
 		</hbox>
@@ -78,8 +52,11 @@
 				label="&danbooruUpOptions.toolTipCrop.default.label;"/>
 			</radiogroup>
 		</groupbox>
-	</tabpanel>
-	<tabpanel orient="vertical">
+	</prefpane>
+
+	<prefpane id="danbooruUpDanbooruPane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.danbooruTab.label;">
+		<preferences>
+		</preferences>
 	<vbox class="contentPane" flex="1">
 		<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>
 		<separator class="thin"/>
@@ -116,15 +93,43 @@
 			<spacer flex="1"/>
 		</hbox>
 	</hbox>
-	</tabpanel>
-	<tabpanel orient="vertical">
+	</prefpane>
+	<prefpane id="danbooruUpAutocompletePane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.autocompleteTab.label;">
+		<preferences>
+		<preference id="pref.extensions.danbooruUp.autocomplete.enabled"
+			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.site.enabled"
+			name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
+		<preference id="pref.extensions.danbooruUp.updateuri"
+			name="extensions.danbooruUp.updateuri"				type="string"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.onstartup"
+			name="extensions.danbooruUp.autocomplete.update.onstartup"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.faststartup"
+			name="extensions.danbooruUp.autocomplete.update.faststartup"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
+			name="extensions.danbooruUp.autocomplete.update.beforedialog"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
+			name="extensions.danbooruUp.autocomplete.update.afterdialog"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.ontimer"
+			name="extensions.danbooruUp.autocomplete.update.ontimer"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.interval"
+			name="extensions.danbooruUp.autocomplete.update.interval"	type="int"/>
+		</preferences>
 		<hbox>
 			<checkbox id="enableAC"
 				label="&danbooruUpOptions.enableAC.label;"
 				accesskey="&danbooruUpOptions.enableAC.accesskey;"
-				preference="extensions.danbooruUp.autocomplete.enabled"
+				preference="pref.extensions.danbooruUp.autocomplete.enabled"
 				onsyncfrompreference="gDanbooruManager.onReadEnableAC();"
 				onsynctopreference="gDanbooruManager.onWriteEnableAC();"/>
+		</hbox>
+		<hbox>
+			<checkbox id="enableSiteAC"
+				preference="pref.extensions.danbooruUp.autocomplete.site.enabled"
+				label="&danbooruUpOptions.enableAC.site.label;"
+				accesskey="&danbooruUpOptions.enableAC.site.accesskey;"
+				tooltiptext="&danbooruUpOptions.enableAC.site.tooltip;"
+				class="indent"/>
 		</hbox>
 		<groupbox>
 			<caption label="&danbooruUpOptions.urlgroup.label;"/>
@@ -133,7 +138,7 @@
 					value="&danbooruUpOptions.updateURL.label;"
 					accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
 				<textbox id="updateURL" flex="1"
-					preference="extensions.danbooruUp.updateuri" />
+					preference="pref.extensions.danbooruUp.updateuri" />
 			</hbox>
 			<hbox align="center" pack="end">
 				<button id="clearTagHistory"
@@ -142,23 +147,23 @@
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"
-					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].update(true,true);"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).update(true,true);"/>
 				<button id="updateNow"
 					label="&danbooruUpOptions.cleanup.label;"
 					accesskey="&danbooruUpOptions.cleanup.accesskey;"
-					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].cleanup(true);"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).cleanup(true);"/>
 			</hbox>
 		</groupbox>
 		<groupbox align="start">
 			<caption label="&danbooruUpOptions.updategroup.label;"/>
 			<checkbox id="updateOnStartup"
-				preference="extensions.danbooruUp.autocomplete.update.onstartup"
+				preference="pref.extensions.danbooruUp.autocomplete.update.onstartup"
 				label="&danbooruUpOptions.updateOnStartup.label;"
 				accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"
 				onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();"
 				onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
 			<checkbox id="fastUpdate"
-				preference="extensions.danbooruUp.autocomplete.update.faststartup"
+				preference="pref.extensions.danbooruUp.autocomplete.update.faststartup"
 				label="&danbooruUpOptions.fastUpdate.label;"
 				accesskey="&danbooruUpOptions.fastUpdate.accesskey;"
 				tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;"
@@ -166,31 +171,31 @@
 			<groupbox>
 				<caption label="&danbooruUpOptions.updateOnUpload.label;" />
 				<checkbox id="updateBeforeDialog"
-					preference="extensions.danbooruUp.autocomplete.update.beforedialog"
+					preference="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
 					label="&danbooruUpOptions.updateOnUpload.before.label;"/>
 				<checkbox id="updateAfterDialog"
-					preference="extensions.danbooruUp.autocomplete.update.afterdialog"
+					preference="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
 					label="&danbooruUpOptions.updateOnUpload.after.label;"
 					tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
 			</groupbox>
 			<hbox align="center" pack="start">
 				<checkbox id="updateOnTimer"
-					preference="extensions.danbooruUp.autocomplete.update.ontimer"
+					preference="pref.extensions.danbooruUp.autocomplete.update.ontimer"
 					label="&danbooruUpOptions.updateOnTimer.label;"
 					accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"
 					onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();"
 					onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
 				<textbox id="updateInterval"
-					preference="extensions.danbooruUp.autocomplete.update.interval"
+					preference="pref.extensions.danbooruUp.autocomplete.update.interval"
 					style="width: 5em;" />
 				<label value="&danbooruUpOptions.min.label;" />
 			</hbox>
 			<separator class="thick"/>
 		</groupbox>
-	</tabpanel>
-	</tabpanels>
-	</tabbox>
 	</prefpane>
+
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
+	<!--
 	<separator class="thin"/>
 	<hbox align="end" flex="1">
 		<hbox class="actionButtons" flex="1">
@@ -204,5 +209,6 @@
 		</hbox>
 		<resizer dir="bottomright"/>
 	</hbox>
+	-->
 </prefwindow>
 

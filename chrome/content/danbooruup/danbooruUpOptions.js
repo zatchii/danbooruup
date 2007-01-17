@@ -306,7 +306,8 @@ var gDanbooruManager = {
   onEnableACChanged: function (aWhat)
   {
     var pref = document.getElementById("enableAC");
-    var elements = [	"updateURL",
+    var elements = [	"enableSiteAC",
+			"updateURL",
 			"clearTagHistory",
 			"updateNow",
 			"updateOnStartup",

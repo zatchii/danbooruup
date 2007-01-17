@@ -29,3 +29,26 @@ textbox[type="danbooruac"] {
 	padding: 3px 4px 2px 2px;
 }
 
+#danbooruUpOptions radio[pane] {
+  list-style-image: url(chrome://browser/skin/preferences/Options.png);
+}
+
+radio[pane=danbooruUpGeneralPane] {
+   -moz-image-region: rect(0px, 32px, 32px, 0px);
+}
+radio[pane=danbooruUpDanbooruPane] {
+   -moz-image-region: rect(0px, 96px, 32px, 64px);
+}
+radio[pane=danbooruUpAutocompletePane] {
+   -moz-image-region: rect(0px, 224px, 32px, 192px);
+}
+radio[pane=danbooruUpGeneralPane]:hover {
+   -moz-image-region: rect(32px, 32px, 64px, 0px);
+}
+radio[pane=danbooruUpDanbooruPane]:hover {
+   -moz-image-region: rect(32px, 96px, 64px, 64px);
+}
+radio[pane=danbooruUpAutocompletePane]:hover {
+   -moz-image-region: rect(32px, 224px, 64px, 192px);
+}
+

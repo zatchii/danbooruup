@@ -99,6 +99,37 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     this.getEntry(this.index).scrollIntoView(false);
   },
 
+  updateElement: function(selectedElement) {
+    if (this.options.updateElement) {
+      this.options.updateElement(selectedElement);
+      return;
+    }
+    var value = '';
+    if (this.options.select) {
+      var nodes = document.getElementsByClassName(this.options.select, selectedElement) || [];
+      if(nodes.length>0) value = Element.collectTextNodes(nodes[0], this.options.select);
+    } else
+      value = Element.collectTextNodesIgnoreClass(selectedElement, 'informal');
+
+    var lastTokenPos = this.findLastToken();
+    if (lastTokenPos != -1) {
+      // negation
+      if (this.options.isSearchField && this.element.value[lastTokenPos + 1] == '-') lastTokenPos++;
+      var newValue = this.element.value.substr(0, lastTokenPos + 1);
+      var whitespace = this.element.value.substr(lastTokenPos + 1).match(/^\s+/);
+
+      if (whitespace)
+        newValue += whitespace[0];
+      this.element.value = newValue + value;
+    } else {
+      this.element.value = value;
+    }
+    this.element.focus();
+
+    if (this.options.afterUpdateElement)
+      this.options.afterUpdateElement(this.element, selectedElement);
+  },
+
   setOptions: function(options) {
     this.options = Object.extend({
       choices: 50,

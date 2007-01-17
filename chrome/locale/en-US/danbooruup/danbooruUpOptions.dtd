@@ -8,7 +8,7 @@
 <!ENTITY danbooruUpOptions.generalTab.label		"General">
 <!ENTITY danbooruUpOptions.fileURISource.label		"Show file:// URLs in Source field">
 <!ENTITY danbooruUpOptions.fileURISource.accesskey	"S">
-<!ENTITY danbooruUpOptions.toolTipCrop.label		"Crop tooltips at (affects every browser tooltip)">
+<!ENTITY danbooruUpOptions.toolTipCrop.label		"Crop tooltips at (affects every HTML tooltip)">
 <!ENTITY danbooruUpOptions.toolTipCrop.start.label	"Start">
 <!ENTITY danbooruUpOptions.toolTipCrop.start.accesskey	"t">
 <!ENTITY danbooruUpOptions.toolTipCrop.end.label	"End">
@@ -33,6 +33,9 @@
 <!ENTITY danbooruUpOptions.updategroup.label		"Updating">
 <!ENTITY danbooruUpOptions.enableAC.label		"Enable Tag Autocomplete">
 <!ENTITY danbooruUpOptions.enableAC.accesskey		"E">
+<!ENTITY danbooruUpOptions.enableAC.site.label		"Enable Tag Autocomplete for danbooru Sites">
+<!ENTITY danbooruUpOptions.enableAC.site.accesskey	"S">
+<!ENTITY danbooruUpOptions.enableAC.site.tooltip	"Adds autocomplete to text fields on danbooru site pages.">
 <!ENTITY danbooruUpOptions.updateURL.label		"Update URL:">
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
 <!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
@@ -40,7 +43,7 @@
 <!ENTITY danbooruUpOptions.cleanup.label		"Remove 0-post tags">
 <!ENTITY danbooruUpOptions.cleanup.accesskey		"R">
 <!ENTITY danbooruUpOptions.updateOnStartup.label	"Update on startup">
-<!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"s">
+<!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"p">
 <!ENTITY danbooruUpOptions.fastUpdate.label		"Faster startup updating">
 <!ENTITY danbooruUpOptions.fastUpdate.accesskey		"F">
 <!ENTITY danbooruUpOptions.fastUpdate.tooltip		"This option speeds up startup by only retrieving fron the server tags that are new instead of the entire list.">

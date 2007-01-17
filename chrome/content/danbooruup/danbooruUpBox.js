@@ -86,6 +86,7 @@ function doSwitchTab() {
 			.focus();
 	}
 	// tab (but not window) switching is on a timeout of 0 so we have to wait a bit before refocusing
-	setTimeout(function(){window.focus();}, 50, window);
+	// unfortunately, it is dependent on system response time, so it may not always go to the front
+	setTimeout(function(){window.focus();}, 250, window);
 	return true;
 }

@@ -26,9 +26,21 @@ function tagSelector(instance) {
 	else
 		entry = entry.replace(/\*/g, '%');
 
+	if (instance.options.isSearchField && entry[0] == '-') entry = entry.substr(1);
+
 	tags = danbooruUpSearchTags(entry);
 
 	if (!tags || !tags.length) return '';
+
+	tags = tags.slice(0, instance.options.choices);
+
+	var div = document.createElement("div");
+	var text = document.createTextNode('');
+	div.appendChild(text);;
+	for(var i=0; i<tags.length; i++) {
+		text.textContent = tags[i];
+		tags[i] = div.innerHTML;
+	}
 
 	return "<ul><li>" + tags.slice(0, instance.options.choices).join('</li><li>') + "</li></ul>";
 }
@@ -55,7 +67,7 @@ if(document.getElementById("search"))
 	div1.style.display = 'none';
 	document.body.appendChild(div1);
 
-	ac = new Autocompleter_DanbooruUp("search","danbooruup-autocomplete",[],{tokens:[' ','　'], choices:150, selector:tagSelector});
+	ac = new Autocompleter_DanbooruUp("search","danbooruup-autocomplete",[],{tokens:[' ','　'], choices:150, selector:tagSelector, isSearchField: true});
 }
 
 // for post/view and post/add

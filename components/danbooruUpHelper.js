@@ -23,6 +23,10 @@ function danbooruUpHitch(ctx, what)
 	return function() { return ctx[what].apply(ctx, arguments); }
 }
 
+function __log(msg) {
+		Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(msg);
+}
+
 Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
 	.loadSubScript("chrome://danbooruup/content/uploader.js");
 
@@ -263,6 +267,8 @@ this.log(this.browserWindows.length+' after unregistering');
 		"chrome://danbooruup/content/extra/controls.js",
 		"chrome://danbooruup/content/extra/du-autocompleter.js"
 		],
+	// load scripts as strings to hopefully save some minor amount of processing time
+	// at the cost of memory
 	loadScripts: function (e)
 	{
 		if(this.script_src.length) return;
@@ -277,7 +283,10 @@ this.log(this.browserWindows.length+' after unregistering');
 
 	contentLoaded: function (win)
 	{
+		// only putting the check here is lazy, but works
 		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+			return;
+		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.site.enabled"))
 			return;
 
 		var unsafeWin = win.wrappedJSObject;
