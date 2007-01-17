@@ -12,7 +12,6 @@ function init()
 	{
 		document.getElementById('source').value = window.arguments[0].imageURI.spec;
 	}
-	window.focus();
 }
 
 function doOK()
@@ -67,26 +66,32 @@ function doOK()
 function doCancel() {
 	return true;
 }
+function refocus() {
+	this.removeEventListener("focus",refocus,false);
+	setTimeout(function(){window.focus()},10);
+}
 function doSwitchTab() {
 	var tab = window.arguments[0].wind;
 	var currentTab = tab.linkedBrowser.getTabBrowser().selectedTab;
 
+	// the easy way, but not the right way:
+	// 	tab.linkedBrowser.getTabBrowser().ownerDocument.__parent__.focus();
+	var browserWindow = tab.linkedBrowser.contentWindow
+				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+					.getInterface(Components.interfaces.nsIWebNavigation)
+				.QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+					.rootTreeItem
+				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+					.getInterface(Components.interfaces.nsIDOMWindow);
+
+	// tab (but not window) switching is on a timeout of 0 so we have to wait until we're blurred before refocusing
+	browserWindow.addEventListener("focus",refocus,false);
+
 	if (currentTab != tab) {
 		tab.linkedBrowser.getTabBrowser().selectedTab = tab;
 	} else {
-		// the easy way, but not the right way
-		// tab.linkedBrowser.getTabBrowser().ownerDocument.__parent__.focus();
-		tab.linkedBrowser.contentWindow
-			.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-				.getInterface(Components.interfaces.nsIWebNavigation)
-			.QueryInterface(Components.interfaces.nsIDocShellTreeItem)
-				.rootTreeItem
-			.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-				.getInterface(Components.interfaces.nsIDOMWindow)
-			.focus();
+		browserWindow.focus();
 	}
-	// tab (but not window) switching is on a timeout of 0 so we have to wait a bit before refocusing
-	// unfortunately, it is dependent on system response time, so it may not always go to the front
-	setTimeout(function(){window.focus();}, 250, window);
+
 	return true;
 }

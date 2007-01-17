@@ -5,6 +5,7 @@
 <!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUp.dtd">
 
 <dialog id="danbooruUpBox" title="&danbooru-box-title;"
+	windowtype = "danbooru:UploadBox"
         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel"
 	width="500px"

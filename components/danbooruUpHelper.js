@@ -125,7 +125,7 @@ this.log(this.browserWindows.length+' after unregistering');
 	setTooltipCrop: function() {
 		var cropping = prefBranch.getCharPref("extensions.danbooruUp.tooltipcrop");
 		var wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
-		var en = wm.getEnumerator("");
+		var en = wm.getEnumerator("navigator:browser");
 
 		// hackish, but setting it to an empty string is equivalent to "none"
 		if (cropping == "default") cropping = 'end';
@@ -133,7 +133,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		while (en.hasMoreElements())
 		{
 			var w = en.getNext();
-			if (typeof w.getBrowser == "function") {
+			if (w.document.getElementById("aHTMLTooltip")) {
 				w.document.getElementById("aHTMLTooltip").setAttribute("crop",cropping);
 			}
 		}

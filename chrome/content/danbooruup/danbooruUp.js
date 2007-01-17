@@ -65,8 +65,24 @@ danbooruUpObject.uploadImage = function() {
 	} catch (e) {
 	}
 
+	// focus existing upload box if we find it
+	var wm = Components.classes['@mozilla.org/appshell/window-mediator;1'].getService(Components.interfaces.nsIWindowMediator);
+	var en = wm.getEnumerator("danbooru:UploadBox");
+
+	while (en.hasMoreElements())
+	{
+		var w = en.getNext();
+		if (w.arguments[0].wind == thistab) {
+			w.arguments = [{imageLocation:locationURI, imageURI:imgURI, wind:thistab}];
+			w.init();
+			w.focus();
+			return;
+		}
+	}
+
 	// dialog=yes raises asserts that I don't feel like ignoring all the time using a debug build
-	window.openDialog("chrome://danbooruup/content/danbooruUpBox.xul",
+	// we need to use a contentWindow's openDialog since window.openDialog will spawn only one
+	(new XPCNativeWrapper(thistab.linkedBrowser.contentWindow)).openDialog("chrome://danbooruup/content/danbooruUpBox.xul",
 		"danbooruUpBox", "centerscreen,chrome,dialog=no,resizable=yes",
 		{imageLocation:locationURI, imageURI:imgURI, wind:thistab});
 }

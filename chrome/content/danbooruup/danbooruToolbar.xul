@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<overlay id="danbooruUpToolbarOverlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+  <toolbox id="navigator-toolbox">
+    <toolbar id="danbooru-toolbar">
+      <hbox id="danbooru-navbar">
+        <textbox id="danbooru_input" type="danbooruac" autocompletesearch="danboorutag"/>
+      </hbox>
+    </toolbar>
+  </toolbox>
+</overlay>
