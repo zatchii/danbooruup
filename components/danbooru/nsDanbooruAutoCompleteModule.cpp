@@ -40,7 +40,7 @@
 #include "nsDanbooruAutoComplete.h"
 #include "nsDanbooruTagHistoryService.h"
 #include "nsAutoCompleteArrayResult.h"
-
+#include "nsIFile.h"
 ////////////////////////////////////////////////////////////////////////
 // NOTE this file supercedes nsSampleFactory.cpp.  nsSampleFactory has
 // extensive comments, but it has been CVS removed to reduce clutter
@@ -75,7 +75,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteArrayResult)
 // class name.
 //
 // The Registration and Unregistration proc are optional in the structure.
-/*
+
 static NS_METHOD nsDanbooruAutoCompleteRegistrationProc(nsIComponentManager *aCompMgr,
                                           nsIFile *aPath,
                                           const char *registryLocation,
@@ -88,10 +88,14 @@ static NS_METHOD nsDanbooruAutoCompleteRegistrationProc(nsIComponentManager *aCo
     // specific additional activity needs to be done here.
 
     // This functions is optional. If you dont need it, dont add it to the structure.
-
+    /*
+    nsCAutoString path;
+    aPath->GetNativePath(path);
+fprintf(stderr, "DANBOORU IS BEING REGISTERED at %s\n\t%s\n\t%s\n", path.get(), registryLocation, componentType);
+    */
     return NS_OK;
 }
-
+/*
 static NS_METHOD nsDanbooruAutoCompleteUnregistrationProc(nsIComponentManager *aCompMgr,
                                             nsIFile *aPath,
                                             const char *registryLocation,
@@ -114,7 +118,7 @@ static NS_METHOD nsDanbooruAutoCompleteUnregistrationProc(nsIComponentManager *a
 
 static const nsModuleComponentInfo components[] =
 {
-  { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor },
+  { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor, nsDanbooruAutoCompleteRegistrationProc },
   { "Danbooru Tag History Service", NS_DANBOORUTAGHISTORYSERVICE_CID, NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID, nsDanbooruTagHistoryServiceConstructor },
   { "AutoComplete Array Result",
 	  NS_AUTOCOMPLETEARRAYRESULT_CID,

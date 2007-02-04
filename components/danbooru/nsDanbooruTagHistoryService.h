@@ -38,12 +38,13 @@
 #ifndef __nsDanbooruTagHistory__
 #define __nsDanbooruTagHistory__
 
+#include "nsStringAPI.h"
+
 #include "nsIDanbooruTagHistoryService.h"
 //#include "nsIAutoCompleteResultTypes.h"
 #include "nsIAutoCompleteArrayResult.h"
 #include "nsIXMLHttpRequest.h"
 #include "nsIDOMEventListener.h"
-#include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsIDOMEventListener.h"

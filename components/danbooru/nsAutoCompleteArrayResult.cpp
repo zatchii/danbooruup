@@ -141,7 +141,7 @@ nsAutoCompleteArrayResult::SetSearchResult(PRUint16 aSearchResult)
 NS_IMETHODIMP
 nsAutoCompleteArrayResult::AddRow(const nsAString &aName)
 {
-	mResults.AppendElement(ToNewUnicode(aName));
+	mResults.AppendElement(NS_StringCloneData(aName));
 	return NS_OK;
 }
 

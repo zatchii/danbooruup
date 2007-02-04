@@ -24,7 +24,7 @@ function danbooruUpHitch(ctx, what)
 }
 
 function __log(msg) {
-		Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(msg);
+	Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(msg);
 }
 
 Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
@@ -176,7 +176,7 @@ this.log(this.browserWindows.length+' after unregistering');
 	},
 	update: function(aFull, aInteractive)
 	{
-		if (!this.tagService) return;
+		if (!this.tagService) return Components.results.NS_ERROR_NOT_AVAILABLE;
 		if (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval) return;
 		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
@@ -191,9 +191,14 @@ this.log(this.browserWindows.length+' after unregistering');
 			{
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
+				else
+					return e.result
 			}
 			else {
-				promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
+				if(aInteractive)
+					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
+				else
+					return e.result
 			}
 		}
 		this.mMaxID = this.getMaxID();
@@ -203,6 +208,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		{
 			this.startTimer();
 		}
+		return Components.results.NS_OK;
 	},
 	cleanup: function(aInteractive)
 	{
@@ -398,10 +404,45 @@ HelperModule.registerSelf = function(compMgr, fileSpec, location, type)
 	if (!this._deferred)
 	{
 		this._deferred = true;
+
+	// Check if this is built with a bizarro OS_TARGET
+	try {
+	if (Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS == 'linux-gnu')
+	{
+__log("linux-gnu detected");
+		// find the extension directory
+		var dirs = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties)
+				.get("XREExtDL", Ci.nsISimpleEnumerator);
+		var dir;
+		while(dirs.hasMoreElements())
+		{
+			dir = dirs.getNext().QueryInterface(Ci.nsILocalFile);
+__log("checking "+dir.path);
+			if(dir.leafName == '{7209145A-6A2A-42C1-99EB-4DE7293990E1}')
+				break;
+			dir = null;
+		}
+		// rename the platform component directory
+		if (dir)
+		{
+__log("locked on");
+			var moveDir;
+			dir.append('platform');
+			moveDir = dir.clone();
+			moveDir.append('Linux_x86-gcc3');
+__log("using "+moveDir.path+(moveDir.exists?" (exists)":" (doesn't exist)"));
+			if(moveDir.exists())
+				moveDir.moveTo(dir, 'linux-gnu_x86-gcc3');
+		}
+	}
+	} catch(ex) {
+		__log("danbooruUphelper: exception caught during OS_TARGET fix:\n"+ex);
+	}
+
 		throw Components.results.NS_ERROR_FACTORY_REGISTER_AGAIN;
 	}
 
-	compMgr = compMgr.QueryInterface(Ci.nsIComponentRegistrar);
+	var compMgr = compMgr.QueryInterface(Ci.nsIComponentRegistrar);
 	compMgr.registerFactoryLocation(DANBOORUUPHELPER_CID,
 			"Danbooru Helper Service",
 			DANBOORUUPHELPER_CONTRACTID,

@@ -355,6 +355,9 @@ danbooruUploader.prototype = {
         alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc')+status.toString(16));
         break;
       case Components.results.NS_ERROR_UNEXPECTED:	// usually not an image
+      case 0x804B0020:	// connection reset
+        alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc')+'!!'+status.toString(16));
+        break;
       case 0x804B0002:	// manually canceled
     }
   },

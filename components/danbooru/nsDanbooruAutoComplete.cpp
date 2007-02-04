@@ -49,15 +49,17 @@
 #include "nsDanbooruTagHistoryService.h"
 
 #include "nsIXPConnect.h"
+#include "nsStringAPI.h"
 
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
-
+#include "nsIIOService.h"
 #include "nsIXMLHttpRequest.h"
-#include "nsNetUtil.h"
+//#include "nsNetUtil.h"
 
-#include "nsString.h"
+#include "nsServiceManagerUtils.h"
 #include "nsMemory.h"
+#include "nspr.h"
 #include "prthread.h"
 
 #include "nsIAutoCompleteArrayResult.h"
@@ -112,6 +114,7 @@ NS_IMPL_ISUPPORTS2(nsDanbooruAutoComplete, nsIDanbooruAutoComplete, nsIAutoCompl
 //// nsDanbooruAutoComplete
 
 /* pilfered from nsSchemaLoader */
+/*
 static nsresult
 GetResolvedURI(const nsAString& aSchemaURI,
 		const char* aMethod,
@@ -139,8 +142,11 @@ GetResolvedURI(const nsAString& aSchemaURI,
       principal->GetURI(getter_AddRefs(baseURI));
     }
 
-    rv = NS_NewURI(aURI, aSchemaURI, nsnull, baseURI);
+    nsCOMPtr<nsIIOService> ioService;
+    ioService = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
     if (NS_FAILED(rv)) return rv;
+
+    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(aSchemaURI), nsnull, baseURI, aURI);
 
     rv = secMan->CheckLoadURIFromScript(cx, *aURI);
     if (NS_FAILED(rv))
@@ -152,12 +158,13 @@ GetResolvedURI(const nsAString& aSchemaURI,
     }
   }
   else {
-    rv = NS_NewURI(aURI, aSchemaURI, nsnull);
+    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(aSchemaURI), nsnull, nsnull, aURI);
     if (NS_FAILED(rv)) return rv;
   }
 
   return NS_OK;
 }
+*/
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIAutoCompleteSearch
@@ -173,10 +180,17 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 	//char *cparam = ToNewCString(aSearchParam);
 	NS_NAMED_LITERAL_STRING(a,"searching ");
 	NS_NAMED_LITERAL_STRING(b," - ");
-	nsString bob= a +aSearchString +b +aSearchParam;
-	char *z = ToNewCString(bob);
-	fprintf(stderr, "%s\n", z);
-	nsMemory::Free(z);
+	nsString bob;
+	const PRUnichar *as, *ap, *z;
+	//NS_StringGetData(aSearchString, &as);
+	//NS_StringGetData(aSearchParam, &ap);
+	bob = a;
+	bob += aSearchString;
+	bob += b;
+	bob += aSearchParam;
+	NS_StringGetData(bob, &z);
+	PR_fprintf(PR_STDERR, "%s\n", NS_ConvertUTF16toUTF8(z).get());
+	//nsMemory::Free(z);
 	//nsMemory::Free(cparam);
 }
 #endif

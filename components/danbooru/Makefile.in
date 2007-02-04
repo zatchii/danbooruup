@@ -36,24 +36,30 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../..
+DEPTH		= @MOZ_BUILD_ROOT@
 topsrcdir	= @top_srcdir@
 srcdir		= @srcdir@
 VPATH		= @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MOZILLA_INTERNAL_API = 1
-
 REQUIRES =	\
 		autocomplete \
+		content \
 		xpcom \
-		mork \
 		unicharutil \
 		intl \
 		locale \
 		pref \
 		string \
+		dom \
+		xpconnect \
+		js \
+		necko \
+		caps \
+		xmlextras \
+		layout \
+		storage \
 		$(NULL)
 
 # This makefile builds the "program" subdirectory.
@@ -103,10 +109,10 @@ EXTRA_COMPONENTS =
 # from this Makefile. We link against the "dependent glue" and against the
 # frozen XPCOM shared library.
 EXTRA_DSO_LDOPTS = \
-		$(DIST)/lib/$(LIB_PREFIX)unicharutil_s.$(LIB_SUFFIX) \
+		$(DIST)/lib/$(LIB_PREFIX)unicharutil_external_s.$(LIB_SUFFIX) \
+		$(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
 		$(MOZ_COMPONENT_LIBS) \
 		$(NULL)
-#		$(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
 
 # XXXNOTE: We should be using XPCOM_FROZEN_LDOPTS instead of
 # MOZ_COMPONENT_LIBS, but that doesn't work on mac xcode < 1.5 and
@@ -123,6 +129,8 @@ EXTRA_DSO_LDOPTS += \
 endif
 
 include $(topsrcdir)/config/rules.mk
+
+#DEFINES += -DDANBOORUUP_TESTING
 
 libs:: $(TARGETS)
 #	$(INSTALL) $(srcdir)/xpconnect-sample.html $(DIST)/bin/res/samples

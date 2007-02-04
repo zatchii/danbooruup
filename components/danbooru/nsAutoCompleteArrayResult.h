@@ -4,8 +4,15 @@
 #include "nsIAutoCompleteResult.h"
 //#include "nsIAutoCompleteResultTypes.h"
 #include "nsIAutoCompleteArrayResult.h"
-#include "nsString.h"
+#include "nsStringAPI.h"
+// workaround for old branch nsVoidArray not using frozen API
+#ifdef MOZILLA_1_8_BRANCH
+#define nsAString_h___
+#endif
 #include "nsVoidArray.h"
+#ifdef MOZILLA_1_8_BRANCH
+#undef nsAString_h___
+#endif
 
 // {683D9ABF-BFDE-4c93-9D96-7181865B1257}
 #define NS_AUTOCOMPLETEARRAYRESULT_CID \
@@ -26,8 +33,8 @@ public:
 protected:
 	nsAutoVoidArray mResults;
 
-	nsAutoString mSearchString;
-	nsAutoString mErrorDescription;
+	nsString mSearchString;
+	nsString mErrorDescription;
 	PRInt32 mDefaultIndex;
 	PRUint32 mSearchResult;
 };

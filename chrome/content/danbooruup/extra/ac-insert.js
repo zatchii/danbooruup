@@ -30,7 +30,7 @@ function tagSelector(instance) {
 
 	tags = danbooruUpSearchTags(entry);
 
-	if (!tags || !tags.length) return '';
+	if (!tags || !tags.length) return '<ul></ul>';
 
 	tags = tags.slice(0, instance.options.choices);
 

@@ -40,18 +40,28 @@
 #include "nsDanbooruTagHistoryService.h"
 
 #include "nsIServiceManager.h"
+#include "nsServiceManagerUtils.h"
+#include "nsComponentManagerUtils.h"
+#include "nsIIOService.h"
+#include "nsNetCID.h"
 #include "nsIObserverService.h"
 #include "nsICategoryManager.h"
 #include "nsIDirectoryService.h"
 #include "nsDirectoryServiceDefs.h"
+#include "nsDirectoryServiceUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 
 #include "nsAutoCompleteArrayResult.h"
 
+#include "nspr.h"
+
 #include "nsCRT.h"
-#include "nsString.h"
-#include "nsUnicharUtils.h"
-#include "nsReadableUtils.h"
+#ifdef MOZILLA_1_8_BRANCH
+#define nsString_h___
+#include "nsICaseConversion.h"
+#include "nsUnicharUtilCIID.h"
+#undef nsString_h___
+#endif
 
 // GetResolvedURI
 #include "nsIXPConnect.h"
@@ -59,7 +69,7 @@
 #include "nsIPrincipal.h"
 #include "nsIURL.h"
 // Update/Process
-#include "nsNetUtil.h"
+//#include "nsNetUtil.h"
 #include "nsIDOMEventTarget.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMElement.h"
@@ -84,15 +94,15 @@ static const char *kTagTableName = "tags";
 
 #define kApiZeroCount "include_zero_posts=1"
 
-#define kTagHistorySchema "id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, value INTEGER NOT NULL DEFAULT 0"
+#define kTagHistorySchema "id SERIAL PRIMARY KEY, name TEXT NOT NULL UNIQUE, value INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0"
 // temporary table for cleanup join
-#define kCreateTempTagTable "CREATE TEMPORARY TABLE tagselect (id INTEGER, name TEXT, value INTEGER NOT NULL DEFAULT 0)"
+#define kCreateTempTagTable "CREATE TEMPORARY TABLE tagselect (id INTEGER, name TEXT, value INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0)"
 #define kCreateTempTagIndex "CREATE INDEX tagselect_idx_id ON tagselect (id)"
-#define kTempTagInsert "INSERT OR IGNORE INTO tagselect (id, name) VALUES (?1, ?2)"
+#define kTempTagInsert "INSERT OR IGNORE INTO tagselect (id, name, tag_type) VALUES (?1, ?2, ?3)"
 #define kDropTempTagTable "DROP TABLE tagselect"
 // and the cleanup join
 #define kTagClean "DELETE FROM tags WHERE id IN (SELECT t.id FROM tags t LEFT OUTER JOIN tagselect s ON t.id=s.id WHERE s.id IS NULL)"
-#define kTagInsert "INSERT OR IGNORE INTO tags (id, name) VALUES (?1, ?2)"
+#define kTagInsert "INSERT OR IGNORE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
 #define kTagSearch "SELECT name FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
 #define kTagSearchCount "SELECT COUNT(*) FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
@@ -101,6 +111,10 @@ static const char *kTagTableName = "tags";
 #define kRemoveAll "TRUNCATE TABLE tags"
 #define kMaxID "SELECT max(id) FROM tags"
 #define kRowCount "SELECT count() FROM tags"
+
+// migration
+#define kTableIsV2 "SELECT tag_type FROM tags LIMIT 0"
+#define kTableMigrateV1_V2 "ALTER TABLE tags ADD COLUMN tag_type INTEGER NOT NULL DEFAULT 0"
 
 NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistoryService)
@@ -121,27 +135,144 @@ PRBool nsDanbooruTagHistoryService::gTagHistoryEnabled = PR_FALSE;
 PRBool nsDanbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #endif
 
+#ifdef MOZILLA_1_8_BRANCH
+// this crap doesn't exist in 1.8 branch
+
+typedef PRInt32 (*ComparatorFunc)(const PRUnichar *a, const PRUnichar *b, PRUint32 length);
+
+int
+NS_strcmp(const PRUnichar *a, const PRUnichar *b)
+{
+  while (*b) {
+    int r = *a - *b;
+    if (r)
+      return r;
+
+    ++a;
+    ++b;
+  }
+
+  return *a != '\0';
+}
+
+static PRUint32
+NS_strlen(const PRUnichar *aString)
+{
+  const PRUnichar *end;
+
+  for (end = aString; *end; ++end) {
+    // empty loop
+  }
+
+  return end - aString;
+}
+
+static PRBool
+Equals(const nsAString &str, const PRUnichar *other, ComparatorFunc c)
+{
+  const PRUnichar *cself;
+  PRUint32 selflen = NS_StringGetData(str, &cself);
+  PRUint32 otherlen = NS_strlen(other);
+
+  if (selflen != otherlen)
+    return PR_FALSE;
+
+  return c(cself, other, selflen) == 0;
+}
+
+static nsICaseConversion* gCaseConv = nsnull;
+
+nsICaseConversion*
+NS_GetCaseConversion()
+{
+  if (!gCaseConv) {
+    nsresult rv = CallGetService(NS_UNICHARUTIL_CONTRACTID, &gCaseConv);
+    if (NS_FAILED(rv)) {
+      NS_ERROR("Failed to get the case conversion service!");
+      gCaseConv = nsnull;
+    }
+  }
+  return gCaseConv;
+}
+
+PRInt32
+CaseInsensitiveCompare(const PRUnichar *a,
+                       const PRUnichar *b,
+                       PRUint32 len)
+{
+  nsICaseConversion* caseConv = NS_GetCaseConversion();
+  if (!caseConv)
+    return NS_strcmp(a, b);
+
+  PRInt32 result;
+  caseConv->CaseInsensitiveCompare(a, b, len, &result);
+  return result;
+}
+#endif
+
+// XXX hurry up and move this out of extensions/metrics/src/nsStringUtils.cpp already, dudes
+static PRInt32 FindChar(const nsAString &str, PRUnichar c)
+{
+  const PRUnichar *start;
+  PRUint32 len = NS_StringGetData(str, &start);
+  const PRUnichar *iter = start, *end = start + len;
+  for (; iter != end; ++iter) {
+    if (*iter == c)
+      return iter - start;
+  }
+  return -1;
+}
+
+// Replace all occurances of |matchVal| with |newVal|
+void ReplaceSubstring(nsAString& str,
+		const nsAString& matchVal,
+		const nsAString& newVal)
+{
+	const PRUnichar* sp, *mp, *np;
+	PRUint32 sl, ml, nl;
+
+	sl = NS_StringGetData(str, &sp);
+	ml = NS_StringGetData(matchVal, &mp);
+	nl = NS_StringGetData(newVal, &np);
+
+	for (const PRUnichar* iter = sp; iter <= sp + sl - ml; ++iter)
+	{
+		if (memcmp(iter, mp, ml) == 0)
+		{
+			PRUint32 offset = iter - sp;
+
+			NS_StringSetDataRange(str, offset, ml, np, nl);
+
+			sl = NS_StringGetData(str, &sp);
+
+			iter = sp + offset + nl - 1;
+		}
+	}
+}
+
 nsDanbooruTagHistoryService::nsDanbooruTagHistoryService() :
-  mRequest(nsnull),
-  mDB(nsnull)
+	mRequest(nsnull),
+	mDB(nsnull)
 {
 }
 
 nsDanbooruTagHistoryService::~nsDanbooruTagHistoryService()
 {
-  gTagHistory = nsnull;
-  CloseDatabase();
+	gTagHistory = nsnull;
+	//NS_IF_RELEASE(gCaseConv);
+	CloseDatabase();
 }
 
 nsresult
 nsDanbooruTagHistoryService::Init()
 {
-  gTagHistory = this;
-  //nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
-  //if (service)
-  //  service->AddObserver(this, NS_FORMSUBMIT_SUBJECT, PR_TRUE);
+	gTagHistory = this;
 
-  return NS_OK;
+	//nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
+	//if (service)
+	//  service->AddObserver(this, NS_FORMSUBMIT_SUBJECT, PR_TRUE);
+
+	return NS_OK;
 }
 
 nsDanbooruTagHistoryService *nsDanbooruTagHistoryService::gTagHistory = nsnull;
@@ -203,6 +334,10 @@ GetResolvedURI(const nsAString& aSchemaURI,
     rv = xpc->GetCurrentNativeCallContext(getter_AddRefs(cc));
   }
 
+  nsCOMPtr<nsIIOService> ioService;
+  ioService = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
+  if (NS_FAILED(rv)) return rv;
+
   if (NS_SUCCEEDED(rv) && cc) {
     JSContext* cx;
     rv = cc->GetJSContext(&cx);
@@ -218,8 +353,7 @@ GetResolvedURI(const nsAString& aSchemaURI,
       principal->GetURI(getter_AddRefs(baseURI));
     }
 
-    rv = NS_NewURI(aURI, aSchemaURI, nsnull, baseURI);
-    if (NS_FAILED(rv)) return rv;
+    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(aSchemaURI), nsnull, baseURI, aURI);
 
     rv = secMan->CheckLoadURIFromScript(cx, *aURI);
     if (NS_FAILED(rv))
@@ -231,7 +365,7 @@ GetResolvedURI(const nsAString& aSchemaURI,
     }
   }
   else {
-    rv = NS_NewURI(aURI, aSchemaURI, nsnull);
+    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(aSchemaURI), nsnull, nsnull, aURI);
     if (NS_FAILED(rv)) return rv;
   }
 
@@ -257,19 +391,19 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 	} else {
 		// no tags?
 #ifdef DANBOORUUP_TESTING
-		fprintf(stderr,"no tags\n", rv);
+ 		NS_WARNING("no tags");
 #endif
 		return NS_OK;
 	}
 #if defined(DANBOORUUP_TESTING) || defined(DEBUG)
 {
-	fprintf(stderr, "got %d nodes\n", length);
+ 	PR_fprintf(PR_STDERR, "got %d nodes\n", length);
 }
 #endif
 
 	nsCOMPtr<nsIDOMNode> child;
 	//nsDanbooruTagHistoryService *history = nsDanbooruTagHistoryService::GetInstance();
-	nsAutoString tagid, tagname;
+	nsString tagid, tagname, tagtype;
 
 	if(aInsert) {	// adding new tags
 		mDB->BeginTransaction();
@@ -283,19 +417,25 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 			// left as a string because sqlite will turn it into an int anyway
 			childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
 			childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
+			childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
 			if (!tagname.IsEmpty()) {
 #if defined(DANBOORUUP_TESTING)
 {
 	NS_NAMED_LITERAL_STRING(a,"inserting ");
 	NS_NAMED_LITERAL_STRING(b," - ");
-	nsString bob= a + tagid + b + tagname;
-	char *z = ToNewCString(bob);
-	fprintf(stderr, "%s\n", z);
+	nsString bob= a;
+	bob += tagid;
+	bob += b;
+	bob += tagname;
+	PRUnichar *z;
+	NS_StringGetData(bob, &z);
+	PR_fprintf(PR_STDERR, "%s\n", NS_ConvertUTF16toUTF8(z));
 	nsMemory::Free(z);
 }
 #endif
 				mInsertStmt->BindStringParameter(0, tagid);
 				mInsertStmt->BindStringParameter(1, tagname);
+				mInsertStmt->BindStringParameter(2, tagtype);
 				mInsertStmt->Execute();
 			}
 		}
@@ -317,9 +457,11 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 
 			childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
 			childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
+			childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
 			if (!tagname.IsEmpty()) {
 				tempInsertStmt->BindStringParameter(0, tagid);
 				tempInsertStmt->BindStringParameter(1, tagname);
+				tempInsertStmt->BindStringParameter(2, tagtype);
 				tempInsertStmt->Execute();
 			}
 		}
@@ -348,7 +490,7 @@ nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 	document->GetDocumentElement(getter_AddRefs(element));
 	if (element) {
 #ifdef DANBOORUUP_TESTING
-	fprintf(stderr,"processing %s\n", mInserting?"insertion":"removal");
+	PR_fprintf(PR_STDERR,"processing %s\n", mInserting?"insertion":"removal");
 #endif
 		ProcessTagXML(element, mInserting);
 		rv = NS_OK;
@@ -356,7 +498,7 @@ nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 		rv = NS_ERROR_CANNOT_CONVERT_DATA;
 	}
 #ifdef DANBOORUUP_TESTING
-	fprintf(stderr,"done %08x\n", rv);
+	PR_fprintf(PR_STDERR,"done %08x\n", rv);
 #endif
 	return rv;
 }
@@ -369,7 +511,7 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBo
 		PRInt32 st;
 		mRequest->GetReadyState(&st);
 #ifdef DANBOORUUP_TESTING
-		fprintf(stderr,"previous state %d\n", st);
+		PR_fprintf(PR_STDERR,"previous state %d\n", st);
 #endif
 		// GetReadyState doesn't return mState -- oops
 		if(st != 4)
@@ -391,11 +533,11 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBo
 		url->SetQuery(NS_LITERAL_CSTRING(kApiZeroCount));
 	}
 
-	nsCAutoString spec;
+	nsCString spec;
 	url->GetSpec(spec);
 
 #ifdef DANBOORUUP_TESTING
-	fprintf(stderr,"using %s\n", spec.get());
+	PR_fprintf(PR_STDERR,"using %s\n", spec.get());
 #endif
 
 	mRequest = do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv);
@@ -421,7 +563,7 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBo
 		return rv;
 	}
 #ifdef DANBOORUUP_TESTING
-	fprintf(stderr,"getting data\n", rv);
+	PR_fprintf(PR_STDERR,"getting data\n", rv);
 #endif
 
 	// async handler
@@ -457,11 +599,7 @@ nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
 		  *aRowCount = 0;
 	  else
-#ifdef DANBOORUUP_1_8_0_STORAGE
-		  mRowCountStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
-#else
 		  mRowCountStmt->GetInt32(0, (PRInt32 *)aRowCount);
-#endif
 	  mRowCountStmt->Reset();
   } else {
 	  return NS_ERROR_FAILURE;
@@ -482,13 +620,9 @@ nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
 	  PRInt32 type;
 	  mMaxIDStmt->GetTypeOfIndex(0, &type);
 	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
-		  *aRowCount = -1;
+		  *aRowCount = 0;
 	  else
-#ifdef DANBOORUUP_1_8_0_STORAGE
-		  mMaxIDStmt->GetAsInt32(0, (PRInt32 *)aRowCount);
-#else
 		  mMaxIDStmt->GetInt32(0, (PRInt32 *)aRowCount);
-#endif
 	  mMaxIDStmt->Reset();
   } else {
 	  return NS_ERROR_FAILURE;
@@ -661,14 +795,14 @@ nsDanbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal*
     nsCOMPtr<nsIDOMHTMLInputElement> inputElt = do_QueryInterface(node);
     if (inputElt) {
       // Filter only inputs that are of type "text"
-      nsAutoString type;
+      nsString type;
       inputElt->GetType(type);
       if (type.EqualsIgnoreCase(textString)) {
         // If this input has a name/id and value, add it to the database
-        nsAutoString value;
+        nsString value;
         inputElt->GetValue(value);
         if (!value.IsEmpty()) {
-          nsAutoString name;
+          nsString name;
           inputElt->GetName(name);
           if (name.IsEmpty())
             inputElt->GetId(name);
@@ -689,56 +823,70 @@ nsDanbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal*
 nsresult
 nsDanbooruTagHistoryService::OpenDatabase()
 {
-  if (mDB)
-    return NS_OK;
+	if (mDB)
+		return NS_OK;
 
-  nsCOMPtr<mozIStorageService> storage = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+	gTagHistoryEnabled = PR_FALSE;
 
-  // Get a handle to the database file
-  nsCOMPtr <nsIFile> historyFile;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
-  if(NS_FAILED(rv))
-  {
-    // probably using xpcshell
-    rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(historyFile));
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  historyFile->Append(NS_ConvertUTF8toUTF16(kTagHistoryFileName));
+	nsCOMPtr<mozIStorageService> storage = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
 
-  //rv = storage->GetProfileStorage("profile", getter_AddRefs(mDB));
-  rv = storage->OpenDatabase(historyFile, getter_AddRefs(mDB));
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (mDB == nsnull)
-    return NS_ERROR_FAILURE;
+	// Get a handle to the database file
+	nsCOMPtr <nsIFile> historyFile;
+	nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
+	if(NS_FAILED(rv))
+	{
+		// probably using xpcshell
+		rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(historyFile));
+		if (NS_FAILED(rv))
+			return rv;
+	}
+	historyFile->Append(NS_ConvertUTF8toUTF16(kTagHistoryFileName));
 
-  mDB->CreateTable(kTagTableName, kTagHistorySchema);
+	//rv = storage->GetProfileStorage("profile", getter_AddRefs(mDB));
+	rv = storage->OpenDatabase(historyFile, getter_AddRefs(mDB));
+	NS_ENSURE_SUCCESS(rv, rv);
+	if (mDB == nsnull)
+	{
+		return NS_ERROR_FAILURE;
+	}
 
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagRemoveByID), getter_AddRefs(mRemoveByIDStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearchCount), getter_AddRefs(mSearchCountStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kMaxID), getter_AddRefs(mMaxIDStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRowCount), getter_AddRefs(mRowCountStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
+	// silently fails if it already exists
+	mDB->CreateTable(kTagTableName, kTagHistorySchema);
 
-  return NS_OK;
+	if (NS_FAILED(mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableIsV2))))
+	{
+		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableMigrateV1_V2));
+	}
+
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagRemoveByID), getter_AddRefs(mRemoveByIDStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearchCount), getter_AddRefs(mSearchCountStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kMaxID), getter_AddRefs(mMaxIDStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRowCount), getter_AddRefs(mRowCountStmt));
+	NS_ENSURE_SUCCESS(rv, rv);
+
+	// all clear
+	gTagHistoryEnabled = PR_TRUE;
+
+	return NS_OK;
 }
 
 nsresult
 nsDanbooruTagHistoryService::CloseDatabase()
 {
-  // mozStorageConnection destructor takes care of this
+	// mozStorageConnection destructor takes care of this
 
-  return NS_OK;
+	return NS_OK;
 }
 
 nsresult
@@ -754,15 +902,18 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 
 	nsCOMPtr<nsIAutoCompleteArrayResult> result;
 	// not so great performance-wise to re-search every time a wildcard is present, but the alternative is too much trouble
-	if (aPrevResult && (aInputName.FindChar('*') == kNotFound)) {
+	if (aPrevResult && (FindChar(aInputName, '*') == -1)) {
 		result = aPrevResult;
 
 		PRUint32 rowCount;
 		result->GetMatchCount(&rowCount);
 		for (PRInt32 i = rowCount-1; i >= 0; --i) {
-			nsAutoString name;
+			nsString name;
 			result->GetValueAt(i, name);
-			if (Compare(Substring(name, 0, aInputName.Length()), aInputName, nsCaseInsensitiveStringComparator()))
+			nsDependentSubstring sub = Substring(name, 0, aInputName.Length());
+			const PRUnichar *sd;
+			NS_StringGetData(sub, &sd);
+			if (!Equals(aInputName, sd, CaseInsensitiveCompare))
 				result->RemoveValueAt(i, PR_FALSE);
 		}
 	} else {
@@ -784,34 +935,20 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		result->SetSearchString(aInputName);
 
 		PRBool row;
-		nsAutoString name, likeInputName;
-		likeInputName = aInputName;
+		nsString name, likeInputName;
+		NS_StringCopy(likeInputName, aInputName);
 		// change * wildcard to SQL % wildcard, escaping the actual %s first
-		likeInputName.ReplaceSubstring(NS_LITERAL_STRING("%"), NS_LITERAL_STRING("\\%"));
-		likeInputName.ReplaceSubstring(NS_LITERAL_STRING("*"), NS_LITERAL_STRING("%"));
-		if(aInputName.FindChar('*') == kNotFound) {
+		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("%"), NS_LITERAL_STRING("\\%"));
+		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("*"), NS_LITERAL_STRING("%"));
+		if(FindChar(aInputName, '*') == -1) {
 			likeInputName.Append(NS_LITERAL_STRING("%"));
 		}
-#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
-{
-	nsAutoString bob;
-	bob = aInputName + NS_LITERAL_STRING(" -> ") + likeInputName;
-	char *z = ToNewCString(bob);
-	fprintf(stderr, "%s\n", z);
-	nsMemory::Free(z);
-}
-#endif
 
 		mSearchStmt->BindStringParameter(0, likeInputName);
 		mSearchStmt->ExecuteStep(&row);
 		while (row)
 		{
-#ifdef DANBOORUUP_1_8_0_STORAGE
-			mSearchStmt->GetAsString(0, name);
-#else
-			// schema: tags.name varchar(255)
 			name = mSearchStmt->AsSharedWString(0, nsnull);
-#endif
 			result->AddRow(name);
 			mSearchStmt->ExecuteStep(&row);
 		}
@@ -871,15 +1008,11 @@ nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 		mSearchStmt->BindStringParameter(0, aInputName);
 		mSearchStmt->ExecuteStep(&row);
 		PRUint32 index = 0;
-		nsAutoString name;
+		nsString name;
 		while (row && index < ct)
 		{
-#ifdef DANBOORUUP_1_8_0_STORAGE
-			mSearchStmt->GetAsString(0, name);
-#else
 			name = mSearchStmt->AsSharedWString(0, nsnull);
-#endif
-			array[index] = ToNewUnicode(name);
+			array[index] = NS_StringCloneData(name);
 			if (!array[index] || !*(array[index])) {
 				CleanupTagArray(array, index);
 				mSearchStmt->Reset();

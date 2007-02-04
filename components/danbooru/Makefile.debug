@@ -43,8 +43,6 @@ VPATH		= .
 
 include $(DEPTH)/config/autoconf.mk
 
-LIBXUL_LIBRARY = 1
-
 REQUIRES =	\
 		autocomplete \
 		content \
@@ -121,9 +119,9 @@ EXTRA_COMPONENTS =
 # frozen XPCOM shared library.
 EXTRA_DSO_LDOPTS = \
 		$(DIST)/lib/$(LIB_PREFIX)unicharutil_s.$(LIB_SUFFIX) \
+		$(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
 		$(MOZ_COMPONENT_LIBS) \
 		$(NULL)
-#		$(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
 
 # XXXNOTE: We should be using XPCOM_FROZEN_LDOPTS instead of
 # MOZ_COMPONENT_LIBS, but that doesn't work on mac xcode < 1.5 and
@@ -141,7 +139,6 @@ endif
 
 include $(topsrcdir)/config/rules.mk
 
-#DEFINES += -DDANBOORUUP_1_8_0_STORAGE
 #DEFINES += -DDANBOORUUP_TESTING
 
 libs:: $(TARGETS)
