@@ -17,6 +17,13 @@ function getSize(url) {
 			var md5 = hashStreamMD5(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
 			setInfo("image-md5", md5);
 			}catch(ex2) {}
+
+			try{
+			var sha1 = hashStreamSHA1(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
+			setInfo("image-sha1-hex", sha1.hex);
+			setInfo("image-sha1-base32", sha1.base32);
+			}catch(ex2) {}
+
 			return cacheEntryDescriptor.dataSize;
 		}
 	}
@@ -30,6 +37,13 @@ function getSize(url) {
 			var md5 = hashStreamMD5(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
 			setInfo("image-md5", md5);
 			}catch(ex2) {}
+
+			try{
+			var sha1 = hashStreamSHA1(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
+			setInfo("image-sha1-hex", sha1.hex);
+			setInfo("image-sha1-base32", sha1.base32);
+			}catch(ex2) {}
+
 			return cacheEntryDescriptor.dataSize;
 		}
 	}
@@ -45,9 +59,14 @@ function getSize(url) {
 			channel.QueryInterface(Components.interfaces.nsIFileChannel);
 			var md5 = hashStreamMD5(channel.open(), channel.file.fileSize);
 			setInfo("image-md5", md5);
+			var sha1 = hashStreamSHA1(channel.open(), cacheEntryDescriptor.dataSize);
+			setInfo("image-sha1-hex", sha1.hex);
+			setInfo("image-sha1-base32", sha1.base32);
 		} else {
 			// nothing
 			setInfo("image-md5", "");
+			setInfo("image-sha1-hex", "");
+			setInfo("image-sha1-base32", "");
 		}
 	}
 	catch(ex) {}
@@ -69,6 +88,38 @@ function hashStreamMD5(stream, length)
 		outMD5Hex += alpha.charAt(n>>4) + alpha.charAt(n & 0xF);
 	}
 	return outMD5Hex;
+}
+
+const base32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ2345567';
+
+function hashStreamSHA1(stream, length)
+{
+	var hasher = Components.classes["@mozilla.org/security/hash;1"].createInstance(Components.interfaces.nsICryptoHash);
+	hasher.init(hasher.SHA1);
+	hasher.updateFromStream(stream, length);
+	var outSHA1 = hasher.finish(false);
+	var outSHA1Hex='';
+	var alpha = "0123456789abcdef";
+	var n;
+	for(var qx=0, n; qx < outSHA1.length; qx++) {
+		n = outSHA1.charCodeAt(qx);
+		outSHA1Hex += alpha.charAt(n>>4) + alpha.charAt(n & 0xF);
+	}
+
+	var outSHA1Base32='';
+	for(var d=0,n=0,qx=0;qx < outSHA1.length;) {
+		d <<= 8;
+		d |= outSHA1.charCodeAt(qx++);
+		n += 8;
+
+		while (n>=5) {
+			n -= 5;
+			outSHA1Base32 += base32[d>>n];
+			d &= (1 << n)-1;
+		}
+	}
+
+	return {hex:outSHA1Hex, base32:outSHA1Base32};
 }
 
 // can't overlay since there are two levels without IDs
@@ -93,4 +144,43 @@ function addMD5Field()
 	eFileSize.parentNode.insertBefore(md5row, eFileSize.nextSibling);
 }
 
+function addSHA1Field()
+{
+	var eFileSize = document.getElementById("image-filesize");
+
+	var sha1row = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:row");
+	sha1row.setAttribute("id", "image-sha1-hex");
+
+	var sha1sep = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:separator");
+	sha1sep.setAttribute("orient", "vertical");
+	sha1row.appendChild(sha1sep);
+	var sha1label = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
+	sha1label.setAttribute("value", "SHA-1:"); //FIXME
+	sha1row.appendChild(sha1label);
+	var sha1box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
+	sha1box.setAttribute("id", "image-sha1-hex-text");
+	sha1box.readOnly=true;
+	sha1row.appendChild(sha1box);
+
+	eFileSize.parentNode.insertBefore(sha1row, eFileSize.nextSibling);
+	eFileSize = sha1row;
+
+	sha1row = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:row");
+	sha1row.setAttribute("id", "image-sha1-base32");
+
+	sha1sep = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:separator");
+	sha1sep.setAttribute("orient", "vertical");
+	sha1row.appendChild(sha1sep);
+	sha1label = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
+	sha1label.setAttribute("value", "SHA-1 (Base32):"); //FIXME
+	sha1row.appendChild(sha1label);
+	sha1box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
+	sha1box.setAttribute("id", "image-sha1-base32-text");
+	sha1box.readOnly=true;
+	sha1row.appendChild(sha1box);
+
+	eFileSize.parentNode.insertBefore(sha1row, eFileSize.nextSibling);
+}
+
 addMD5Field();
+addSHA1Field();

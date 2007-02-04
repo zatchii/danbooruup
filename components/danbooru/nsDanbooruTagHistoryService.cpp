@@ -98,17 +98,17 @@ static const char *kTagTableName = "tags";
 // temporary table for cleanup join
 #define kCreateTempTagTable "CREATE TEMPORARY TABLE tagselect (id INTEGER, name TEXT, value INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0)"
 #define kCreateTempTagIndex "CREATE INDEX tagselect_idx_id ON tagselect (id)"
-#define kTempTagInsert "INSERT OR IGNORE INTO tagselect (id, name, tag_type) VALUES (?1, ?2, ?3)"
+#define kTempTagInsert "INSERT OR REPLACE INTO tagselect (id, name, tag_type) VALUES (?1, ?2, ?3)"
 #define kDropTempTagTable "DROP TABLE tagselect"
 // and the cleanup join
 #define kTagClean "DELETE FROM tags WHERE id IN (SELECT t.id FROM tags t LEFT OUTER JOIN tagselect s ON t.id=s.id WHERE s.id IS NULL)"
-#define kTagInsert "INSERT OR IGNORE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
+#define kTagInsert "INSERT OR REPLACE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
 #define kTagSearch "SELECT name FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
 #define kTagSearchCount "SELECT COUNT(*) FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
-#define kRemoveAll "TRUNCATE TABLE tags"
+#define kRemoveAll "DELETE FROM tags"
 #define kMaxID "SELECT max(id) FROM tags"
 #define kRowCount "SELECT count() FROM tags"
 
@@ -507,6 +507,9 @@ nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool insert)
 {
+	if(!gTagHistoryEnabled)
+		return NS_ERROR_NOT_AVAILABLE;
+
 	if(mRequest) {
 		PRInt32 st;
 		mRequest->GetReadyState(&st);
@@ -587,48 +590,54 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBo
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 {
-  nsresult rv = OpenDatabase(); // lazily ensure that the database is open
-  NS_ENSURE_SUCCESS(rv, rv);
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool row;
-  mRowCountStmt->ExecuteStep(&row);
-  if (row)
-  {
-	  PRInt32 type;
-	  mRowCountStmt->GetTypeOfIndex(0, &type);
-	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
-		  *aRowCount = 0;
-	  else
-		  mRowCountStmt->GetInt32(0, (PRInt32 *)aRowCount);
-	  mRowCountStmt->Reset();
-  } else {
-	  return NS_ERROR_FAILURE;
-  }
-  return NS_OK;
+	if(!gTagHistoryEnabled)
+		return NS_ERROR_NOT_AVAILABLE;
+
+	PRBool row;
+	mRowCountStmt->ExecuteStep(&row);
+	if (row)
+	{
+		PRInt32 type;
+		mRowCountStmt->GetTypeOfIndex(0, &type);
+		if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
+			*aRowCount = 0;
+		else
+			mRowCountStmt->GetInt32(0, (PRInt32 *)aRowCount);
+		mRowCountStmt->Reset();
+	} else {
+		return NS_ERROR_FAILURE;
+	}
+	return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
 {
-  nsresult rv = OpenDatabase(); // lazily ensure that the database is open
-  NS_ENSURE_SUCCESS(rv, rv);
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	NS_ENSURE_SUCCESS(rv, rv);
 
-  PRBool row;
-  mMaxIDStmt->ExecuteStep(&row);
-  if (row)
-  {
-	  PRInt32 type;
-	  mMaxIDStmt->GetTypeOfIndex(0, &type);
-	  if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
-		  *aRowCount = 0;
-	  else
-		  mMaxIDStmt->GetInt32(0, (PRInt32 *)aRowCount);
-	  mMaxIDStmt->Reset();
-  } else {
-	  return NS_ERROR_FAILURE;
-  }
+	if(!gTagHistoryEnabled)
+		return NS_ERROR_NOT_AVAILABLE;
 
-  return NS_OK;
+	PRBool row;
+	mMaxIDStmt->ExecuteStep(&row);
+	if (row)
+	{
+		PRInt32 type;
+		mMaxIDStmt->GetTypeOfIndex(0, &type);
+		if (type == mozIStorageValueArray::VALUE_TYPE_NULL)
+			*aRowCount = 0;
+		else
+			mMaxIDStmt->GetInt32(0, (PRInt32 *)aRowCount);
+		mMaxIDStmt->Reset();
+	} else {
+		return NS_ERROR_FAILURE;
+	}
+
+	return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -677,17 +686,17 @@ nsDanbooruTagHistoryService::AddEntry(const nsAString &aName, const nsAString &a
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::AddNameEntry(const nsAString &aName, const nsAString &aID )
 {
-  if (!TagHistoryEnabled())
-    return NS_OK;
+	if (!TagHistoryEnabled())
+		return NS_OK;
 
-  nsresult rv = OpenDatabase(); // lazily ensure that the database is open
-  NS_ENSURE_SUCCESS(rv, rv);
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	NS_ENSURE_SUCCESS(rv, rv);
 
-  mInsertStmt->BindStringParameter(0, aID);
-  mInsertStmt->BindStringParameter(1, aName);
-  return mInsertStmt->Execute();
+	mInsertStmt->BindStringParameter(0, aID);
+	mInsertStmt->BindStringParameter(1, aName);
+	return mInsertStmt->Execute();
 
-  return NS_OK;
+	return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -705,31 +714,34 @@ nsDanbooruTagHistoryService::EntryExists(const nsAString &aName, const PRInt32 a
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
 {
-  mExistsStmt->BindStringParameter(0, aName);
-  *_retval = PR_FALSE;
-  nsresult rv = mExistsStmt->ExecuteStep(_retval);
-  NS_ENSURE_SUCCESS(rv, rv);
+	mExistsStmt->BindStringParameter(0, aName);
+	*_retval = PR_FALSE;
+	nsresult rv = mExistsStmt->ExecuteStep(_retval);
+	NS_ENSURE_SUCCESS(rv, rv);
 
-  mExistsStmt->Reset();
+	mExistsStmt->Reset();
 
-  return NS_OK;
+	return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::RemoveEntriesForName(const nsAString &aName)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 nsDanbooruTagHistoryService::RemoveAllEntries()
 {
-  // or we could just drop the database
-  //mDB->BeginTransaction();
-  mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kRemoveAll));
-  //mDB->CommitTransaction();
+	if(!gTagHistoryEnabled)
+		return NS_ERROR_NOT_AVAILABLE;
 
-  return NS_OK;
+	// or we could just drop the database
+	//mDB->BeginTransaction();
+	mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kRemoveAll));
+	//mDB->CommitTransaction();
+
+	return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -855,25 +867,39 @@ nsDanbooruTagHistoryService::OpenDatabase()
 
 	if (NS_FAILED(mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableIsV2))))
 	{
-		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableMigrateV1_V2));
+		rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableMigrateV1_V2));
+		if (NS_FAILED(rv))
+		{
+			NS_ERROR("danbooruTagHistoryService: could not migrate schema from v1 to v2");
+		}
 	}
 
+#define DU_ENSURE_SUCCESS 	if (NS_FAILED(rv))	\
+				{	\
+					nsCString err;	\
+					mDB->GetLastErrorString(err);	\
+					NS_ERROR(err.get());	\
+					return rv;	\
+				}
+
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagRemoveByID), getter_AddRefs(mRemoveByIDStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearchCount), getter_AddRefs(mSearchCountStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kMaxID), getter_AddRefs(mMaxIDStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRowCount), getter_AddRefs(mRowCountStmt));
-	NS_ENSURE_SUCCESS(rv, rv);
+	DU_ENSURE_SUCCESS;
+
+#undef DU_ENSURE_SUCCESS
 
 	// all clear
 	gTagHistoryEnabled = PR_TRUE;
@@ -910,6 +936,13 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		for (PRInt32 i = rowCount-1; i >= 0; --i) {
 			nsString name;
 			result->GetValueAt(i, name);
+
+			if(name.Length() < aInputName.Length())
+			{
+				result->RemoveValueAt(i, PR_FALSE);
+				continue;
+			}
+
 			nsDependentSubstring sub = Substring(name, 0, aInputName.Length());
 			const PRUnichar *sd;
 			NS_StringGetData(sub, &sd);

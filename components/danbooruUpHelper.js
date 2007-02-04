@@ -11,7 +11,7 @@ const ioService		= Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOSe
 const promptService	= Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService);
 const obService		= Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
 
-const cMinTagUpdateInterval = 5 * 60 * 1000;
+const cMinTagUpdateInterval = 1 * 60 * 1000;
 
 function alert(msg)
 {
@@ -160,6 +160,7 @@ this.log(this.browserWindows.length+' after unregistering');
 			full = false;
 			this.mMaxID = this.getMaxID();
 		}
+		prefBranch.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
 		this.update(full, false);
 	},
 	notify: function(aTimer)
@@ -177,13 +178,29 @@ this.log(this.browserWindows.length+' after unregistering');
 	update: function(aFull, aInteractive)
 	{
 		if (!this.tagService) return Components.results.NS_ERROR_NOT_AVAILABLE;
-		if (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval) return;
-		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
-				.QueryInterface(Ci.nsIURL);
+		if (!prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") && (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval))
+		{
+			dump("skipping tag update, " + (Date.now() + cMinTagUpdateInterval - prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate")) + " seconds left\n");
+			return;
+		}
+
+		var locationURL;
+		try {
+			locationURL = ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+					.QueryInterface(Ci.nsIURL);
+		} catch (e) {
+			if(aInteractive)
+				promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
+			else
+				return e.result
+		}
+
 		if(this.mMaxID>0 && !aFull)
 		{
 			locationURL.query = "after_id="+(this.mMaxID+1);
 		}
+		dump("using " + locationURL.spec + "\n");
+
 		try {
 			this.tagService.updateTagListFromURI(locationURL.spec, true);
 		} catch (e) {
