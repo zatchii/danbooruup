@@ -3,7 +3,7 @@
 <!DOCTYPE overlay SYSTEM "chrome://danbooruup/locale/danbooruUp.dtd">
 <?xml-stylesheet href="chrome://mozapps/skin/downloads/downloads.css" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
-<overlay id="danbooruUp" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+<overlay id="danbooruUpOverlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUp.js"/>
 	<popup id="contentAreaContextMenu">
 		<menuitem id="danbooru-image" accesskey="&danbooru-image-accesskey;" label="&danbooru-image-label;" insertafter="context-viewimage" oncommand="try{danbooruUpObject.uploadImage();}catch(e){alert(e);}" />

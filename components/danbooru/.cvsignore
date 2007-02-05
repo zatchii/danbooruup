@@ -10,4 +10,5 @@ danbruac.dll
 libdanbooruac.so
 .deps
 _xpidlgen
+_javagen
 Makefile

@@ -61,6 +61,8 @@
 #include "nsICaseConversion.h"
 #include "nsUnicharUtilCIID.h"
 #undef nsString_h___
+#else
+#include "nsUnicharUtils.h"
 #endif
 
 // GetResolvedURI
@@ -104,7 +106,7 @@ static const char *kTagTableName = "tags";
 #define kTagClean "DELETE FROM tags WHERE id IN (SELECT t.id FROM tags t LEFT OUTER JOIN tagselect s ON t.id=s.id WHERE s.id IS NULL)"
 #define kTagInsert "INSERT OR REPLACE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
-#define kTagSearch "SELECT name FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
+#define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
 #define kTagSearchCount "SELECT COUNT(*) FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
@@ -945,7 +947,11 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 			}
 
 			nsDependentSubstring sub = Substring(name, 0, aInputName.Length());
+#ifdef MOZILLA_1_8_BRANCH
 			if (!Equals(aInputName, sub, CaseInsensitiveCompare))
+#else
+			if (aInputName.Equals(sub, CaseInsensitiveCompare))
+#endif
 				result->RemoveValueAt(i, PR_FALSE);
 		}
 	} else {
@@ -968,6 +974,7 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 
 		PRBool row;
 		nsString name, likeInputName;
+		PRUint32 type;
 		NS_StringCopy(likeInputName, aInputName);
 		// change * wildcard to SQL % wildcard, escaping the actual %s first
 		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("%"), NS_LITERAL_STRING("\\%"));
@@ -981,7 +988,8 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		while (row)
 		{
 			name = mSearchStmt->AsSharedWString(0, nsnull);
-			result->AddRow(name);
+			type = (PRUint32)mSearchStmt->AsInt32(1);
+			result->AddRow(name, type);
 			mSearchStmt->ExecuteStep(&row);
 		}
 		mSearchStmt->Reset();

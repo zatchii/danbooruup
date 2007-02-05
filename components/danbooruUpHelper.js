@@ -358,6 +358,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		sandbox.GM_log = danbooruUpHitch(this, "log");
 		sandbox.danbooruUpSearchTags = danbooruUpHitch(this, "searchTags");
 		sandbox.__proto__ = safeWin;
+
 		try {
 			// load in the source from the content package
 			Components.utils.evalInSandbox("var script_arr = [];", sandbox);

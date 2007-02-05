@@ -1,6 +1,7 @@
 #include "nsAutoCompleteArrayResult.h"
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
+#include "prprf.h"
 
 NS_INTERFACE_MAP_BEGIN(nsAutoCompleteArrayResult)
   NS_INTERFACE_MAP_ENTRY(nsIAutoCompleteResult)
@@ -76,15 +77,22 @@ nsAutoCompleteArrayResult::GetValueAt(PRInt32 aIndex, nsAString & _retval)
 NS_IMETHODIMP
 nsAutoCompleteArrayResult::GetCommentAt(PRInt32 aIndex, nsAString & _retval)
 {
-  NS_ENSURE_TRUE(aIndex >= 0 && aIndex < mResults.Count(), NS_ERROR_ILLEGAL_VALUE);
+	NS_ENSURE_TRUE(aIndex >= 0 && aIndex < mResults.Count(), NS_ERROR_ILLEGAL_VALUE);
 
-  return NS_ERROR_NOT_IMPLEMENTED;
+	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 nsAutoCompleteArrayResult::GetStyleAt(PRInt32 aIndex, nsAString & _retval)
 {
-  return NS_ERROR_NOT_IMPLEMENTED;
+	NS_ENSURE_TRUE(aIndex >= 0 && aIndex < mResults.Count(), NS_ERROR_ILLEGAL_VALUE);
+
+	char tstyle[64];
+	PR_snprintf(tstyle, sizeof(tstyle)/sizeof(char), "danbooru-tag-type-%d", mTypes[aIndex]);
+	
+	NS_CStringToUTF16(nsDependentCString(tstyle), NS_CSTRING_ENCODING_ASCII, _retval);
+
+	return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -139,9 +147,10 @@ nsAutoCompleteArrayResult::SetSearchResult(PRUint16 aSearchResult)
 //// nsIAutoCompleteArrayResult
 
 NS_IMETHODIMP
-nsAutoCompleteArrayResult::AddRow(const nsAString &aName)
+nsAutoCompleteArrayResult::AddRow(const nsAString &aName, const PRUint32 aType)
 {
 	mResults.AppendElement(NS_StringCloneData(aName));
+	mTypes.AppendElement(aType);
 	return NS_OK;
 }
 

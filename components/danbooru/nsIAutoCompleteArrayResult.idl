@@ -29,6 +29,6 @@ interface nsIAutoCompleteArrayResult : nsIAutoCompleteResult
   void setSearchResult(in unsigned short aSearchResult);
 
 	/* Add a row */
-	void addRow(in AString str);
+	void addRow(in AString aName, in unsigned long aType);
 };
 

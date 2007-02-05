@@ -3,5 +3,7 @@ overlay	chrome://navigator/content/navigator.xul	chrome://danbooruup/content/dan
 overlay	chrome://browser/content/metaData.xul	chrome://danbooruup/content/danbooruUpMeta.xul
 overlay	chrome://danbooru/content/toolbar.xul	chrome://danbooruup/content/danbooruToolbar.xul
 content	danbooruup	jar:chrome/danbooruup.jar!/content/danbooruup/	xpcnativewrappers=yes
+content	danbooruup-bindings	jar:chrome/danbooruup.jar!/content/danbooruup-1.8/	xpcnativewrappers=yes application={ec8030f7-c20a-464f-9b0e-13a3a9e97384} appversion<2.*
+content	danbooruup-bindings	jar:chrome/danbooruup.jar!/content/danbooruup-1.9/	xpcnativewrappers=yes application={ec8030f7-c20a-464f-9b0e-13a3a9e97384} appversion>=3
 skin	danbooruup	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup/
 locale	danbooruup	en-US	jar:chrome/danbooruup.jar!/locale/en-US/danbooruup/

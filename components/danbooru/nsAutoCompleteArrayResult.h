@@ -13,6 +13,7 @@
 #ifdef MOZILLA_1_8_BRANCH
 #undef nsAString_h___
 #endif
+#include "nsTArray.h"
 
 // {683D9ABF-BFDE-4c93-9D96-7181865B1257}
 #define NS_AUTOCOMPLETEARRAYRESULT_CID \
@@ -32,6 +33,7 @@ public:
 
 protected:
 	nsAutoVoidArray mResults;
+	nsTArray<PRUint32> mTypes;
 
 	nsString mSearchString;
 	nsString mErrorDescription;

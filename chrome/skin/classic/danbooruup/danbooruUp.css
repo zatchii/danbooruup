@@ -25,7 +25,7 @@
 .actionButtons { margin: 0px 3px 6px 3px !important; }
 
 textbox[type="danbooruac"] {
-	-moz-binding: url("chrome://danbooruup/content/danbooruUp.xml#danbooruac") !important;
+	-moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooruac") !important;
 	padding: 3px 4px 2px 2px;
 }
 
