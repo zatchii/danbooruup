@@ -168,16 +168,17 @@ NS_strlen(const PRUnichar *aString)
 }
 
 static PRBool
-Equals(const nsAString &str, const PRUnichar *other, ComparatorFunc c)
+Equals(const nsAString &str, const nsDependentSubstring &other, ComparatorFunc c)
 {
-  const PRUnichar *cself;
+  const PRUnichar *cself, *cother;
   PRUint32 selflen = NS_StringGetData(str, &cself);
-  PRUint32 otherlen = NS_strlen(other);
+  NS_StringGetData(other, &cother);
+  PRUint32 otherlen = other.Length();
 
   if (selflen != otherlen)
     return PR_FALSE;
 
-  return c(cself, other, selflen) == 0;
+  return c(cself, cother, selflen) == 0;
 }
 
 static nsICaseConversion* gCaseConv = nsnull;
@@ -251,8 +252,8 @@ void ReplaceSubstring(nsAString& str,
 }
 
 nsDanbooruTagHistoryService::nsDanbooruTagHistoryService() :
-	mRequest(nsnull),
-	mDB(nsnull)
+	mDB(nsnull),
+	mRequest(nsnull)
 {
 }
 
@@ -944,9 +945,7 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 			}
 
 			nsDependentSubstring sub = Substring(name, 0, aInputName.Length());
-			const PRUnichar *sd;
-			NS_StringGetData(sub, &sd);
-			if (!Equals(aInputName, sd, CaseInsensitiveCompare))
+			if (!Equals(aInputName, sub, CaseInsensitiveCompare))
 				result->RemoveValueAt(i, PR_FALSE);
 		}
 	} else {

@@ -1,4 +1,5 @@
 // insert our prototype and scriptaculous scripts into the page
+// vim:set encoding=utf-8:
 try {
 for(var i=0; i < script_arr.length; i++)
 {
@@ -26,7 +27,12 @@ function tagSelector(instance) {
 	else
 		entry = entry.replace(/\*/g, '%');
 
-	if (instance.options.isSearchField && entry[0] == '-') entry = entry.substr(1);
+	if (instance.options.isSearchField && 
+		(entry[0] == '-' || entry[0] == '~')
+		)
+	{
+		entry = entry.substr(1);
+	}
 
 	tags = danbooruUpSearchTags(entry);
 
@@ -45,7 +51,7 @@ function tagSelector(instance) {
 	return "<ul><li>" + tags.slice(0, instance.options.choices).join('</li><li>') + "</li></ul>";
 }
 
-// get the pixel height of an A element to size things in multiples of lines
+// get the pixel height of the A element after the big danbooru link to size things in multiples of lines
 try {
 var lineHeight = document.getElementsByTagName("a")[1].offsetHeight;
 } catch(e) { lineHeight = 16; }
@@ -58,27 +64,63 @@ style.innerHTML = ".danbooruup-ac { border: 1px solid black; overflow: auto; bac
 		".danbooruup-ac li.selected { background: #ffc; }";
 document.getElementsByTagName("head")[0].appendChild(style);
 
-// create the autocomplete popup
-if(document.getElementById("search"))
+function createAC(elementID, options)
 {
-	var div1 = document.createElement("div");
-	div1.setAttribute("id","danbooruup-autocomplete");
-	div1.setAttribute("class","danbooruup-ac");
-	div1.style.display = 'none';
-	document.body.appendChild(div1);
+	try{
+	var foptions = {tokens:[' ','　'], choices:150, selector:tagSelector};
+	var ac = null;
 
-	ac = new Autocompleter_DanbooruUp("search","danbooruup-autocomplete",[],{tokens:[' ','　'], choices:150, selector:tagSelector, isSearchField: true});
+	options = options || {};
+	for (var p in options) {
+		foptions[p] = options[p];
+	}
+
+	if(document.getElementById(elementID))
+	{
+		var div = document.createElement("div");
+		var divid = "danbooruup-" + elementID + "-autocomplete";
+		div.setAttribute("id", divid);
+		div.setAttribute("class","danbooruup-ac");
+		div.style.display = 'none';
+		document.body.appendChild(div);
+
+		ac = new Autocompleter_DanbooruUp(elementID, divid, [], foptions);
+	}
+	return ac;
+	} catch(ee) { GM_log("danbooruUp: while inserting for " + elementID + ":\n"+ee); }
 }
 
+// create the autocomplete popups
+// for post/list
+if(document.location.href.match(/\/post\/list(\/|$)/))
+{
+	createAC("search", {isSearchField: true});
+}
 // for post/view and post/add
-if(document.getElementById("post_tags"))
+else if(document.location.href.match(/\/post\/(view|add)(\/|$)/))
 {
-	div2 = document.createElement("div");
-	div2.setAttribute("id","danbooruup-pt-autocomplete");
-	div2.setAttribute("class","danbooruup-ac");
-	div2.style.display = 'none';
-	document.body.appendChild(div2);
-
-	ac2 = new Autocompleter_DanbooruUp("post_tags","danbooruup-pt-autocomplete",[],{tokens:[' ','　'], choices:150, selector:tagSelector});
+	createAC("post_tags");
 }
-
+// for rename, set_type
+else if(document.location.href.match(/\/tag\/(rename|set_type)(\/|$)/))
+{
+	createAC("tag", {isSearchField: true});
+}
+// for mass_edit
+else if(document.location.href.match(/\/tag\/mass_edit(\/|$)/))
+{
+	createAC("start", {isSearchField: true});
+	createAC("result");
+}
+// for alias
+else if(document.location.href.match(/\/tag\/alias(\/|$)/))
+{
+	createAC("name", {isSearchField: true});
+	createAC("alias", {isSearchField: true});
+}
+// for implications
+else if(document.location.href.match(/\/tag\/implications(\/|$)/))
+{
+	createAC("child", {isSearchField: true});
+	createAC("parent", {isSearchField: true});
+}

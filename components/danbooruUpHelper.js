@@ -325,7 +325,8 @@ this.log(this.browserWindows.length+' after unregistering');
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
-				if (winUri.path.match(/\/post\/(list|view|add)(\/|$)/)) {
+				if (winUri.path.match(/\/post\/(list|view|add)(\/|$)/) || 
+					winUri.path.match(/\/tag\/(mass_edit|rename|alias|implications|set_type)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;
 				}
@@ -418,6 +419,8 @@ var HelperModule = new Object();
 
 HelperModule.registerSelf = function(compMgr, fileSpec, location, type)
 {
+	var compMgr = compMgr.QueryInterface(Ci.nsIComponentRegistrar);
+
 	if (!this._deferred)
 	{
 		this._deferred = true;
@@ -426,7 +429,7 @@ HelperModule.registerSelf = function(compMgr, fileSpec, location, type)
 	try {
 	if (Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULRuntime).OS == 'linux-gnu')
 	{
-__log("linux-gnu detected");
+		//__log("linux-gnu detected");
 		// find the extension directory
 		var dirs = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties)
 				.get("XREExtDL", Ci.nsISimpleEnumerator);
@@ -434,7 +437,7 @@ __log("linux-gnu detected");
 		while(dirs.hasMoreElements())
 		{
 			dir = dirs.getNext().QueryInterface(Ci.nsILocalFile);
-__log("checking "+dir.path);
+			//__log("checking "+dir.path);
 			if(dir.leafName == '{7209145A-6A2A-42C1-99EB-4DE7293990E1}')
 				break;
 			dir = null;
@@ -442,14 +445,21 @@ __log("checking "+dir.path);
 		// rename the platform component directory
 		if (dir)
 		{
-__log("locked on");
+			//__log("locked on");
 			var moveDir;
 			dir.append('platform');
 			moveDir = dir.clone();
 			moveDir.append('Linux_x86-gcc3');
-__log("using "+moveDir.path+(moveDir.exists?" (exists)":" (doesn't exist)"));
+			//__log("using "+moveDir.path+(moveDir.exists?" (exists)":" (doesn't exist)"));
 			if(moveDir.exists())
+			{
 				moveDir.moveTo(dir, 'linux-gnu_x86-gcc3');
+				// moveDir will still point to the old path, so we need to use dir
+				dir.append('linux-gnu_x86-gcc3');
+				dir.append('components');
+				__log("danbooruUpHelper: registering "+dir.path);
+				compMgr.autoRegister(dir);
+			}
 		}
 	}
 	} catch(ex) {
@@ -459,7 +469,6 @@ __log("using "+moveDir.path+(moveDir.exists?" (exists)":" (doesn't exist)"));
 		throw Components.results.NS_ERROR_FACTORY_REGISTER_AGAIN;
 	}
 
-	var compMgr = compMgr.QueryInterface(Ci.nsIComponentRegistrar);
 	compMgr.registerFactoryLocation(DANBOORUUPHELPER_CID,
 			"Danbooru Helper Service",
 			DANBOORUUPHELPER_CONTRACTID,
