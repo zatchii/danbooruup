@@ -19,6 +19,18 @@
 <!ENTITY danbooruUpOptions.toolTipCrop.none.accesskey	"N">
 <!ENTITY danbooruUpOptions.toolTipCrop.default.label	"Default">
 <!ENTITY danbooruUpOptions.toolTipCrop.default.accesskey	"D">
+<!ENTITY danbooruUpOptions.hashing.label		"Image Hashing (in Properties window)">
+<!ENTITY danbooruUpOptions.hashingMD5.label		"MD5">
+<!ENTITY danbooruUpOptions.hashingMD5.accesskey		"M">
+<!ENTITY danbooruUpOptions.hashingSHA1.label		"SHA-1">
+<!ENTITY danbooruUpOptions.hashingSHA1.accesskey	"H">
+
+<!ENTITY danbooruUpOptions.styleTab.label		"Tag Styles">
+<!ENTITY danbooruUpOptions.style.description		"Enter CSS rules for tag types here. Style changes will only take effect for newly-opened windows.">
+<!ENTITY danbooruUpOptions.revert.label			"Restore Default">
+<!ENTITY danbooruUpOptions.revert.tooltip		"Restores the currently selected style to the default value.">
+<!ENTITY danbooruUpOptions.applyStyle.label		"Apply Style to Preview">
+<!ENTITY danbooruUpOptions.applyStyle.accesskey		"A">
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
 <!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here.">

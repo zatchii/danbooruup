@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
+<?xml-stylesheet href="chrome://danbooruup/skin/danbooruup-autocomplete.css" type="text/css"?>
 
 <!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUp.dtd">
 
@@ -15,6 +16,7 @@
         ondialogaccept="return doOK();"
         ondialogcancel="return doCancel();">
 
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpBox.js"/>
 <grid>

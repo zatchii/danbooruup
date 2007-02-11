@@ -24,6 +24,7 @@ nsAutoCompleteArrayResult::~nsAutoCompleteArrayResult()
 	for (i=0; i<mResults.Count(); i++)
 		NS_Free(mResults[i]);
 	mResults.Clear();
+	mTypes.Clear();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -89,7 +90,7 @@ nsAutoCompleteArrayResult::GetStyleAt(PRInt32 aIndex, nsAString & _retval)
 
 	char tstyle[64];
 	PR_snprintf(tstyle, sizeof(tstyle)/sizeof(char), "danbooru-tag-type-%d", mTypes[aIndex]);
-	
+
 	NS_CStringToUTF16(nsDependentCString(tstyle), NS_CSTRING_ENCODING_ASCII, _retval);
 
 	return NS_OK;
@@ -108,6 +109,7 @@ nsAutoCompleteArrayResult::RemoveValueAt(PRInt32 aRowIndex, PRBool aRemoveFromDb
 	NS_Free(mResults[aRowIndex]);
 	if (!mResults.RemoveElementAt(aRowIndex))
 		return NS_ERROR_FAILURE;
+	mTypes.RemoveElementAt(aRowIndex);
 
 	return NS_OK;
 }

@@ -10,6 +10,7 @@
            extends="chrome://global/content/bindings/textbox.xml#textbox">
     <resources>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
+      <stylesheet src="chrome://danbooruup/skin/danbooruup-autocomplete.css"/>
     </resources>
 
     <content sizetopopup="pref">
@@ -77,7 +78,7 @@
           popup = document.getElementById(popupId);
         if (!popup) {
           popup = document.createElement("popup");
-          popup.setAttribute("type", "autocomplete");
+          popup.setAttribute("type", "danbooru-autocomplete");
           popup.setAttribute("hidden", "true");
           
           var popupset = document.getAnonymousElementByAttribute(this, "anonid", "popupset");
@@ -519,18 +520,18 @@
     </handlers>
   </binding> 
 
-  <binding id="autocomplete-result-popup" extends="chrome://global/content/bindings/popup.xml#popup">
+  <binding id="danbooru-autocomplete-result-popup" extends="chrome://global/content/bindings/popup.xml#popup">
     <resources>
       <stylesheet src="chrome://global/skin/tree.css"/>
       <stylesheet src="chrome://global/skin/autocomplete.css"/>
     </resources>
 
     <content>
-      <xul:tree anonid="tree" class="autocomplete-tree plain" hidecolumnpicker="true" flex="1">
+      <xul:tree anonid="tree" class="danbooru-autocomplete-tree plain" hidecolumnpicker="true" flex="1">
         <xul:treecols anonid="treecols">
-          <xul:treecol id="treecolAutoCompleteValue" class="autocomplete-treecol" flex="1"/>
+          <xul:treecol id="treecolAutoCompleteValue" class="danbooru-autocomplete-treecol" flex="1"/>
         </xul:treecols>
-        <xul:treechildren class="autocomplete-treebody"/>
+        <xul:treechildren class="danbooru-autocomplete-treebody"/>
       </xul:tree>
     </content>
     
@@ -808,16 +809,16 @@
     </handlers>
   </binding>
 
-  <binding id="autocomplete-tree" extends="chrome://global/content/bindings/tree.xml#tree">
+  <binding id="danbooru-autocomplete-tree" extends="chrome://global/content/bindings/tree.xml#tree">
     <content>
       <children includes="treecols"/>
-      <xul:treerows class="autocomplete-treerows tree-rows" xbl:inherits="hidescrollbar" flex="1">
+      <xul:treerows class="danbooru-autocomplete-treerows tree-rows" xbl:inherits="hidescrollbar" flex="1">
         <children/>
       </xul:treerows>
     </content>
   </binding>
 
-  <binding id="autocomplete-treebody">
+  <binding id="danbooru-autocomplete-treebody">
     <implementation>
       <field name="mLastMoveTime">new Date()</field>
 
@@ -858,7 +859,7 @@
     </handlers>
   </binding>
 
-  <binding id="autocomplete-treerows">
+  <binding id="danbooru-autocomplete-treerows">
     <content onmousedown="event.preventDefault()">
       <xul:hbox flex="1" class="tree-bodybox">
         <children/>

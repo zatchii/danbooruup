@@ -1,13 +1,122 @@
+// handles danbooru list preference conversion along with the options dialog
+// vim:set ts=2 sw=2 et:
+
+var atomSvc = Components.classes["@mozilla.org/atom-service;1"].getService(Components.interfaces.nsIAtomService);
+
 function Danbooru(host)
 {
 	this.rawHost = host;
 	this.selected = false;
 }
 
+function DanbooruTagView()
+{
+  this.rows = 0;
+  this.tree = null;
+  this.data = new Array;
+  this.selection = null;
+}
+DanbooruTagView.prototype = {
+  sid: 0,
+
+  set rowCount(c) { throw "rowCount is a readonly property"; },
+  get rowCount() { return this.rows; },
+
+  setTree: function(tree) 
+  {
+    this.tree = tree;
+  },
+
+  getCellText: function(row, column)
+  {
+    return this.data[row][column.index] || "";
+  },
+
+  setCellValue: function(row, column, value) 
+  {
+  },
+
+  setCellText: function(row, column, value) 
+  {
+    this.data[row][column.index] = value;
+  },
+
+  addRow: function(row)
+  {
+    this.rows = this.data.push(row);
+    this.rowCountChanged(this.rows - 1, 1);
+  },
+
+  addRows: function(rows)
+  {
+    var length = rows.length;
+    for(var i = 0; i < length; i++)
+      this.rows = this.data.push(rows[i]);
+    this.rowCountChanged(this.rows - length, length);
+  },
+
+  rowCountChanged: function(index, count)
+  {
+    this.tree.rowCountChanged(index, count);
+  },
+
+  invalidate: function()
+  {
+    this.tree.invalidate();
+  },
+
+  clear: function()
+  {
+    this.data = new Array;
+    this.rows = 0;
+  },
+
+  handleCopy: function(row)
+  {
+    return (row < 0 || this.copycol < 0) ? "" : (this.data[row][this.copycol] || "");
+  },
+
+  performActionOnRow: function(action, row)
+  {
+    if (action == "copy")
+    {
+      var data = this.handleCopy(row)
+      this.tree.treeBody.parentNode.setAttribute("copybuffer", data);
+    }
+  },
+  getRowProperties: function(row, prop) { },
+  getCellProperties: function(row, column, prop) {
+    prop.AppendElement(atomSvc.getAtom("danbooru-tag-type-"+row+"-sid"+this.sid));
+  },
+  getColumnProperties: function(column, prop) { },
+  isContainer: function(index) { return false; },
+  isContainerOpen: function(index) { return false; },
+  isSeparator: function(index) { return false; },
+  isSorted: function() { },
+  canDrop: function(index, orientation) { return false; },
+  drop: function(row, orientation) { return false; },
+  getParentIndex: function(index) { return 0; },
+  hasNextSibling: function(index, after) { return false; },
+  getLevel: function(index) { return 0; },
+  getImageSrc: function(row, column) { },
+  getProgressMode: function(row, column) { },
+  getCellValue: function(row, column) { },
+  toggleOpenState: function(index) { },
+  cycleHeader: function(col) { },
+  selectionChanged: function() { },
+  cycleCell: function(row, column) { },
+  isEditable: function(row, column) { return false; },
+  isSelectable: function(row, column) { return false; },
+  performAction: function(action) { },
+  performActionOnCell: function(action, row, column) { }
+};
+
 var gDanbooruManager = {
   _danbooru     : [],
+  _styles       : [],
   _bundle       : null,
   _tree         : null,
+  _tagView      : null,
 
   _view: {
     _rowCount: 0,
@@ -88,7 +197,7 @@ var gDanbooruManager = {
       if(j == aWhich) {
         this._danbooru[j].selected = true;
       } else if(this._danbooru[j].selected) {
-	this._danbooru[j].selected = false;
+        this._danbooru[j].selected = false;
       }
     }
   },
@@ -97,7 +206,7 @@ var gDanbooruManager = {
   {
     for (var j = 0; j < this._danbooru.length; ++j) {
       if(this._danbooru[j].selected) {
-	return j;
+        return j;
       }
     }
     return 0;
@@ -126,6 +235,44 @@ var gDanbooruManager = {
     }
   },
 
+  // tag type menulist
+
+  // increments serial for tag popup preview, since fiddling with the rules via DOM doesn't work
+  getSID: function ()
+  {
+    if(this._tagView) return ++this._tagView.sid;
+    return 0;
+  },
+  invalidateTagTree: function ()
+  {
+    if(this._tagView) this._tagView.invalidate();
+  },
+  tagTypeSelected: function ()
+  {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
+    var style = prefs.getCharPref(this.value);
+    document.getElementById("styleBox").value = style;
+    return true;
+  },
+  revertStyle: function ()
+  {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
+    var tt = document.getElementById("tagType");
+    prefs.clearUserPref(tt.value);
+    var style = prefs.getCharPref(tt.value);
+    document.getElementById("styleBox").value = style;
+  },
+  applyStyle: function ()
+  {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
+    var style = document.getElementById("styleBox").value;
+    prefs.setCharPref(document.getElementById("tagType").value, style);
+    danbooruAddTagTypeStyleSheet();
+  },
+
   // load function only for danbooruUpOptions
   onLoad: function ()
   {
@@ -139,7 +286,30 @@ var gDanbooruManager = {
     this._tree.treeBoxObject.view = this._view;
     this.onDanbooruSort("rawHost", false);
 
-    document.getElementById("url").focus();
+    var tagTypes = document.getElementById("tagType");
+    var tagTree = document.getElementById("tagTree");
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
+
+    document.getElementById("tagTreeBox").onPopupClick = function() {};
+
+    this._tagView = new DanbooruTagView();
+    tagTree.treeBoxObject.view = this._tagView;
+    tagTree.setAttribute("hidescrollbar", true);
+    for (var i=0, pn; i<5; i++) {
+      pn = this._bundle.GetStringFromName("danbooruUp.tagType."+i);
+      this._tagView.addRow([pn]);
+
+      tagTypes.appendItem(pn, i);
+      this._styles[i] = prefs.getCharPref(i);
+      tagTypes.appendItem(this._bundle.GetStringFromName("danbooruUp.tagType."+i+".selected"), i+".selected");
+      this._styles[i+".selected"] = prefs.getCharPref(i+".selected");
+    }
+
+    tagTypes.addEventListener("ValueChange", function(evt) { gDanbooruManager.tagTypeSelected.apply(this, [evt]); }, false);
+    tagTypes.selectedIndex = 0;
+
+    //document.getElementById("url").focus();
   },
 
   // used by danbooruUpBox and Options
@@ -381,7 +551,7 @@ var gDanbooruManager = {
       // trim leading and trailing spaces
       var host = hostList[j].replace(/^\s*/,"").replace(/\s*$/,"");
       try {
-	var uri = ioService.newURI(host, null, null);
+        var uri = ioService.newURI(host, null, null);
         this._addDanbooruToList(uri.spec);
       } catch(ex) {}
     }

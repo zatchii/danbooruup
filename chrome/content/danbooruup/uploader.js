@@ -4,7 +4,7 @@ var danbooruUpMsg	= StrBundleSvc.createBundle('chrome://danbooruup/locale/danboo
 var commondlgMsg	= StrBundleSvc.createBundle('chrome://mozapps/locale/extensions/update.properties');
 
 var cacheService	= Components.classes["@mozilla.org/network/cache-service;1"]
-                    .getService(Components.interfaces.nsICacheService);
+			.getService(Components.interfaces.nsICacheService);
 var httpCacheSession = cacheService.createSession("HTTP", 0, true);
 httpCacheSession.doomEntriesIfExpired = false;
 var ftpCacheSession = cacheService.createSession("FTP", 0, true);
@@ -33,7 +33,10 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aLink, aRet
   var notificationBox = aTab.linkedBrowser.parentNode;
   var notification;
   if (notification = notificationBox.getNotificationWithValue("danbooru-up")) {
-    notificationBox.removeNotification(notification);
+    do {
+      // need a little more alacrity than removeNotification provides
+      notificationBox.removeChild(notification);
+    } while (notification = notificationBox.getNotificationWithValue("danbooru-up"));
     // try again a little later
     if (!aRetry) {
       aTab.linkedBrowser.contentWindow
@@ -290,7 +293,12 @@ danbooruUploader.prototype = {
 
         return true;
       }
-    }catch(e){alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);}
+    }catch(e){
+      if(e == Components.results.NS_ERROR_XPC_JAVASCRIPT_ERROR_WITH_DETAILS)
+        alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e.message);
+      else
+        alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
+    }
           return false;
   },
   onDataAvailable: function (channel, ctxt, inStr, sourceOffset, count)
@@ -352,7 +360,7 @@ danbooruUploader.prototype = {
         }catch(e){alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.readstop') + e);}
         break;
       default:
-        alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc')+status.toString(16));
+        alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.exc')+'.'+status.toString(16));
         break;
       case Components.results.NS_ERROR_UNEXPECTED:	// usually not an image
       case 0x804B0020:	// connection reset
@@ -557,7 +565,7 @@ danbooruPoster.prototype = {
 							"chrome://danbooruup/skin/icon.ico",
 							priority, null);
           */
-					notification = addNotification(this.mTab, 
+					addNotification(this.mTab, 
 							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
 							"chrome://danbooruup/skin/icon.ico",
 							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, viewurl);
@@ -595,7 +603,7 @@ danbooruPoster.prototype = {
 						"chrome://danbooruup/skin/danbooru-attention.gif",
 						priority, null);
         */
-				notification = addNotification(this.mTab, message, "chrome://danbooruup/skin/danbooru-attention.gif",
+				addNotification(this.mTab, message, "chrome://danbooruup/skin/danbooru-attention.gif",
 						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, viewurl);
 
 				//if (viewurl)
@@ -633,7 +641,8 @@ danbooruPoster.prototype = {
 						"chrome://danbooruup/skin/danbooru-attention.gif",
 						priority, null);
         */
-				notificationBox.appendNotification(str, "chrome://danbooruup/skin/danbooru-attention.gif",
+				addNotification(this.mTab, 
+						str, "chrome://danbooruup/skin/danbooru-attention.gif",
 						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
 
 				if (sis)
@@ -668,7 +677,7 @@ danbooruPoster.prototype = {
       */
 			addNotification(this.mTab, 
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
-  				"chrome://danbooruup/skin/danbooru-attention.gif",
+					"chrome://danbooruup/skin/danbooru-attention.gif",
 					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
 
 		} else { // not NS_OK
@@ -680,7 +689,7 @@ danbooruPoster.prototype = {
 	{
 		switch (aTopic) {
 		case "danbooru-up":
-      if(this.mTab == this.mTab.linkedBrowser.getTabBrowser().selectedTab)
+			if(this.mTab == this.mTab.linkedBrowser.getTabBrowser().selectedTab)
 				this.cancel();
 		}
 	}

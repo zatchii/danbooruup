@@ -135,7 +135,7 @@ function addMD5Field()
 	md5sep.setAttribute("orient", "vertical");
 	md5row.appendChild(md5sep);
 	var md5label = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
-	md5label.setAttribute("value", "MD5:"); //FIXME
+	md5label.setAttribute("value", danbooruUpBundle.GetStringFromName("danbooruUp.meta.md5"));
 	md5row.appendChild(md5label);
 	var md5box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
 	md5box.setAttribute("id", "image-md5-text");
@@ -155,7 +155,7 @@ function addSHA1Field()
 	sha1sep.setAttribute("orient", "vertical");
 	sha1row.appendChild(sha1sep);
 	var sha1label = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
-	sha1label.setAttribute("value", "SHA-1:"); //FIXME
+	sha1label.setAttribute("value", danbooruUpBundle.GetStringFromName("danbooruUp.meta.sha1"));
 	sha1row.appendChild(sha1label);
 	var sha1box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
 	sha1box.setAttribute("id", "image-sha1-hex-text");
@@ -172,7 +172,7 @@ function addSHA1Field()
 	sha1sep.setAttribute("orient", "vertical");
 	sha1row.appendChild(sha1sep);
 	sha1label = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:label");
-	sha1label.setAttribute("value", "SHA-1 (Base32):"); //FIXME
+	sha1label.setAttribute("value", danbooruUpBundle.GetStringFromName("danbooruUp.meta.sha1b32"));
 	sha1row.appendChild(sha1label);
 	sha1box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
 	sha1box.setAttribute("id", "image-sha1-base32-text");
@@ -182,5 +182,7 @@ function addSHA1Field()
 	eFileSize.parentNode.insertBefore(sha1row, eFileSize.nextSibling);
 }
 
+danbooruUpBundle = Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService)
+		.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
 addMD5Field();
 addSHA1Field();
