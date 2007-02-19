@@ -181,9 +181,7 @@ nsDanbooruAutoComplete::StartSearch(const nsAString &aSearchString, const nsAStr
 	NS_NAMED_LITERAL_STRING(a,"searching ");
 	NS_NAMED_LITERAL_STRING(b," - ");
 	nsString bob;
-	const PRUnichar *as, *ap, *z;
-	//NS_StringGetData(aSearchString, &as);
-	//NS_StringGetData(aSearchParam, &ap);
+	const PRUnichar *z;
 	bob = a;
 	bob += aSearchString;
 	bob += b;

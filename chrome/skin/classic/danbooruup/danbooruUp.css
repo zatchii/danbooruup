@@ -1,40 +1,58 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");
 
+#danbooruUpOptions {
+	padding: 1px;
+	width: 36em;
+	height: 220em;
+}
+
+#danbooruUpOptions > prefpane {
+	padding: 1px;
+}
+
+#danbooruTree {
+	/*height: 18em;*/
+}
+
+#updateInterval {
+	width: 5em;
+}
+
+#tagTreeBox {
+	border-width: 1px;
+	-moz-border-top-colors: ThreeDDarkShadow;
+	-moz-border-right-colors: ThreeDDarkShadow;
+	-moz-border-bottom-colors: ThreeDDarkShadow;
+	-moz-border-left-colors: ThreeDDarkShadow;
+	padding: 0;
+	border-style: solid;
+	background-color: -moz-Field;
+	max-width: 15em;
+}
+
 .danboorumsglink {
-  top: 10px;
-  text-decoration: underline;
-  color: blue;
-  cursor: pointer;
-  border: 1px solid transparent;
-  margin-top: -1px;
-  margin-bottom: 0px;
+	top: 10px;
+	text-decoration: underline;
+	color: blue;
+	cursor: pointer;
+	border: 1px solid transparent;
+	margin-top: -1px;
+	margin-bottom: 0px;
 }
 
 .danboorumsglink:hover:active {
-  color: red;
+	color: red;
 }
 
 .danboorumsglink:focus {
-  border: 1px dotted black;
+	border: 1px dotted black;
 }
 
 .windowDialog, .windowDialog prefpane { padding: 0px; }
 .contentPane { margin: 9px 8px 5px 8px; }
 .zcontentPane { margin: 0px 0px 0px 0px; }
 .actionButtons { margin: 0px 3px 6px 3px !important; }
-
-#tagTreeBox {
-  border-width: 1px;
-  -moz-border-top-colors: ThreeDDarkShadow;
-  -moz-border-right-colors: ThreeDDarkShadow;
-  -moz-border-bottom-colors: ThreeDDarkShadow;
-  -moz-border-left-colors: ThreeDDarkShadow;
-  padding: 0;
-  border-style: solid;
-  background-color: -moz-Field;
-  max-width: 15em;
-}
 
 #danbooruUpOptions radio[pane] {
 	list-style-image: url(chrome://browser/skin/preferences/Options.png);

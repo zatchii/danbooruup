@@ -24,7 +24,7 @@ function danbooruUpHitch(ctx, what)
 }
 
 function __log(msg) {
-	Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(msg);
+	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).logStringMessage(msg);
 }
 
 Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
@@ -51,7 +51,7 @@ var danbooruUpHelperObject = {
 	},
 	unregister: function()
 	{
-		obService.removeObserver("profile-after-change", this);
+		obService.removeObserver("final-ui-startup", this);
 		if(this._branch)
 			obService.removeObserver("", this);
 	},
@@ -111,9 +111,13 @@ this.log(this.browserWindows.length+' after unregistering');
 		case 'app-startup':
 			// cat. "app-startup"/topic "app-startup" is too soon, since we
 			// need to open the DB file in the profile directory
-			obService.addObserver(this, "profile-after-change", false);
+			//
+			// "profile-after-change" seems to be too soon also, as the cache service
+			// also listens for this, but we get the notifcation first
+			obService.addObserver(this, "final-ui-startup", false);
+
 			break;
-		case 'profile-after-change':
+		case 'final-ui-startup':
 			this.startup();
 			break;
 		case 'nsPref:changed':
@@ -326,7 +330,7 @@ this.log(this.browserWindows.length+' after unregistering');
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
 				if (winUri.path.match(/\/post\/(list|view|add)(\/|$)/) || 
-					winUri.path.match(/\/tag\/(mass_edit|rename|alias|implications|set_type)(\/|$)/)) {
+					winUri.path.match(/\/tag\/(mass_edit|rename|aliases|implications|set_type)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;
 				}

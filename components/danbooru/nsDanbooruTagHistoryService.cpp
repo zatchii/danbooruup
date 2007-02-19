@@ -947,10 +947,15 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 			}
 
 			nsDependentSubstring sub = Substring(name, 0, aInputName.Length());
+
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+		 	//PR_fprintf(PR_STDERR, "%s %s%s\n", NS_ConvertUTF16toUTF8(aInputName).get(), NS_ConvertUTF16toUTF8(name).get(), aInputName.Equals(sub, CaseInsensitiveCompare) ? " ***" : "");
+#endif
+
 #ifdef MOZILLA_1_8_BRANCH
 			if (!Equals(aInputName, sub, CaseInsensitiveCompare))
 #else
-			if (aInputName.Equals(sub, CaseInsensitiveCompare))
+			if (!aInputName.Equals(sub, CaseInsensitiveCompare))
 #endif
 				result->RemoveValueAt(i, PR_FALSE);
 		}

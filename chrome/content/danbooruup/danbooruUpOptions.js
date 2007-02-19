@@ -1,6 +1,8 @@
 // handles danbooru list preference conversion along with the options dialog
 // vim:set ts=2 sw=2 et:
 
+const TAGTYPE_COUNT = 5;
+
 var atomSvc = Components.classes["@mozilla.org/atom-service;1"].getService(Components.interfaces.nsIAtomService);
 
 function Danbooru(host)
@@ -22,7 +24,7 @@ DanbooruTagView.prototype = {
   set rowCount(c) { throw "rowCount is a readonly property"; },
   get rowCount() { return this.rows; },
 
-  setTree: function(tree) 
+  setTree: function(tree)
   {
     this.tree = tree;
   },
@@ -32,11 +34,11 @@ DanbooruTagView.prototype = {
     return this.data[row][column.index] || "";
   },
 
-  setCellValue: function(row, column, value) 
+  setCellValue: function(row, column, value)
   {
   },
 
-  setCellText: function(row, column, value) 
+  setCellText: function(row, column, value)
   {
     this.data[row][column.index] = value;
   },
@@ -87,6 +89,18 @@ DanbooruTagView.prototype = {
   getRowProperties: function(row, prop) { },
   getCellProperties: function(row, column, prop) {
     prop.AppendElement(atomSvc.getAtom("danbooru-tag-type-"+row+"-sid"+this.sid));
+/*
+    en = prop.Enumerate();n=0;
+    p='';
+    while(!en.isDone())
+    {
+      x=en.currentItem();
+      p += x.QueryInterface(Components.interfaces.nsIAtom).toString() + "\n";
+      try { en.next(); } catch (ex) { break; }
+    }
+    Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
+      logStringMessage(p);
+*/
   },
   getColumnProperties: function(column, prop) { },
   isContainer: function(index) { return false; },
@@ -120,9 +134,9 @@ var gDanbooruManager = {
 
   _view: {
     _rowCount: 0,
-    get rowCount() 
-    { 
-      return this._rowCount; 
+    get rowCount()
+    {
+      return this._rowCount;
     },
     getCellText: function (aRow, aColumn)
     {
@@ -235,24 +249,34 @@ var gDanbooruManager = {
     }
   },
 
-  // tag type menulist
+  // tag type stuff
 
-  // increments serial for tag popup preview, since fiddling with the rules via DOM doesn't work
+  // serial for tag popup preview needs to be incremented, since fiddling with the rules via DOM doesn't actually
+  // change anything in gecko 1.8
   getSID: function ()
   {
-    if(this._tagView) return ++this._tagView.sid;
+    if(this._tagView) return this._tagView.sid;
     return 0;
   },
   invalidateTagTree: function ()
   {
-    if(this._tagView) this._tagView.invalidate();
+    if(this._tagView) {
+      this._tagView.tree.focused = !this._tagView.tree.focused;
+      this._tagView.tree.invalidate();
+      setTimeout(function() {
+          gDanbooruManager._tagView.tree.focused = !gDanbooruManager._tagView.tree.focused;
+          gDanbooruManager._tagView.tree.invalidate();
+        }, 0);
+    }
   },
   tagTypeSelected: function ()
   {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-    var style = prefs.getCharPref(this.value);
-    document.getElementById("styleBox").value = style;
+    //var style = prefs.getCharPref(this.value);
+    gDanbooruManager._styles[this.oldvalue] = document.getElementById("styleBox").value;
+    document.getElementById("styleBox").value = gDanbooruManager._styles[this.value];
+    this.oldvalue = this.value;
     return true;
   },
   revertStyle: function ()
@@ -260,8 +284,10 @@ var gDanbooruManager = {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
     var tt = document.getElementById("tagType");
-    prefs.clearUserPref(tt.value);
+    // throws if there is no user value
+    try { prefs.clearUserPref(tt.value); } catch(ex) { }
     var style = prefs.getCharPref(tt.value);
+    gDanbooruManager._styles[tt.value] = style;
     document.getElementById("styleBox").value = style;
   },
   applyStyle: function ()
@@ -269,7 +295,8 @@ var gDanbooruManager = {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
     var style = document.getElementById("styleBox").value;
-    prefs.setCharPref(document.getElementById("tagType").value, style);
+    gDanbooruManager._styles[document.getElementById("tagType").value] = style;
+    this._tagView.sid++;
     danbooruAddTagTypeStyleSheet();
   },
 
@@ -291,12 +318,26 @@ var gDanbooruManager = {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
 
-    document.getElementById("tagTreeBox").onPopupClick = function() {};
+    document.getElementById("tagTreeBox").onPopupClick = function()
+    {
+      var tagTypes = document.getElementById("tagType");
+      var tagTree = document.getElementById("tagTree");
+      var row = tagTree.currentIndex;
+      var type = tagTree.view.getCellText(row,{index:0});
+      if(tagTypes.label == type)
+      {
+        tagTypes.selectedIndex++;
+      } else if (tagTypes.label.match(new RegExp("^"+type))) {
+        tagTypes.selectedIndex--;
+      } else {
+        tagTypes.selectedIndex = row * 2;
+      }
+    };
 
     this._tagView = new DanbooruTagView();
     tagTree.treeBoxObject.view = this._tagView;
     tagTree.setAttribute("hidescrollbar", true);
-    for (var i=0, pn; i<5; i++) {
+    for (var i=0, pn; i<TAGTYPE_COUNT; i++) {
       pn = this._bundle.GetStringFromName("danbooruUp.tagType."+i);
       this._tagView.addRow([pn]);
 
@@ -308,7 +349,7 @@ var gDanbooruManager = {
 
     tagTypes.addEventListener("ValueChange", function(evt) { gDanbooruManager.tagTypeSelected.apply(this, [evt]); }, false);
     tagTypes.selectedIndex = 0;
-
+    danbooruAddTagTypeStyleSheet();
     //document.getElementById("url").focus();
   },
 
@@ -357,12 +398,19 @@ var gDanbooruManager = {
                                     .getService(Components.interfaces.nsIPromptService);
       var message = this._bundle.GetStringFromName("danbooruUp.opt.emptyHosts");
       var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
-      promptService.alert(window, title, message);
+      promptService.alert(window, title, message); 
       return false;
     }
     var pbi = Components.classes["@mozilla.org/preferences-service;1"]
 	      .getService(Components.interfaces.nsIPrefBranch);
     pbi.setCharPref("extensions.danbooruUp.tooltipcrop", document.getElementById("cropGroup").value);
+
+    var sbranch = pbi.getBranch("extensions.danbooruUp.tagtype.");
+    for(var i=0; i<TAGTYPE_COUNT; i++)
+    {
+      sbranch.setCharPref(i, this._styles[i]);
+      sbranch.setCharPref(i+".selected", this._styles[i+".selected"]);
+    }
 
     this._saveDanbooru();
     this.uninit();
@@ -399,11 +447,11 @@ var gDanbooruManager = {
 
   onDanbooruSort: function (aColumn)
   {
-    this._lastDanbooruSortAscending = this.sort(this._tree, 
-		    this._view, 
+    this._lastDanbooruSortAscending = this.sort(this._tree,
+		    this._view,
 		    this._danbooru,
-		    aColumn, 
-		    this._lastDanbooruSortColumn, 
+		    aColumn,
+		    this._lastDanbooruSortColumn,
 		    this._lastDanbooruSortAscending);
     this._lastDanbooruSortColumn = aColumn;
   },
@@ -412,7 +460,7 @@ var gDanbooruManager = {
   {
     var selection = aTree.view.selection;
     selection.selectEventsSuppressed = true;
-    
+
     var rc = selection.getRangeCount();
     for (var i = 0; i < rc; ++i) {
       var min = { }; var max = { };
@@ -422,7 +470,7 @@ var gDanbooruManager = {
         aItems[j] = null;
       }
     }
-    
+
     var nextSelection = 0;
     for (i = 0; i < aItems.length; ++i) {
       if (!aItems[i]) {
@@ -444,19 +492,19 @@ var gDanbooruManager = {
     selection.selectEventsSuppressed = false;
   },
 
-  sort: function (aTree, aView, aDataSet, aColumn, 
-			aLastSortColumn, aLastSortAscending) 
+  sort: function (aTree, aView, aDataSet, aColumn,
+			aLastSortColumn, aLastSortAscending)
   {
     var ascending = (aColumn == aLastSortColumn) ? !aLastSortAscending : true;
     aDataSet.sort(function (a, b) { return a[aColumn].toLowerCase().localeCompare(b[aColumn].toLowerCase()); });
     if (!ascending)
       aDataSet.reverse();
-    
+
     aTree.view.selection.select(-1);
     aTree.view.selection.select(0);
     aTree.treeBoxObject.invalidate();
     aTree.treeBoxObject.ensureRowIsVisible(0);
-    
+
     return ascending;
   },
 
@@ -511,13 +559,13 @@ var gDanbooruManager = {
 
   onWriteUpdateOnTimer: function ()
   {
-    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.ontimer");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.ontimer");
     return pref.value;
   },
 
   onReadUpdateOnTimer: function ()
   {
-    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.ontimer");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.ontimer");
     var box = document.getElementById("updateInterval");
     box.disabled = !pref.value;
     return pref.value;

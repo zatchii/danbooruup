@@ -6,23 +6,23 @@
 <!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
 
 <prefwindow id="danbooruUpOptions" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-	style="padding: 1px; width: 36em;"
+	windowtype="danbooruUp:Options"
 	title="&danbooruUpOptions.title;"
 	onkeypress="return gDanbooruManager.onWindowKeyPress(event);"
 	onload="gDanbooruManager.onLoad();"
 	onunload="gDanbooruManager.uninit();"
-	onok="if (gDanbooruManager.onOK()) close();"
-	persist="screenX screenY width height">
+	onbeforeaccept="gDanbooruManager.onOK();"
+	persist="screenX screenY">
 
-	<prefpane id="danbooruUpGeneralPane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.generalTab.label;">
+	<prefpane id="danbooruUpGeneralPane" flex="1" label="&danbooruUpOptions.generalTab.label;">
 	<preferences>
-		<preference id="extensions.danbooruUp.fileurlsource"
+		<preference id="pref.extensions.danbooruUp.fileurlsource"
 			name="extensions.danbooruUp.fileurlsource"			type="bool"/>
-		<preference id="extensions.danbooruUp.tooltipcrop"
+		<preference id="pref.extensions.danbooruUp.tooltipcrop"
 			name="extensions.danbooruUp.tooltipcrop"			type="string"/>
-		<preference id="extensions.danbooruUp.hashing.md5"
+		<preference id="pref.extensions.danbooruUp.hashing.md5"
 			name="extensions.danbooruUp.hashing.md5"			type="bool"/>
-		<preference id="extensions.danbooruUp.hashing.sha1"
+		<preference id="pref.extensions.danbooruUp.hashing.sha1"
 			name="extensions.danbooruUp.hashing.sha1"			type="bool"/>
 	</preferences>
 
@@ -33,13 +33,13 @@
 	</vbox>-->
 
 		<hbox>
-			<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="extensions.danbooruUp.fileurlsource" />
+			<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="pref.extensions.danbooruUp.fileurlsource" />
 		</hbox>
 		<groupbox align="start">
 			<caption label="&danbooruUpOptions.toolTipCrop.label;"/>
 			<radiogroup id="cropGroup"
 				onsynctopreference="return gDanbooruManager.changeTooltipCrop();"
-				preference="extensions.danbooruUp.tooltipcrop">
+				preference="pref.extensions.danbooruUp.tooltipcrop">
 			<radio id="cropStart" value="start"
 				accesskey="&danbooruUpOptions.toolTipCrop.start.accesskey;"
 				label="&danbooruUpOptions.toolTipCrop.start.label;"/>
@@ -68,7 +68,7 @@
 		</groupbox>
 	</prefpane>
 
-	<prefpane id="danbooruUpStylePane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.styleTab.label;">
+	<prefpane id="danbooruUpStylePane" flex="1" label="&danbooruUpOptions.styleTab.label;">
 		<preferences>
 		</preferences>
 		<vbox class="contentPane" flex="1">
@@ -80,6 +80,15 @@
 				</treecols>
 				<treechildren id="tagTreeBody" class="danbooru-autocomplete-treebody"/>
 			</tree>
+			
+			<!--
+			<tree anonid="tree" class="plain" hidecolumnpicker="true" id="tagTree" flex="1" width="300">
+				<treecols anonid="treecols">
+					<treecol id="tagTree-type" flex="1"/>
+				</treecols>
+				<treechildren id="tagTreeBody" />
+			</tree>
+				-->
 			</box>
 			<vbox flex="3">
 				<description>&danbooruUpOptions.style.description;</description>
@@ -97,7 +106,7 @@
 		</vbox>
 	</prefpane>
 
-	<prefpane id="danbooruUpDanbooruPane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.danbooruTab.label;">
+	<prefpane id="danbooruUpDanbooruPane" flex="1" label="&danbooruUpOptions.danbooruTab.label;">
 		<preferences>
 		</preferences>
 	<vbox class="contentPane" flex="1">
@@ -115,7 +124,7 @@
 				oncommand="gDanbooruManager.addDanbooru();"/>
 		</hbox>
 		<separator class="thin"/>
-		<tree id="danbooruTree" flex="1" style="height: 18em;"
+		<tree id="danbooruTree" flex="1"
 			hidecolumnpicker="true"
 			onkeypress="gDanbooruManager.onDanbooruKeyPress(event);"
 			onselect="gDanbooruManager.onDanbooruSelected();">
@@ -137,7 +146,7 @@
 		</hbox>
 	</hbox>
 	</prefpane>
-	<prefpane id="danbooruUpAutocompletePane" style="padding: 1px;" flex="1" label="&danbooruUpOptions.autocompleteTab.label;">
+	<prefpane id="danbooruUpAutocompletePane" flex="1" label="&danbooruUpOptions.autocompleteTab.label;">
 		<preferences>
 		<preference id="pref.extensions.danbooruUp.autocomplete.enabled"
 			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
@@ -158,6 +167,7 @@
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.interval"
 			name="extensions.danbooruUp.autocomplete.update.interval"	type="int"/>
 		</preferences>
+		<vbox>
 		<hbox>
 			<checkbox id="enableAC"
 				label="&danbooruUpOptions.enableAC.label;"
@@ -230,11 +240,12 @@
 					onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
 				<textbox id="updateInterval"
 					preference="pref.extensions.danbooruUp.autocomplete.update.interval"
-					style="width: 5em;" />
+					/>
 				<label value="&danbooruUpOptions.min.label;" />
 			</hbox>
 			<separator class="thick"/>
 		</groupbox>
+		</vbox>
 	</prefpane>
 
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>

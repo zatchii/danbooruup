@@ -1,3 +1,5 @@
+// image hashing for metadata dialog
+//  load after original JS to replace getSize()
 /*
 const nsICacheService = Components.interfaces.nsICacheService;
 const cacheService = Components.classes["@mozilla.org/network/cache-service;1"]
@@ -5,23 +7,37 @@ const cacheService = Components.classes["@mozilla.org/network/cache-service;1"]
 var httpCacheSession = cacheService.createSession("HTTP", 0, true);
 httpCacheSession.doomEntriesIfExpired = false;
 */
+const hashBranch = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.hashing.")
+
+const danbooruUpBundle = Components.classes['@mozilla.org/intl/stringbundle;1']
+			.getService(Components.interfaces.nsIStringBundleService)
+			.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
 
 // hacked getSize function to hash images at the same time
 function getSize(url) {
+	var hashMD5 = false;
+	var hashSHA1 = false;
+	try {	hashMD5 = hashBranch.getBoolPref("md5"); } catch (ex) {}
+	try {	hashSHA1 = hashBranch.getBoolPref("sha1"); } catch (ex) {}
+
 	try
 	{
 		var cacheEntryDescriptor = httpCacheSession.openCacheEntry(url, Components.interfaces.nsICache.ACCESS_READ, false);
 		if(cacheEntryDescriptor)
 		{
 			try{
-			var md5 = hashStreamMD5(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
-			setInfo("image-md5", md5);
+			if(hashMD5) {
+				var md5 = hashStreamMD5(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
+				setInfo("image-md5", md5);
+			}
 			}catch(ex2) {}
 
 			try{
-			var sha1 = hashStreamSHA1(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
-			setInfo("image-sha1-hex", sha1.hex);
-			setInfo("image-sha1-base32", sha1.base32);
+			if(hashSHA1) {
+				var sha1 = hashStreamSHA1(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
+				setInfo("image-sha1-hex", sha1.hex);
+				setInfo("image-sha1-base32", sha1.base32);
+			}
 			}catch(ex2) {}
 
 			return cacheEntryDescriptor.dataSize;
@@ -34,14 +50,18 @@ function getSize(url) {
 		if (cacheEntryDescriptor)
 		{
 			try{
-			var md5 = hashStreamMD5(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
-			setInfo("image-md5", md5);
+			if(hashMD5) {
+				var md5 = hashStreamMD5(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
+				setInfo("image-md5", md5);
+			}
 			}catch(ex2) {}
 
 			try{
-			var sha1 = hashStreamSHA1(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
-			setInfo("image-sha1-hex", sha1.hex);
-			setInfo("image-sha1-base32", sha1.base32);
+			if(hashSHA1) {
+				var sha1 = hashStreamSHA1(cacheEntryDescriptor.openInputStream(0), cacheEntryDescriptor.dataSize);
+				setInfo("image-sha1-hex", sha1.hex);
+				setInfo("image-sha1-base32", sha1.base32);
+			}
 			}catch(ex2) {}
 
 			return cacheEntryDescriptor.dataSize;
@@ -50,23 +70,29 @@ function getSize(url) {
 	catch(ex) {}
 	try
 	{
-		var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-				.getService(Components.interfaces.nsIIOService);
-		var uriuri = ioService.newURI(url, window.arguments[0].ownerDocument.characterSet, null);
-		if (uriuri.scheme == "file")
-		{
-			var channel = ioService.newChannelFromURI(uriuri);
-			channel.QueryInterface(Components.interfaces.nsIFileChannel);
-			var md5 = hashStreamMD5(channel.open(), channel.file.fileSize);
-			setInfo("image-md5", md5);
-			var sha1 = hashStreamSHA1(channel.open(), cacheEntryDescriptor.dataSize);
-			setInfo("image-sha1-hex", sha1.hex);
-			setInfo("image-sha1-base32", sha1.base32);
-		} else {
-			// nothing
-			setInfo("image-md5", "");
-			setInfo("image-sha1-hex", "");
-			setInfo("image-sha1-base32", "");
+		if(hashMD5 || hashSHA1) {
+			var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+					.getService(Components.interfaces.nsIIOService);
+			var uriuri = ioService.newURI(url, window.arguments[0].ownerDocument.characterSet, null);
+			if (uriuri.scheme == "file")
+			{
+				var channel = ioService.newChannelFromURI(uriuri);
+				channel.QueryInterface(Components.interfaces.nsIFileChannel);
+				if(hashMD5) {
+					var md5 = hashStreamMD5(channel.open(), channel.file.fileSize);
+					setInfo("image-md5", md5);
+				}
+				if(hashSHA1) {
+					var sha1 = hashStreamSHA1(channel.open(), cacheEntryDescriptor.dataSize);
+					setInfo("image-sha1-hex", sha1.hex);
+					setInfo("image-sha1-base32", sha1.base32);
+				}
+			} else {
+				// nothing
+				setInfo("image-md5", "");
+				setInfo("image-sha1-hex", "");
+				setInfo("image-sha1-base32", "");
+			}
 		}
 	}
 	catch(ex) {}
@@ -182,7 +208,8 @@ function addSHA1Field()
 	eFileSize.parentNode.insertBefore(sha1row, eFileSize.nextSibling);
 }
 
-danbooruUpBundle = Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService)
-		.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
-addMD5Field();
-addSHA1Field();
+if(hashBranch.getBoolPref("md5"))
+	addMD5Field();
+if(hashBranch.getBoolPref("sha1"))
+	addSHA1Field();
+

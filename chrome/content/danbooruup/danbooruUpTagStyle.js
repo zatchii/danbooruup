@@ -1,40 +1,67 @@
+// applies custom CSS for tag types to XUL windows
+
 function danbooruAddTagTypeStyleSheet() {
+	const TAGTYPE_COUNT = 5;
 	var css = "";
 	var selector = ".danbooru-autocomplete-treebody";
 	var column = "treecolAutoCompleteValue";
 	var sid = "";
+	var optionsDialog = false;
 
 	if(document.location.href == "chrome://danbooruup/content/danbooruUpOptions.xul") {
+		optionsDialog = true;
+
 		sid = "-sid" + gDanbooruManager.getSID();
 		selector = "#tagTreeBody" + selector;
 		column = "tagTree-type";
 	}
+//selector='treechildren';
 
 	var prefs = Components.classes["@mozilla.org/preferences-service;1"]
 			.getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
 
+	function getStyle(st)
+	{
+		var s = '';
+		if(optionsDialog)
+			try { s = gDanbooruManager._styles[st]; } catch (ex) { }
+		if(!s)
+			try { s = prefs.getCharPref(st); } catch (ex) { }
+	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
+		logStringMessage(st + " ---\n" + s);
+
+		return s;
+	}
+
 	// construct rules
-	for(var i=0, head, rule; i<5; i++) {
+	for(var i=0, head, rule; i<TAGTYPE_COUNT; i++) {
 		head = selector + "::-moz-tree-cell-text(danbooru-tag-type-" + i + sid + ", " + column;
 
-		rule = prefs.getCharPref(i).replace(/[{}]/g, '');
+		rule = getStyle(i).replace(/[{}]/g, '');
 		css += head + ")\n{\n" + rule + "\n}\n";
 
-		rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '');
+		rule = getStyle(i+".selected").replace(/[{}]/g, '');
 		css += head + ", selected)\n{\n" + rule + "\n}\n";
 	}
+
+	//css += selector + "::-moz-tree-cell-text\n{\n-moz-padding-start: "+gDanbooruManager.getSID()+"px !important;\n}\n";
+	//css += selector + "::-moz-tree-cell-text(selected)\n{\nfont-weight: bold;\n}\n";
+	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
+		logStringMessage(css);
+
 	var data = "data:text/css;base64," + btoa(css);
 	var pi = document.createProcessingInstruction('xml-stylesheet', 'type="text/css" href="' + data + '"');
+	pi.name = "danbooruUpTagTypeStyleSheet";
 
-	// remove old PI, not that it changes anything
-	if(document.firstChild.nodeName == "xml-stylesheet")
+	// remove old PI, doesn't do anything in gecko 1.8 though
+	if(document.firstChild.name == "danbooruUpTagTypeStyleSheet")
 	{
 		document.removeChild(document.firstChild);
 	}
 
 	document.insertBefore(pi, document.firstChild);
 
-	if(document.location.href == "chrome://danbooruup/content/danbooruUpOptions.xul") {
+	if(optionsDialog) {
 		gDanbooruManager.invalidateTagTree();
 	}
 }
@@ -48,34 +75,6 @@ treechildren.danbooru-autocomplete-treebody::-moz-tree-cell-text(selected) {
 }
 */
 
-// original hack version
-function danbooruAddTagTypeStyleSheetHack() {
-	var css =
-//		".autocomplete-treebody::-moz-tree-cell-text(danbooru-tag-type-0, treecolAutoCompleteValue)\n" +
-//		"{ font-family: Hymmnos; font-size: 200%;}\n" +
-		".danbooru-autocomplete-treebody::-moz-tree-row(danbooru-tag-type-1, treecolAutoCompleteValue)\n" +
-		"{ background-color: #44f !important; }\n" +
-		".danbooru-autocomplete-treebody::-moz-tree-cell-text(danbooru-tag-type-1, treecolAutoCompleteValue)\n" +
-		"{ background-color: #44f !important; }\n" +
-		".danbooru-autocomplete-treebody::-moz-tree-cell-text(danbooru-tag-type-1, treecolAutoCompleteValue, selected)\n" +
-		"{ background-color: #44f !important; color: #000 !important;}\n" +
-		".danbooru-autocomplete-treebody::-moz-tree-cell-text(danbooru-tag-type-2, treecolAutoCompleteValue)\n" +
-		"{ background-color: #4f4 !important; }\n" +
-		".danbooru-autocomplete-treebody::-moz-tree-cell-text(danbooru-tag-type-3, treecolAutoCompleteValue)\n" +
-		"{ background-color: #ff0 !important; }\n" +
-		".danbooru-autocomplete-treebody::-moz-tree-cell-text(danbooru-tag-type-4, treecolAutoCompleteValue)\n" +
-		"{ background-color: #0ff !important; }";
-if(document.location.href.match(/Options/)) {
-css = css.replace(/, treecolAutoCompleteValue/g, '-uid0, tagTree-type');
-css = css.replace(/^\./gm, '#tagTreeBody\.');
-}
-	var data = "data:text/css;base64," + btoa(css);
-	var pi = document.createProcessingInstruction('xml-stylesheet', 'type="text/css" href="' + data + '"');
+if(document.location.href != "chrome://danbooruup/content/danbooruUpOptions.xul")
+	setTimeout(danbooruAddTagTypeStyleSheet, 100);
 
-//if(document.location.href.match(/Options/))
-//	document.firstChild.insertBefore(pi, document.firstChild.firstChild);
-//else
-	document.insertBefore(pi, document.firstChild);
-}
-
-setTimeout(danbooruAddTagTypeStyleSheet, 100);

@@ -10,9 +10,9 @@ for(var i=0; i < script_arr.length; i++)
 	var s = document.createElement("script");
 	s.setAttribute("type","text/javascript");
 	s.appendChild(document.createTextNode(
-//				"//<![CDATA[\n" +
+				"//<![CDATA[\n" +
 				script_arr[i]
-//				+ "\n//]]>"
+				+ "\n//]]>"
 				)
 			);
 	document.getElementsByTagName("head")[0].appendChild(s);
@@ -35,7 +35,7 @@ function tagSelector(instance) {
 	else
 		entry = entry.replace(/\*/g, '%');
 
-	if (instance.options.isSearchField && 
+	if (instance.options.isSearchField &&
 		(entry[0] == '-' || entry[0] == '~')
 		)
 	{
@@ -59,12 +59,12 @@ function tagSelector(instance) {
 	return "<ul><li>" + tags.slice(0, instance.options.choices).join('</li><li>') + "</li></ul>";
 }
 
-// get the pixel height of the A element after the big danbooru link to size things in multiples of lines
+// get the pixel height of the A element after the big danbooru link, to size things in multiples of lines
 try {
 var lineHeight = document.getElementsByTagName("a")[1].offsetHeight;
 } catch(e) { lineHeight = 16; }
 
-// create the CSS
+// add the CSS
 var style = document.createElement("style");
 style.innerHTML = ".danbooruup-ac { border: 1px solid black; overflow: auto; background: #fff; min-height: "+lineHeight+"px; z-index: 1000 !important; }\n" +
 		".danbooruup-ac ul { min-width: inherit; }\n" +
@@ -72,6 +72,7 @@ style.innerHTML = ".danbooruup-ac { border: 1px solid black; overflow: auto; bac
 		".danbooruup-ac li.selected { background: #ffc; }";
 document.getElementsByTagName("head")[0].appendChild(style);
 
+// creates and hooks the actual Autocompleter object
 function createAC(elementID, options)
 {
 	try{
@@ -87,6 +88,7 @@ function createAC(elementID, options)
 	try {
 	if(document.getElementById(elementID))
 	{
+		// create the div
 		var div = document.createElement("div");
 		var divid = "danbooruup-" + elementID + "-autocomplete";
 		try {
@@ -100,6 +102,7 @@ function createAC(elementID, options)
 		} catch(eex) { GM_log("danbooruUp: while setting style for " + elementID + ":\n"+eex); throw eex;}
 		document.body.appendChild(div);
 
+		// create the autocompleter
 		try {
 		ac = new Autocompleter_DanbooruUp(elementID, divid, [], foptions);
 		} catch(eex) { GM_log("danbooruUp: while creating AC for " + elementID + ":\n"+eex);  throw eex;}
@@ -117,8 +120,13 @@ if(document.location.href.match(/\/post\/(view|add)(\/|$)/))
 {
 	createAC("post_tags");
 }
-// for rename, set_type
-else if(document.location.href.match(/\/tag\/(rename|set_type)(\/|$)/))
+// for rename
+else if(document.location.href.match(/\/tag\/rename(\/|$)/))
+{
+	createAC("name", {isSearchField: true});
+}
+// for set_type
+else if(document.location.href.match(/\/tag\/set_type(\/|$)/))
 {
 	createAC("tag", {isSearchField: true});
 }
@@ -143,8 +151,10 @@ else if(document.location.href.match(/\/tag\/implications(\/|$)/))
 
 } // doAutocompleteInsertion
 
-var tries = 0;
+// firefox 3 trunk builds seem to have some issue with scripts being delayed somewhat, so we need to wait until the autocompleter
+// code is actually present in the target page before trying to add any
 
+var tries = 0;
 function attemptAutocompleteInsertion()
 {
 	if(typeof unsafeWindow.Autocompleter == 'object')

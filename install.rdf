@@ -5,7 +5,7 @@
 	<RDF:Description RDF:about="rdf:#$p7Be1H"
 		em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
 		em:minVersion="2.0"
-		em:maxVersion="2.0.0.*"
+		em:maxVersion="4.0.0.*"
 		/>
 	<RDF:Description RDF:about="urn:mozilla:install-manifest"
 		em:id="{7209145A-6A2A-42C1-99EB-4DE7293990E1}"

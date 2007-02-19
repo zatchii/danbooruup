@@ -29,7 +29,7 @@
 <!ENTITY danbooruUpOptions.style.description		"Enter CSS rules for tag types here. Style changes will only take effect for newly-opened windows.">
 <!ENTITY danbooruUpOptions.revert.label			"Restore Default">
 <!ENTITY danbooruUpOptions.revert.tooltip		"Restores the currently selected style to the default value.">
-<!ENTITY danbooruUpOptions.applyStyle.label		"Apply Style to Preview">
+<!ENTITY danbooruUpOptions.applyStyle.label		"Apply Styles to Preview">
 <!ENTITY danbooruUpOptions.applyStyle.accesskey		"A">
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
