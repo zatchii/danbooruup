@@ -22,13 +22,12 @@ for(var i=0; i < script_arr.length; i++)
 function doAutocompleteInsertion()
 {
 
-var Autocompleter_DanbooruUp = unsafeWindow.Autocompleter.DanbooruUp;
-
 // the custom selector function for the Autocompleter
 function tagSelector(instance) {
 	var ret = [];
 	var entry	= instance.getToken();
-	var tags;
+	var tags = [];
+	var result;
 
 	if (entry.indexOf('*') == -1)
 		entry += '%';
@@ -42,21 +41,24 @@ function tagSelector(instance) {
 		entry = entry.substr(1);
 	}
 
-	tags = danbooruUpSearchTags(entry);
+	result = danbooruUpSearchTags(entry);
 
-	if (!tags || !tags.length) return '<ul></ul>';
+	if (!tags || !result.getMatchCount()) return '<ul></ul>';
 
-	tags = tags.slice(0, instance.options.choices);
+	//tags = tags.slice(0, instance.options.choices);
+	var count = Math.min(instance.options.choices, result.getMatchCount());
 
+	// div is for html escaping tag names
 	var div = document.createElement("div");
 	var text = document.createTextNode('');
-	div.appendChild(text);;
-	for(var i=0; i<tags.length; i++) {
-		text.textContent = tags[i];
-		tags[i] = div.innerHTML;
+	div.appendChild(text);
+	for(var i=0; i<count; i++) {
+		text.textContent = result.getValueAt(i);
+		tags.push("<li class=\""+ result.getStyleAt(i) + "\">" + div.innerHTML + "</li>");
 	}
+	delete result;
 
-	return "<ul><li>" + tags.slice(0, instance.options.choices).join('</li><li>') + "</li></ul>";
+	return "<ul>" + tags.join('') + "</ul>";
 }
 
 // get the pixel height of the A element after the big danbooru link, to size things in multiples of lines
@@ -104,7 +106,8 @@ function createAC(elementID, options)
 
 		// create the autocompleter
 		try {
-		ac = new Autocompleter_DanbooruUp(elementID, divid, [], foptions);
+		//ac = new Autocompleter_DanbooruUp(elementID, divid, [], foptions);
+		ac = unsafeWindow.createACDU(elementID, divid, foptions);
 		} catch(eex) { GM_log("danbooruUp: while creating AC for " + elementID + ":\n"+eex);  throw eex;}
 	}
 	return ac;

@@ -91,6 +91,7 @@ protected:
   // Database I/O
   nsresult OpenDatabase();
   nsresult CloseDatabase();
+  void ReportDBError();
 
   // mozStorage
   nsCOMPtr<mozIStorageConnection> mDB;
@@ -104,6 +105,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
   nsCOMPtr<mozIStorageStatement> mRowCountStmt;
 
+  // XML processing
   nsresult ProcessTagXML(void *, PRBool);
   void CleanupTagArray(PRUnichar**&, PRUint32&);
 
@@ -119,6 +121,7 @@ protected:
   PRBool mInserting;
 
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
+
 };
 
 #endif // __nsDanbooruTagHistory__

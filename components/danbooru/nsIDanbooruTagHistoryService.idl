@@ -36,6 +36,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsISupports.idl"
+#include "nsIAutoCompleteArrayResult.idl"
 
 [scriptable, uuid(0afd6b91-10db-485e-a6e2-455e704af672)]
 interface nsIDanbooruTagHistoryService : nsISupports
@@ -53,7 +54,7 @@ interface nsIDanbooruTagHistoryService : nsISupports
   /**
    * Scriptable manual search for tags.
    */
-  void searchTags(in AString inputname, [array, size_is(count)] out wstring result, out PRUint32 count);
+  nsIAutoCompleteArrayResult searchTags(in AString inputname);
 
   /**
    * Updates the tag database from a given XML source.

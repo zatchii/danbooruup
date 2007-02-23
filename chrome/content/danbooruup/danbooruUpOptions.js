@@ -365,6 +365,8 @@ var gDanbooruManager = {
     }
   },
 
+  // not really sure what all this code is for any more
+  // updates selected danbooru for upload dialog
   uninit: function ()
   {
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
@@ -399,8 +401,10 @@ var gDanbooruManager = {
       var message = this._bundle.GetStringFromName("danbooruUp.opt.emptyHosts");
       var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
       promptService.alert(window, title, message); 
-      return false;
+    } else {
+      this._saveDanbooru();
     }
+
     var pbi = Components.classes["@mozilla.org/preferences-service;1"]
 	      .getService(Components.interfaces.nsIPrefBranch);
     pbi.setCharPref("extensions.danbooruUp.tooltipcrop", document.getElementById("cropGroup").value);
@@ -412,7 +416,6 @@ var gDanbooruManager = {
       sbranch.setCharPref(i+".selected", this._styles[i+".selected"]);
     }
 
-    this._saveDanbooru();
     this.uninit();
     //var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
     //os.notifyObservers(null, "danbooru-options-changed", null);

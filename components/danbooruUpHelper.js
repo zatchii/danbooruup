@@ -30,6 +30,20 @@ function __log(msg) {
 Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
 	.loadSubScript("chrome://danbooruup/content/uploader.js");
 
+ResultWrapper = function(result) { this._result = result; }
+ResultWrapper.prototype = {
+	_result: null,
+	getMatchCount: function() {
+		return this._result.matchCount;
+	},
+	getValueAt: function(i) {
+		return this._result.getValueAt(i);
+	},
+	getStyleAt: function(i) {
+		return this._result.getStyleAt(i);
+	}
+};
+
 var danbooruUpHelperObject = {
 
 	startup: function()
@@ -51,9 +65,8 @@ var danbooruUpHelperObject = {
 	},
 	unregister: function()
 	{
-		obService.removeObserver("final-ui-startup", this);
 		if(this._branch)
-			obService.removeObserver("", this);
+			obService.removeObserver(this, "");
 	},
 
 	//
@@ -108,19 +121,19 @@ this.log(this.browserWindows.length+' after unregistering');
 		//os.removeObserver(this, "browser-window-before-show");
 		//this.log("observing"+"\n"+aSubject + "\n" + aTopic + "\n" + aData);
 		switch (aTopic) {
-		case 'app-startup':
+		case "app-startup":
 			// cat. "app-startup"/topic "app-startup" is too soon, since we
 			// need to open the DB file in the profile directory
 			//
 			// "profile-after-change" seems to be too soon also, as the cache service
-			// also listens for this, but we get the notifcation first
+			// also listens for this, but we get the notification first
 			obService.addObserver(this, "final-ui-startup", false);
-
 			break;
-		case 'final-ui-startup':
+		case "final-ui-startup":
+			obService.removeObserver(this, "final-ui-startup");
 			this.startup();
 			break;
-		case 'nsPref:changed':
+		case "nsPref:changed":
 			this.startTimer();
 			this.setTooltipCrop();
 			break;
@@ -134,6 +147,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		// hackish, but setting it to an empty string is equivalent to "none"
 		if (cropping == "default") cropping = 'end';
 
+		// loop through all browser windows and change crop attribute
 		while (en.hasMoreElements())
 		{
 			var w = en.getNext();
@@ -346,9 +360,9 @@ this.log(this.browserWindows.length+' after unregistering');
 
 	searchTags: function (s)
 	{
-		var t={}, c={};
-		Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService).searchTags(s,t,c);
-		return (c.value ? t.value : null);
+		res = Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService).searchTags(s);
+		wrap = new ResultWrapper(res);
+		return wrap;
 	},
 
 	inject: function (url, unsafeContentWin)
@@ -371,8 +385,10 @@ this.log(this.browserWindows.length+' after unregistering');
 			}
 
 			// load in the inserter script
+			var lineFinder = new Error();
 			Components.utils.evalInSandbox(this.script_ins, sandbox);
 		} catch (x) {
+			x.lineNumber -= lineFinder.lineNumber-1;
 			Components.utils.reportError(x);
 		}
 	},

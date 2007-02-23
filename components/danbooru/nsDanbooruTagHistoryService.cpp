@@ -118,6 +118,14 @@ static const char *kTagTableName = "tags";
 #define kTableIsV2 "SELECT tag_type FROM tags LIMIT 0"
 #define kTableMigrateV1_V2 "ALTER TABLE tags ADD COLUMN tag_type INTEGER NOT NULL DEFAULT 0"
 
+#define kTableHasNoValueConstraintCheck1 "INSERT OR REPLACE INTO tags (id, name, tag_type) VALUES (-1,'danbooruup_null_test',0)"
+#define kTableHasNoValueConstraintCheck2 "SELECT COUNT(*) FROM tags WHERE name='danbooruup_null_test' AND value IS NULL"
+#define kTableHasNoValueConstraintCheck3 "DELETE FROM tags WHERE name = 'danbooruup_null_test'"
+#define kDeleteDuplicateNames "DELETE FROM tags WHERE id IN (SELECT t.id FROM tags t JOIN (SELECT MAX(id) AS maxid, name FROM tags GROUP BY name HAVING COUNT(name)>1) dt ON t.name = dt.name WHERE t.id < dt.maxid)"
+#define kCopyData "INSERT INTO tagselect (id, name, value, tag_type) SELECT t.id, t.name, (CASE WHEN t.value IS NULL THEN 0 ELSE t.value END), t.tag_type FROM tags t"
+#define kDropOldTable "DROP TABLE tags"
+#define kRepopulateNewTable "INSERT INTO tags (id, name, value, tag_type) SELECT t.id, t.name, t.value, t.tag_type FROM tagselect t"
+
 NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
@@ -138,11 +146,11 @@ PRBool nsDanbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #endif
 
 #ifdef MOZILLA_1_8_BRANCH
-// this crap doesn't exist in 1.8 branch
+// this crap doesn't exist in 1.8 branch glue
 
 typedef PRInt32 (*ComparatorFunc)(const PRUnichar *a, const PRUnichar *b, PRUint32 length);
 
-int
+static int
 NS_strcmp(const PRUnichar *a, const PRUnichar *b)
 {
   while (*b) {
@@ -185,7 +193,7 @@ Equals(const nsAString &str, const nsDependentSubstring &other, ComparatorFunc c
 
 static nsICaseConversion* gCaseConv = nsnull;
 
-nsICaseConversion*
+static nsICaseConversion*
 NS_GetCaseConversion()
 {
   if (!gCaseConv) {
@@ -198,7 +206,7 @@ NS_GetCaseConversion()
   return gCaseConv;
 }
 
-PRInt32
+static PRInt32
 CaseInsensitiveCompare(const PRUnichar *a,
                        const PRUnichar *b,
                        PRUint32 len)
@@ -227,9 +235,7 @@ static PRInt32 FindChar(const nsAString &str, PRUnichar c)
 }
 
 // Replace all occurances of |matchVal| with |newVal|
-void ReplaceSubstring(nsAString& str,
-		const nsAString& matchVal,
-		const nsAString& newVal)
+static void ReplaceSubstring(nsAString& str, const nsAString& matchVal, const nsAString& newVal)
 {
 	const PRUnichar* sp, *mp, *np;
 	PRUint32 sl, ml, nl;
@@ -720,9 +726,9 @@ nsDanbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
 	mExistsStmt->BindStringParameter(0, aName);
 	*_retval = PR_FALSE;
 	nsresult rv = mExistsStmt->ExecuteStep(_retval);
-	NS_ENSURE_SUCCESS(rv, rv);
-
 	mExistsStmt->Reset();
+
+	NS_ENSURE_SUCCESS(rv, rv);
 
 	return NS_OK;
 }
@@ -835,6 +841,14 @@ nsDanbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal*
 ////////////////////////////////////////////////////////////////////////
 //// Database I/O
 
+void
+nsDanbooruTagHistoryService::ReportDBError()
+{
+	nsCString err;
+	mDB->GetLastErrorString(err);
+	NS_ERROR(err.get());
+}
+
 nsresult
 nsDanbooruTagHistoryService::OpenDatabase()
 {
@@ -879,12 +893,66 @@ nsDanbooruTagHistoryService::OpenDatabase()
 
 #define DU_ENSURE_SUCCESS 	if (NS_FAILED(rv))	\
 				{	\
-					nsCString err;	\
-					mDB->GetLastErrorString(err);	\
-					NS_ERROR(err.get());	\
+					ReportDBError();	\
+					mDB->RollbackTransaction();	\
 					return rv;	\
 				}
 
+	// check for old schema
+	// done every time, but no way to see the schema from the storage interface, so
+	nsCOMPtr<mozIStorageStatement> constraintCheckStmt;
+
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTableHasNoValueConstraintCheck2), getter_AddRefs(constraintCheckStmt));
+	DU_ENSURE_SUCCESS;
+
+	// create a test row and see if value is null
+	rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableHasNoValueConstraintCheck1));
+	DU_ENSURE_SUCCESS;
+
+	PRInt32 nullCount = 0;
+	PRBool row = PR_FALSE;
+	constraintCheckStmt->ExecuteStep(&row);
+	if(row)
+	{
+		constraintCheckStmt->GetInt32(0, &nullCount);
+	} else {
+		// no row?
+		nsCString err;
+		mDB->GetLastErrorString(err);
+		err.Insert(NS_LITERAL_CSTRING("no row returned by null constraint check? "), 0);
+		NS_ERROR(err.get());
+	}
+	// remove test row
+	constraintCheckStmt->Reset();
+	rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTableHasNoValueConstraintCheck3));
+	DU_ENSURE_SUCCESS;
+
+	if(nullCount > 0)	// value has no not null constraint
+	{
+		mDB->BeginTransaction();
+		// delete duplicates (wasn't there always a unique constraint? whatever)
+		rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDeleteDuplicateNames));
+		DU_ENSURE_SUCCESS;
+		// temp storage for tags
+		rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagTable));
+		DU_ENSURE_SUCCESS;
+		// fill temp table up, fixing null values along the way
+		rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCopyData));
+		DU_ENSURE_SUCCESS;
+		// recreate with new schema
+		rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropOldTable));
+		DU_ENSURE_SUCCESS;
+		rv = mDB->CreateTable(kTagTableName, kTagHistorySchema);
+		DU_ENSURE_SUCCESS;
+		// put data back
+		rv = mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kRepopulateNewTable));
+		DU_ENSURE_SUCCESS;
+		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropTempTagTable));
+		mDB->CommitTransaction();
+		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM"));
+	}
+
+	// create statements for regular use
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagRemoveByID), getter_AddRefs(mRemoveByIDStmt));
@@ -1026,50 +1094,63 @@ nsDanbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCou
 	aCount = 0;
 }
 
-nsresult
+NS_IMETHODIMP
 nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
-					PRUnichar ***aResult,
-					PRUint32 *aCount)
+					nsIAutoCompleteArrayResult **_retval)
 {
-	NS_ENSURE_ARG(aCount);
-	NS_ENSURE_ARG_POINTER(aResult);
+	NS_ENSURE_ARG_POINTER(_retval);
+	*_retval = nsnull;
 
 	nsresult rv = OpenDatabase();
 	NS_ENSURE_SUCCESS(rv, rv);
 
 	PRBool row;
-	PRUint32 ct;
-	mSearchCountStmt->BindStringParameter(0, aInputName);
-	mSearchCountStmt->ExecuteStep(&row);
-	ct = (PRUint32)mSearchCountStmt->AsInt32(0);
-	mSearchCountStmt->Reset();
+	//PRUint32 ct;
+	//mSearchCountStmt->BindStringParameter(0, aInputName);
+	//mSearchCountStmt->ExecuteStep(&row);
+	//ct = (PRUint32)mSearchCountStmt->AsInt32(0);
+	//mSearchCountStmt->Reset();
 
-	if(ct)
+	nsIAutoCompleteArrayResult *result = new nsAutoCompleteArrayResult;
+
+	//if(ct)
 	{
+		/*
 	 	PRUnichar** array = (PRUnichar **)nsMemory::Alloc(ct * sizeof(PRUnichar *));
 		if (!array)
 			return NS_ERROR_OUT_OF_MEMORY;
-
+		*/
 		mSearchStmt->BindStringParameter(0, aInputName);
 		mSearchStmt->ExecuteStep(&row);
-		PRUint32 index = 0;
+
+		//PRUint32 index = 0;
 		nsString name;
-		while (row && index < ct)
+		PRUint32 type;
+		while (row
+			/* && index < ct */)
 		{
 			name = mSearchStmt->AsSharedWString(0, nsnull);
+			type = (PRUint32)mSearchStmt->AsInt32(1);
+
+			result->AddRow(name, type);
+			/*
 			array[index] = NS_StringCloneData(name);
 			if (!array[index] || !*(array[index])) {
 				CleanupTagArray(array, index);
 				mSearchStmt->Reset();
 				return NS_ERROR_OUT_OF_MEMORY;
 			}
+			*/
 			mSearchStmt->ExecuteStep(&row);
-			index++;
+			//index++;
 		}
 		mSearchStmt->Reset();
+		/*
 		*aResult = array;
 		*aCount = ct;
+		*/
 	}
+	NS_ADDREF(*_retval = result);
 	return NS_OK;
 }
 

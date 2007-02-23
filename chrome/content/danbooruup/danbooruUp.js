@@ -106,15 +106,8 @@ danbooruUpObject.init = function(e) {
 	document.getElementById("appcontent").addEventListener("DOMContentLoaded",
 		danbooruUpHitch(danbooruUpObject, "contentLoad"), false);
 
-//	danbooruHelperService.registerBrowser(window);
 }
 
-/*
-danbooruUpObject.unload = function(e) {
-	danbooruHelperService.unregisterBrowser(window);
-}
-window.addEventListener("load", danbooruUpHitch(danbooruUpObject,"unload"), false);
-/**/
-
+// this will, of course, leak a little for every browser window
 window.addEventListener("load", danbooruUpHitch(danbooruUpObject,"init"), false);
 

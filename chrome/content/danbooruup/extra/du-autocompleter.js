@@ -174,3 +174,10 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     }, options || {});
   }
 });
+
+// need this since the XPCSafeJSObjectWrapper prevents creating a new Autocompleter.DanbooruUp from the sandbox
+function createACDU(element, div, options) 
+{
+	return new Autocompleter.DanbooruUp(element, div, [], options);
+}
+
