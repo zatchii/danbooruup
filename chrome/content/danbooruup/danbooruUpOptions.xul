@@ -196,7 +196,7 @@
 			<hbox align="center" pack="end">
 				<button id="clearTagHistory"
 					label="&danbooruUpOptions.clearTagHistory.label;"
-					oncommand="Components.classes['@unbuffered.info/danbooru/taghistory-service;1'].getService(Components.interfaces.nsIDanbooruTagHistoryService).removeAllEntries();"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/taghistory-service;1'].getService(Components.interfaces.danbooruITagHistoryService).removeAllEntries();"/>
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"

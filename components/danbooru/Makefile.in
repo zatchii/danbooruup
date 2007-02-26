@@ -58,7 +58,6 @@ REQUIRES =	\
 		necko \
 		caps \
 		xmlextras \
-		layout \
 		storage \
 		$(NULL)
 
@@ -86,19 +85,21 @@ IS_COMPONENT	= 1
 
 # If this is Makefile builds a component, MODULE_NAME must match the module
 # name specified in NS_IMPL_NSGETMODULE
-MODULE_NAME	= nsDanbooruAutoCompleteModule
+MODULE_NAME	= danbooruAutoCompleteModule
 
 # CPPSRCS specifies C++ files to be built into a library.
 CPPSRCS		=		   \
-		nsDanbooruAutoComplete.cpp	   \
-		nsDanbooruAutoCompleteModule.cpp \
-		nsDanbooruTagHistory.cpp \
+		danbooruAutoComplete.cpp	   \
+		danbooruAutoCompleteModule.cpp \
+		danbooruTagHistory.cpp \
+		danbooruAutoCompleteArrayResult.cpp \
 		$(NULL)
 
 # XPIDLSRCS specified IDL files. The build system runs the xpidl tool on these
 # files to generate C++ headers and .xpt typelib files.
-XPIDLSRCS	= nsIDanbooruAutoComplete.idl \
-		  nsIDanbooruTagHistory.idl
+XPIDLSRCS	= danbooruIAutoComplete.idl \
+		  danbooruITagHistory.idl \
+		  danbooruIAutoCompleteArrayResult.idl
 
 # EXTRA_COMPONENTS installs components written JavaScript to
 # dist/bin/components
@@ -111,7 +112,8 @@ EXTRA_COMPONENTS =
 EXTRA_DSO_LDOPTS = \
 		$(DIST)/lib/$(LIB_PREFIX)unicharutil_external_s.$(LIB_SUFFIX) \
 		$(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
-		$(MOZ_COMPONENT_LIBS) \
+		$(XPCOM_FROZEN_LDOPTS) \
+		$(NSPR_LIBS) \
 		$(NULL)
 
 # XXXNOTE: We should be using XPCOM_FROZEN_LDOPTS instead of

@@ -83,7 +83,7 @@ function getSize(url) {
 					setInfo("image-md5", md5);
 				}
 				if(hashSHA1) {
-					var sha1 = hashStreamSHA1(channel.open(), cacheEntryDescriptor.dataSize);
+					var sha1 = hashStreamSHA1(channel.open(), channel.file.fileSize);
 					setInfo("image-sha1-hex", sha1.hex);
 					setInfo("image-sha1-base32", sha1.base32);
 				}

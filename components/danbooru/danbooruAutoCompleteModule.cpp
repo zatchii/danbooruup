@@ -37,9 +37,9 @@
  * ***** END LICENSE BLOCK ***** */
 #include "nsIGenericFactory.h"
 
-#include "nsDanbooruAutoComplete.h"
-#include "nsDanbooruTagHistoryService.h"
-#include "nsAutoCompleteArrayResult.h"
+#include "danbooruAutoComplete.h"
+#include "danbooruTagHistoryService.h"
+#include "danbooruAutoCompleteArrayResult.h"
 #include "nsIFile.h"
 ////////////////////////////////////////////////////////////////////////
 // NOTE this file supercedes nsSampleFactory.cpp.  nsSampleFactory has
@@ -65,9 +65,9 @@
 // NOTE: This creates an instance of nsSampleImpl by using the default
 //		 constructor nsSampleImpl::nsSampleImpl()
 //
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsDanbooruAutoComplete)
-NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(nsDanbooruTagHistoryService, nsDanbooruTagHistoryService::GetInstance)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteArrayResult)
+NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoComplete)
+NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(danbooruTagHistoryService, danbooruTagHistoryService::GetInstance)
+NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoCompleteArrayResult)
 
 ////////////////////////////////////////////////////////////////////////
 // Define a table of CIDs implemented by this module along with other
@@ -76,7 +76,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsAutoCompleteArrayResult)
 //
 // The Registration and Unregistration proc are optional in the structure.
 
-static NS_METHOD nsDanbooruAutoCompleteRegistrationProc(nsIComponentManager *aCompMgr,
+static NS_METHOD danbooruAutoCompleteRegistrationProc(nsIComponentManager *aCompMgr,
                                           nsIFile *aPath,
                                           const char *registryLocation,
                                           const char *componentType,
@@ -88,15 +88,10 @@ static NS_METHOD nsDanbooruAutoCompleteRegistrationProc(nsIComponentManager *aCo
     // specific additional activity needs to be done here.
 
     // This functions is optional. If you dont need it, dont add it to the structure.
-    /*
-    nsCAutoString path;
-    aPath->GetNativePath(path);
-fprintf(stderr, "DANBOORU IS BEING REGISTERED at %s\n\t%s\n\t%s\n", path.get(), registryLocation, componentType);
-    */
     return NS_OK;
 }
 /*
-static NS_METHOD nsDanbooruAutoCompleteUnregistrationProc(nsIComponentManager *aCompMgr,
+static NS_METHOD danbooruAutoCompleteUnregistrationProc(nsIComponentManager *aCompMgr,
                                             nsIFile *aPath,
                                             const char *registryLocation,
                                             const nsModuleComponentInfo *info)
@@ -118,12 +113,12 @@ static NS_METHOD nsDanbooruAutoCompleteUnregistrationProc(nsIComponentManager *a
 
 static const nsModuleComponentInfo components[] =
 {
-  { "Danbooru Autocomplete Component", NS_DANBOORUAC_CID, NS_DANBOORUAC_CONTRACTID, nsDanbooruAutoCompleteConstructor, nsDanbooruAutoCompleteRegistrationProc },
-  { "Danbooru Tag History Service", NS_DANBOORUTAGHISTORYSERVICE_CID, NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID, nsDanbooruTagHistoryServiceConstructor },
-  { "AutoComplete Array Result",
-	  NS_AUTOCOMPLETEARRAYRESULT_CID,
-	  NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID,
-	  nsAutoCompleteArrayResultConstructor },
+  { "Danbooru Autocomplete Component", DANBOORU_AC_CID, DANBOORU_AC_CONTRACTID, danbooruAutoCompleteConstructor, danbooruAutoCompleteRegistrationProc },
+  { "Danbooru Tag History Service", DANBOORU_TAGHISTORYSERVICE_CID, DANBOORU_TAGHISTORYSERVICE_CONTRACTID, danbooruTagHistoryServiceConstructor },
+  { "Danbooru AutoComplete Array Result",
+	  DANBOORU_AUTOCOMPLETEARRAYRESULT_CID,
+	  DANBOORU_AUTOCOMPLETEARRAYRESULT_CONTRACTID,
+	  danbooruAutoCompleteArrayResultConstructor },
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -135,6 +130,5 @@ static const nsModuleComponentInfo components[] =
 //		NS_IMPL_NSGETMODULE_WITH_DTOR() instead of the vanilla
 //		NS_IMPL_NSGETMODULE()
 //
-//NS_IMPL_NSGETMODULE(nsDanbooruAutoCompleteModule, components)
-NS_IMPL_NSGETMODULE(nsDanbooruAutoCompleteModule, components)
+NS_IMPL_NSGETMODULE(danbooruAutoCompleteModule, components)
 

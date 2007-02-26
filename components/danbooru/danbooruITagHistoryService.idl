@@ -36,10 +36,10 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsISupports.idl"
-#include "nsIAutoCompleteArrayResult.idl"
+#include "danbooruIAutoCompleteArrayResult.idl"
 
 [scriptable, uuid(0afd6b91-10db-485e-a6e2-455e704af672)]
-interface nsIDanbooruTagHistoryService : nsISupports
+interface danbooruITagHistoryService : nsISupports
 {
   /**
    * The total number of rows in the tag history.
@@ -54,7 +54,7 @@ interface nsIDanbooruTagHistoryService : nsISupports
   /**
    * Scriptable manual search for tags.
    */
-  nsIAutoCompleteArrayResult searchTags(in AString inputname);
+  danbooruIAutoCompleteArrayResult searchTags(in AString inputname);
 
   /**
    * Updates the tag database from a given XML source.
@@ -121,3 +121,4 @@ interface nsIDanbooruTagHistoryService : nsISupports
    */
   boolean incrementValueForName(in AString name);
 };
+

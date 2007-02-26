@@ -35,22 +35,22 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "nsISupports.idl"
+#include "danbooruIAutoComplete.h"
+#include "nsIAutoCompleteSearch.h"
 
-interface nsIAutoCompleteResult;
-interface nsIAutoCompleteController;
-interface nsIAutoCompleteObserver;
-interface nsITimerCallback;
-interface nsITreeView;
-interface nsIAutoCompleteSearch;
+#define DANBOORU_AC_CID \
+{ 0x6ed74ba6, 0x620f, 0x4ca8, { 0xa3, 0xc1, 0xea, 0x4f, 0xbc, 0x12, 0xdd, 0xc4 } }
+#define DANBOORU_AC_CONTRACTID "@mozilla.org/autocomplete/search;1?name=danboorutag"
 
-[scriptable, uuid(1d28d383-b5b1-4ad4-a35a-71673702a5d7)]
-interface nsIDanbooruAutoComplete : nsISupports
+class danbooruAutoComplete : public danbooruIAutoComplete,
+                               public nsIAutoCompleteSearch
 {
-	//void updateTagListFromURI(in AString aXmlURI);
+public:
+	danbooruAutoComplete();
+	~danbooruAutoComplete();
 
-//	void startSearch(in AString aSearchString, in AString aSearchParam, in nsIAutoCompleteResult aPreviousResult, in nsIAutoCompleteObserver aListener);
-//	void stopSearch();
+	NS_DECL_ISUPPORTS
+	NS_DECL_DANBOORUIAUTOCOMPLETE
+	NS_DECL_NSIAUTOCOMPLETESEARCH
 };
-
 

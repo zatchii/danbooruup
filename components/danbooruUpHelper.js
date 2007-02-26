@@ -53,7 +53,7 @@ var danbooruUpHelperObject = {
 			.loadSubScript("chrome://global/content/XPCNativeWrapper.js");
 
 		//obService.addObserver(this, "danbooru-options-changed", false);
-		this.tagService	= Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService);
+		this.tagService	= Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.danbooruITagHistoryService);
 
 		this._branch = prefService.getBranch("extensions.danbooruUp.");
 		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
@@ -360,7 +360,7 @@ this.log(this.browserWindows.length+' after unregistering');
 
 	searchTags: function (s)
 	{
-		res = Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.nsIDanbooruTagHistoryService).searchTags(s);
+		res = Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.danbooruITagHistoryService).searchTags(s);
 		wrap = new ResultWrapper(res);
 		return wrap;
 	},

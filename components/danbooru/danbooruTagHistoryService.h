@@ -35,14 +35,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#ifndef __nsDanbooruTagHistory__
-#define __nsDanbooruTagHistory__
+#ifndef __danbooruTagHistoryService__
+#define __danbooruTagHistoryService__
 
 #include "nsStringAPI.h"
 
-#include "nsIDanbooruTagHistoryService.h"
-//#include "nsIAutoCompleteResultTypes.h"
-#include "nsIAutoCompleteArrayResult.h"
+#include "danbooruITagHistoryService.h"
+#include "danbooruIAutoCompleteArrayResult.h"
 #include "nsIXMLHttpRequest.h"
 #include "nsIDOMEventListener.h"
 #include "nsCOMPtr.h"
@@ -56,11 +55,11 @@
 
 class nsIXMLHttpRequest;
 
-#define NS_DANBOORUTAGHISTORYSERVICE_CID \
+#define DANBOORU_TAGHISTORYSERVICE_CID \
 { 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x48 } }
-#define NS_DANBOORUTAGHISTORYSERVICE_CONTRACTID "@unbuffered.info/danbooru/taghistory-service;1"
+#define DANBOORU_TAGHISTORYSERVICE_CONTRACTID "@unbuffered.info/danbooru/taghistory-service;1"
 
-class nsDanbooruTagHistoryService : public nsIDanbooruTagHistoryService,
+class danbooruTagHistoryService : public danbooruITagHistoryService,
                       public nsIObserver,
                       public nsIDOMEventListener,
 //                      public nsIFormSubmitObserver,
@@ -68,7 +67,7 @@ class nsDanbooruTagHistoryService : public nsIDanbooruTagHistoryService,
 {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIDANBOORUTAGHISTORYSERVICE
+  NS_DECL_DANBOORUITAGHISTORYSERVICE
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
 
@@ -78,14 +77,14 @@ public:
   // nsIDOMEventListener
   //NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
-  nsDanbooruTagHistoryService();
-  virtual ~nsDanbooruTagHistoryService();
+  danbooruTagHistoryService();
+  virtual ~danbooruTagHistoryService();
   nsresult Init();
 
-  static nsDanbooruTagHistoryService *GetInstance();
+  static danbooruTagHistoryService *GetInstance();
 
   nsresult AutoCompleteSearch(const nsAString &aInputName,
-                              nsIAutoCompleteArrayResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
+                              danbooruIAutoCompleteArrayResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
 
 protected:
   // Database I/O
@@ -111,7 +110,7 @@ protected:
 
   static PRBool TagHistoryEnabled();
 
-  static nsDanbooruTagHistoryService *gTagHistory;
+  static danbooruTagHistoryService *gTagHistory;
 
   static PRBool gTagHistoryEnabled;
   static PRBool gPrefsInitialized;
@@ -124,4 +123,4 @@ protected:
 
 };
 
-#endif // __nsDanbooruTagHistory__
+#endif // __danbooruTagHistoryService__

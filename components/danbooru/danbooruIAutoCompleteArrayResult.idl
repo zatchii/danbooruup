@@ -1,7 +1,7 @@
 #include "nsIAutoCompleteResult.idl"
 
-[scriptable, uuid(dd0be70d-cd67-4aa1-ab4c-bf0b264e0a5b)]
-interface nsIAutoCompleteArrayResult : nsIAutoCompleteResult
+[scriptable, uuid(dd0be70d-cd67-4aa1-ab4c-bf0b264e0a5c)]
+interface danbooruIAutoCompleteArrayResult : nsIAutoCompleteResult
 {
   /**
    * A writer for the readonly attribute 'searchString' which should contain

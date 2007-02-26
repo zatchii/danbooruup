@@ -37,7 +37,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "nsDanbooruTagHistoryService.h"
+#include "danbooruTagHistoryService.h"
 
 #include "nsIServiceManager.h"
 #include "nsServiceManagerUtils.h"
@@ -51,7 +51,7 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 
-#include "nsAutoCompleteArrayResult.h"
+#include "danbooruAutoCompleteArrayResult.h"
 
 #include "nspr.h"
 
@@ -126,23 +126,23 @@ static const char *kTagTableName = "tags";
 #define kDropOldTable "DROP TABLE tags"
 #define kRepopulateNewTable "INSERT INTO tags (id, name, value, tag_type) SELECT t.id, t.name, t.value, t.tag_type FROM tagselect t"
 
-NS_INTERFACE_MAP_BEGIN(nsDanbooruTagHistoryService)
-  NS_INTERFACE_MAP_ENTRY(nsIDanbooruTagHistoryService)
+NS_INTERFACE_MAP_BEGIN(danbooruTagHistoryService)
+  NS_INTERFACE_MAP_ENTRY(danbooruITagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIDanbooruTagHistoryService)
+  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, danbooruITagHistoryService)
 NS_INTERFACE_MAP_END_THREADSAFE
 
-NS_IMPL_THREADSAFE_ADDREF(nsDanbooruTagHistoryService)
-NS_IMPL_THREADSAFE_RELEASE(nsDanbooruTagHistoryService)
+NS_IMPL_THREADSAFE_ADDREF(danbooruTagHistoryService)
+NS_IMPL_THREADSAFE_RELEASE(danbooruTagHistoryService)
 
 #ifdef DANBOORUUP_TESTING
-PRBool nsDanbooruTagHistoryService::gTagHistoryEnabled = PR_TRUE;
-PRBool nsDanbooruTagHistoryService::gPrefsInitialized = PR_TRUE;
+PRBool danbooruTagHistoryService::gTagHistoryEnabled = PR_TRUE;
+PRBool danbooruTagHistoryService::gPrefsInitialized = PR_TRUE;
 #else
-PRBool nsDanbooruTagHistoryService::gTagHistoryEnabled = PR_FALSE;
-PRBool nsDanbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
+PRBool danbooruTagHistoryService::gTagHistoryEnabled = PR_FALSE;
+PRBool danbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #endif
 
 #ifdef MOZILLA_1_8_BRANCH
@@ -259,13 +259,13 @@ static void ReplaceSubstring(nsAString& str, const nsAString& matchVal, const ns
 	}
 }
 
-nsDanbooruTagHistoryService::nsDanbooruTagHistoryService() :
+danbooruTagHistoryService::danbooruTagHistoryService() :
 	mDB(nsnull),
 	mRequest(nsnull)
 {
 }
 
-nsDanbooruTagHistoryService::~nsDanbooruTagHistoryService()
+danbooruTagHistoryService::~danbooruTagHistoryService()
 {
 	gTagHistory = nsnull;
 	//NS_IF_RELEASE(gCaseConv);
@@ -273,7 +273,7 @@ nsDanbooruTagHistoryService::~nsDanbooruTagHistoryService()
 }
 
 nsresult
-nsDanbooruTagHistoryService::Init()
+danbooruTagHistoryService::Init()
 {
 	gTagHistory = this;
 
@@ -284,17 +284,17 @@ nsDanbooruTagHistoryService::Init()
 	return NS_OK;
 }
 
-nsDanbooruTagHistoryService *nsDanbooruTagHistoryService::gTagHistory = nsnull;
+danbooruTagHistoryService *danbooruTagHistoryService::gTagHistory = nsnull;
 
-nsDanbooruTagHistoryService *
-nsDanbooruTagHistoryService::GetInstance()
+danbooruTagHistoryService *
+danbooruTagHistoryService::GetInstance()
 {
 	if (gTagHistory) {
 		NS_ADDREF(gTagHistory);
 		return gTagHistory;
 	}
 
-	gTagHistory = new nsDanbooruTagHistoryService();
+	gTagHistory = new danbooruTagHistoryService();
 	if (gTagHistory) {
 		NS_ADDREF(gTagHistory);  // addref for the global
 		if (NS_FAILED(gTagHistory->Init())) {
@@ -306,7 +306,7 @@ nsDanbooruTagHistoryService::GetInstance()
 
 
 /* static */ PRBool
-nsDanbooruTagHistoryService::TagHistoryEnabled()
+danbooruTagHistoryService::TagHistoryEnabled()
 {
   if (!gPrefsInitialized) {
     nsCOMPtr<nsIPrefService> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
@@ -382,7 +382,7 @@ GetResolvedURI(const nsAString& aSchemaURI,
 }
 
 nsresult
-nsDanbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
+danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 {
 	NS_ENSURE_ARG(document);
 
@@ -411,7 +411,7 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 #endif
 
 	nsCOMPtr<nsIDOMNode> child;
-	//nsDanbooruTagHistoryService *history = nsDanbooruTagHistoryService::GetInstance();
+	//danbooruTagHistoryService *history = danbooruTagHistoryService::GetInstance();
 	nsString tagid, tagname, tagtype;
 
 	if(aInsert) {	// adding new tags
@@ -485,7 +485,7 @@ nsDanbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
+danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 {
 	NS_PRECONDITION(mRequest, "no previous tag update request");
 
@@ -514,7 +514,7 @@ nsDanbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 
 /* used to be the nsISchema load */
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool insert)
+danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool insert)
 {
 	if(!gTagHistoryEnabled)
 		return NS_ERROR_NOT_AVAILABLE;
@@ -597,7 +597,7 @@ nsDanbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBo
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
+danbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 {
 	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
@@ -623,7 +623,7 @@ nsDanbooruTagHistoryService::GetRowCount(PRUint32 *aRowCount)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
+danbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
 {
 	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
@@ -650,7 +650,7 @@ nsDanbooruTagHistoryService::GetMaxID(PRUint32 *aRowCount)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt32 *aValue)
+danbooruTagHistoryService::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt32 *aValue)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -659,7 +659,7 @@ nsDanbooruTagHistoryService::GetEntryAt(PRUint32 aIndex, nsAString &aName, PRInt
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::GetNameAt(PRUint32 aIndex, nsAString &aName)
+danbooruTagHistoryService::GetNameAt(PRUint32 aIndex, nsAString &aName)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -668,7 +668,7 @@ nsDanbooruTagHistoryService::GetNameAt(PRUint32 aIndex, nsAString &aName)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
+danbooruTagHistoryService::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
 {
   nsresult rv = OpenDatabase(); // lazily ensure that the database is open
   NS_ENSURE_SUCCESS(rv, rv);
@@ -677,7 +677,7 @@ nsDanbooruTagHistoryService::GetValueAt(PRUint32 aIndex, PRInt32 *aValue)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::AddEntry(const nsAString &aName, const nsAString &aID, const PRInt32 aValue)
+danbooruTagHistoryService::AddEntry(const nsAString &aName, const nsAString &aID, const PRInt32 aValue)
 {
   if (!TagHistoryEnabled())
     return NS_OK;
@@ -693,7 +693,7 @@ nsDanbooruTagHistoryService::AddEntry(const nsAString &aName, const nsAString &a
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::AddNameEntry(const nsAString &aName, const nsAString &aID )
+danbooruTagHistoryService::AddNameEntry(const nsAString &aName, const nsAString &aID )
 {
 	if (!TagHistoryEnabled())
 		return NS_OK;
@@ -709,19 +709,19 @@ nsDanbooruTagHistoryService::AddNameEntry(const nsAString &aName, const nsAStrin
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::RemoveEntryAt(PRUint32 index)
+danbooruTagHistoryService::RemoveEntryAt(PRUint32 index)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::EntryExists(const nsAString &aName, const PRInt32 aValue, PRBool *_retval)
+danbooruTagHistoryService::EntryExists(const nsAString &aName, const PRInt32 aValue, PRBool *_retval)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
+danbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
 {
 	mExistsStmt->BindStringParameter(0, aName);
 	*_retval = PR_FALSE;
@@ -734,13 +734,13 @@ nsDanbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::RemoveEntriesForName(const nsAString &aName)
+danbooruTagHistoryService::RemoveEntriesForName(const nsAString &aName)
 {
 	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::RemoveAllEntries()
+danbooruTagHistoryService::RemoveAllEntries()
 {
 	if(!gTagHistoryEnabled)
 		return NS_ERROR_NOT_AVAILABLE;
@@ -754,7 +754,7 @@ nsDanbooruTagHistoryService::RemoveAllEntries()
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::IncrementValueForName(const nsAString &aName, PRBool *retval)
+danbooruTagHistoryService::IncrementValueForName(const nsAString &aName, PRBool *retval)
 {
 	if(aName.IsEmpty())
 		return NS_ERROR_INVALID_ARG;
@@ -779,7 +779,7 @@ nsDanbooruTagHistoryService::IncrementValueForName(const nsAString &aName, PRBoo
 //// nsIObserver
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
+danbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
 {
   if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
     //mPrefBranch->GetBoolPref(PREF_FORMFILL_ENABLE, &gTagHistoryEnabled);
@@ -792,7 +792,7 @@ nsDanbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, 
 //// nsIFormSubmitObserver
 #if 0
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal* aWindow, nsIURI* aActionURL, PRBool* aCancelSubmit)
+danbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal* aWindow, nsIURI* aActionURL, PRBool* aCancelSubmit)
 {
   if (!FormHistoryEnabled())
     return NS_OK;
@@ -842,7 +842,7 @@ nsDanbooruTagHistoryService::Notify(nsIContent* aFormNode, nsIDOMWindowInternal*
 //// Database I/O
 
 void
-nsDanbooruTagHistoryService::ReportDBError()
+danbooruTagHistoryService::ReportDBError()
 {
 	nsCString err;
 	mDB->GetLastErrorString(err);
@@ -850,7 +850,7 @@ nsDanbooruTagHistoryService::ReportDBError()
 }
 
 nsresult
-nsDanbooruTagHistoryService::OpenDatabase()
+danbooruTagHistoryService::OpenDatabase()
 {
 	if (mDB)
 		return NS_OK;
@@ -979,7 +979,7 @@ nsDanbooruTagHistoryService::OpenDatabase()
 }
 
 nsresult
-nsDanbooruTagHistoryService::CloseDatabase()
+danbooruTagHistoryService::CloseDatabase()
 {
 	// mozStorageConnection destructor takes care of this
 
@@ -987,8 +987,8 @@ nsDanbooruTagHistoryService::CloseDatabase()
 }
 
 nsresult
-nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
-                                  nsIAutoCompleteArrayResult *aPrevResult,
+danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
+                                  danbooruIAutoCompleteArrayResult *aPrevResult,
                                   nsIAutoCompleteResult **aResult)
 {
 	if (!TagHistoryEnabled())
@@ -997,7 +997,7 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
 
-	nsCOMPtr<nsIAutoCompleteArrayResult> result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	// not so great performance-wise to re-search every time a wildcard is present, but the alternative is too much trouble
 	if (aPrevResult && (FindChar(aInputName, '*') == -1)) {
 		result = aPrevResult;
@@ -1028,17 +1028,7 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 				result->RemoveValueAt(i, PR_FALSE);
 		}
 	} else {
-		result = do_CreateInstance(NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID);
-		/*nsCOMPtr<nsIComponentManager> compMgr;
-		rv = NS_GetComponentManager(getter_AddRefs(compMgr));
-		if (NS_FAILED(rv))
-			return rv;
-
-		rv = compMgr->CreateInstanceByContractID(NS_AUTOCOMPLETEARRAYRESULT_CONTRACTID, NULL,
-				NS_GET_IID(nsIAutoCompleteArrayResult),
-				getter_AddRefs(result));
-		if (NS_FAILED(rv))
-			return rv;*/
+		result = do_CreateInstance(DANBOORU_AUTOCOMPLETEARRAYRESULT_CONTRACTID);
 
 		if (result == nsnull) // nande da yo
 			return NS_ERROR_FAILURE;
@@ -1084,7 +1074,7 @@ nsDanbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 }
 
 void
-nsDanbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCount)
+danbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCount)
 {
 	for (PRInt32 i = aCount - 1; i >= 0; i--) {
 		nsMemory::Free(aArray[i]);
@@ -1095,8 +1085,8 @@ nsDanbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCou
 }
 
 NS_IMETHODIMP
-nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
-					nsIAutoCompleteArrayResult **_retval)
+danbooruTagHistoryService::SearchTags(const nsAString &aInputName,
+					danbooruIAutoCompleteArrayResult **_retval)
 {
 	NS_ENSURE_ARG_POINTER(_retval);
 	*_retval = nsnull;
@@ -1111,7 +1101,7 @@ nsDanbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 	//ct = (PRUint32)mSearchCountStmt->AsInt32(0);
 	//mSearchCountStmt->Reset();
 
-	nsIAutoCompleteArrayResult *result = new nsAutoCompleteArrayResult;
+	danbooruIAutoCompleteArrayResult *result = new danbooruAutoCompleteArrayResult;
 
 	//if(ct)
 	{

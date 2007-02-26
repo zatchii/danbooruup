@@ -32,7 +32,7 @@ function doOK()
 		}
 		try {
 			var taghist = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
-					.getService(Components.interfaces.nsIDanbooruTagHistoryService);
+					.getService(Components.interfaces.danbooruITagHistoryService);
 			for(var a in flat) {
 				if (!taghist.incrementValueForName(a))
 					needupdate = true;

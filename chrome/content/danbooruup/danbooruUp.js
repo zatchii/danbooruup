@@ -15,7 +15,7 @@ var tagService;
 var danbooruHelperService;
 try {
 	tagService = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
-			.getService(Components.interfaces.nsIDanbooruTagHistoryService);
+			.getService(Components.interfaces.danbooruITagHistoryService);
 } catch(x) {
 	var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 			.getService(Components.interfaces.nsIPromptService);
