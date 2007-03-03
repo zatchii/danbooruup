@@ -116,7 +116,7 @@ function hashStreamMD5(stream, length)
 	return outMD5Hex;
 }
 
-const base32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ2345567';
+const base32 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 function hashStreamSHA1(stream, length)
 {

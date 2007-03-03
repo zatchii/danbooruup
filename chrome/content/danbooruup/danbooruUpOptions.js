@@ -513,13 +513,13 @@ var gDanbooruManager = {
 
   onWriteEnableAC: function ()
   {
-    var pref = document.getElementById("extensions.danbooruUp.autocomplete.enabled");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
     return pref.value;
   },
 
   onReadEnableAC: function ()
   {
-    var pref = document.getElementById("extensions.danbooruUp.autocomplete.enabled");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
     this.onEnableACChanged(pref.value);
     return pref.value;
   },
@@ -548,13 +548,13 @@ var gDanbooruManager = {
 
   onWriteUpdateOnStartup: function ()
   {
-    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.onstartup");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.onstartup");
     return pref.value;
   },
 
   onReadUpdateOnStartup: function ()
   {
-    var pref = document.getElementById("extensions.danbooruUp.autocomplete.update.onstartup");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.onstartup");
     var box = document.getElementById("fastUpdate");
     box.disabled = !pref.value;
     return pref.value;
