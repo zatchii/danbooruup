@@ -83,9 +83,6 @@ public:
 
   static danbooruTagHistoryService *GetInstance();
 
-  nsresult AutoCompleteSearch(const nsAString &aInputName,
-                              danbooruIAutoCompleteArrayResult *aPrevResult, nsIAutoCompleteResult **aNewResult);
-
 protected:
   // Database I/O
   nsresult OpenDatabase();

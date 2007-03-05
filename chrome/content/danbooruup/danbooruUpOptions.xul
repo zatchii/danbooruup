@@ -24,6 +24,8 @@
 			name="extensions.danbooruUp.hashing.md5"			type="bool"/>
 		<preference id="pref.extensions.danbooruUp.hashing.sha1"
 			name="extensions.danbooruUp.hashing.sha1"			type="bool"/>
+		<preference id="pref.extensions.danbooruUp.suppressComponentAlert"
+			name="extensions.danbooruUp.suppressComponentAlert"		type="bool"/>
 	</preferences>
 
 	<!--<vbox>
@@ -66,6 +68,9 @@
 				preference="pref.extensions.danbooruUp.hashing.sha1"
 				label="&danbooruUpOptions.hashingSHA1.label;"/>
 		</groupbox>
+		<checkbox id="checkSuppressComponentAlert"
+			preference="pref.extensions.danbooruUp.suppressComponentAlert"
+			label="&danbooruUpOptions.supressComponentAlert.label;"/>
 	</prefpane>
 
 	<prefpane id="danbooruUpStylePane" flex="1" label="&danbooruUpOptions.styleTab.label;">
@@ -196,7 +201,7 @@
 			<hbox align="center" pack="end">
 				<button id="clearTagHistory"
 					label="&danbooruUpOptions.clearTagHistory.label;"
-					oncommand="Components.classes['@unbuffered.info/danbooru/taghistory-service;1'].getService(Components.interfaces.danbooruITagHistoryService).removeAllEntries();"/>
+					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).tagService.removeAllEntries();"/>
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"

@@ -45,6 +45,15 @@ ResultWrapper.prototype = {
 };
 
 var danbooruUpHelperObject = {
+	_tagService: null;
+	get tagService()
+	{
+		return this._tagService;
+	},
+	set tagService(s)
+	{
+		throw "tagService is a read-only property";
+	},
 
 	startup: function()
 	{
@@ -52,8 +61,20 @@ var danbooruUpHelperObject = {
 			.getService(Ci.mozIJSSubScriptLoader)
 			.loadSubScript("chrome://global/content/XPCNativeWrapper.js");
 
+		this._danbooruUpMsg = Cc['@mozilla.org/intl/stringbundle;1'].getService(Ci.nsIStringBundleService)
+					.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
+
 		//obService.addObserver(this, "danbooru-options-changed", false);
-		this.tagService	= Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.danbooruITagHistoryService);
+		try {
+			this._tagService = Cc["@unbuffered.info/danbooru/taghistory-service;1"]
+						.getService(Ci.danbooruITagHistoryService);
+		} catch (e) {
+			var check = {};
+			promptService.alertCheck(null, this._danbooruUpMsg.GetStringFromName('danbooruUp.err.title'),
+					this._danbooruUpMsg.GetStringFromName('danbooruUp.err.ac.component'),
+					this._danbooruUpMsg.GetStringFromName('danbooruUp.dont.remind'),
+					check);
+		}
 
 		this._branch = prefService.getBranch("extensions.danbooruUp.");
 		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
@@ -501,10 +522,19 @@ HelperModule.registerSelf = function(compMgr, fileSpec, location, type)
 
 	catMgr.addCategoryEntry("app-startup",
 			DANBOORUUPHELPER_CLASSNAME,
-			DANBOORUUPHELPER_CONTRACTID,
+			"service,"+DANBOORUUPHELPER_CONTRACTID,
 			true,
 			true);
 
+}
+
+HelperModule.unregisterSelf = function(aCompMgr, aLocation, aType) {
+	aCompMgr.QueryInterface(Ci.nsIComponentRegistrar);
+	aCompMgr.unregisterFactoryLocation(CID, aLocation);
+
+	var catMan = Cc["@mozilla.org/categorymanager;1"].
+		getService(Ci.nsICategoryManager);
+	catMan.deleteCategoryEntry( "app-startup", "service," + DANBOORUUPHELPER_CONTRACTID, true);
 }
 
 HelperModule.getClassObject = function(compMgr, cid, iid)

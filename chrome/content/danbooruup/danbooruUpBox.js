@@ -27,14 +27,15 @@ function doOK()
 		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
 		var flat=[];
 		var needupdate = false;
+		var helpersvc= Components.classes["@unbuffered.info/danbooru/helper-service;1"]
+				.getService(Components.interfaces.danbooruIHelperService);
 		for(var a in tagarr) {
 			flat[tagarr[a]]=null;
 		}
 		try {
-			var taghist = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
-					.getService(Components.interfaces.danbooruITagHistoryService);
+			var tagHist = helpersvc.tagService;
 			for(var a in flat) {
-				if (!taghist.incrementValueForName(a))
+				if (!tagHist.incrementValueForName(a))
 					needupdate = true;
 			}
 		} catch(e) {
@@ -45,9 +46,7 @@ function doOK()
 		needupdate = prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.afterdialog") && needupdate;
 	}
 
-	Components.classes["@unbuffered.info/danbooru/helper-service;1"]
-		.getService(Components.interfaces.danbooruIHelperService)
-		.startUpload(
+	helpersvc.startUpload(
 			window.arguments[0].imageURI,
 			document.getElementById('source').value,
 			tags,

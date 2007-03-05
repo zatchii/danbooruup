@@ -13,6 +13,8 @@ var danbooruUpMsg	= StrBundleSvc.createBundle('chrome://danbooruup/locale/danboo
 
 var tagService;
 var danbooruHelperService;
+
+/*
 try {
 	tagService = Components.classes["@unbuffered.info/danbooru/taghistory-service;1"]
 			.getService(Components.interfaces.danbooruITagHistoryService);
@@ -21,10 +23,12 @@ try {
 			.getService(Components.interfaces.nsIPromptService);
 	promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.ac.component'));
 }
+*/
 
 try {
 	danbooruHelperService = Components.classes["@unbuffered.info/danbooru/helper-service;1"]
 			.getService(Components.interfaces.danbooruIHelperService);
+	tagService = danbooruHelperService.tagService;
 } catch(x) {
 	var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 			.getService(Components.interfaces.nsIPromptService);

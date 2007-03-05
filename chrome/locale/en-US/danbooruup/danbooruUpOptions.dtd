@@ -24,6 +24,7 @@
 <!ENTITY danbooruUpOptions.hashingMD5.accesskey		"M">
 <!ENTITY danbooruUpOptions.hashingSHA1.label		"SHA-1">
 <!ENTITY danbooruUpOptions.hashingSHA1.accesskey	"H">
+<!ENTITY danbooruUpOptions.supressComponentAlert.label	"Suppress missing component alert dialog">
 
 <!ENTITY danbooruUpOptions.styleTab.label		"Tag Styles">
 <!ENTITY danbooruUpOptions.style.description		"Enter CSS rules for tag types here. Style changes will only take effect for newly-opened windows.">

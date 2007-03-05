@@ -116,7 +116,7 @@ function createAC(elementID, options)
 
 // create the autocomplete popups
 // for post/list and the main index
-createAC("search", {isSearchField: true});
+createAC("tags", {isSearchField: true});
 
 // for post/view and post/add
 if(document.location.href.match(/\/post\/(view|add)(\/|$)/))

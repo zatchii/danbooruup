@@ -37,7 +37,7 @@
  * ***** END LICENSE BLOCK ***** */
 #include "nsIGenericFactory.h"
 
-#include "danbooruAutoComplete.h"
+//#include "danbooruAutoComplete.h"
 #include "danbooruTagHistoryService.h"
 #include "danbooruAutoCompleteArrayResult.h"
 #include "nsIFile.h"
@@ -65,7 +65,7 @@
 // NOTE: This creates an instance of nsSampleImpl by using the default
 //		 constructor nsSampleImpl::nsSampleImpl()
 //
-NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoComplete)
+//NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoComplete)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(danbooruTagHistoryService, danbooruTagHistoryService::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoCompleteArrayResult)
 
@@ -113,7 +113,7 @@ static NS_METHOD danbooruAutoCompleteUnregistrationProc(nsIComponentManager *aCo
 
 static const nsModuleComponentInfo components[] =
 {
-  { "Danbooru Autocomplete Component", DANBOORU_AC_CID, DANBOORU_AC_CONTRACTID, danbooruAutoCompleteConstructor, danbooruAutoCompleteRegistrationProc },
+  //{ "Danbooru Autocomplete Component", DANBOORU_AC_CID, DANBOORU_AC_CONTRACTID, danbooruAutoCompleteConstructor, danbooruAutoCompleteRegistrationProc },
   { "Danbooru Tag History Service", DANBOORU_TAGHISTORYSERVICE_CID, DANBOORU_TAGHISTORYSERVICE_CONTRACTID, danbooruTagHistoryServiceConstructor },
   { "Danbooru AutoComplete Array Result",
 	  DANBOORU_AUTOCOMPLETEARRAYRESULT_CID,

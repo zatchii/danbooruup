@@ -1,9 +1,12 @@
 #include "nsISupports.idl"
 #include "nsIURI.idl"
+#include "danbooruITagHistoryService.idl"
 
 [scriptable, uuid(6cff8d23-68d8-41bf-a4cd-7f89b43e1484)]
 interface danbooruIHelperService : nsISupports
 {
+	danbooruITagHistoryService tagService;
+
 	void contentLoaded(in nsISupports win);
 
 	//void registerBrowser(in nsISupports window);

@@ -70,14 +70,14 @@ function getSize(url) {
 	catch(ex) {}
 	try
 	{
-		if(hashMD5 || hashSHA1) {
+		if (uriuri.scheme == "file")
+		{
 			var ioService = Components.classes["@mozilla.org/network/io-service;1"]
 					.getService(Components.interfaces.nsIIOService);
 			var uriuri = ioService.newURI(url, window.arguments[0].ownerDocument.characterSet, null);
-			if (uriuri.scheme == "file")
-			{
-				var channel = ioService.newChannelFromURI(uriuri);
-				channel.QueryInterface(Components.interfaces.nsIFileChannel);
+			var channel = ioService.newChannelFromURI(uriuri);
+			channel.QueryInterface(Components.interfaces.nsIFileChannel);
+			if(hashMD5 || hashSHA1) {
 				if(hashMD5) {
 					var md5 = hashStreamMD5(channel.open(), channel.file.fileSize);
 					setInfo("image-md5", md5);
@@ -87,12 +87,13 @@ function getSize(url) {
 					setInfo("image-sha1-hex", sha1.hex);
 					setInfo("image-sha1-base32", sha1.base32);
 				}
-			} else {
-				// nothing
-				setInfo("image-md5", "");
-				setInfo("image-sha1-hex", "");
-				setInfo("image-sha1-base32", "");
 			}
+			return channel.file.fileSize;
+		} else {
+			// nothing
+			setInfo("image-md5", "");
+			setInfo("image-sha1-hex", "");
+			setInfo("image-sha1-base32", "");
 		}
 	}
 	catch(ex) {}

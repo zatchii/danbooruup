@@ -986,7 +986,7 @@ danbooruTagHistoryService::CloseDatabase()
 	return NS_OK;
 }
 
-nsresult
+NS_IMETHODIMP
 danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
                                   danbooruIAutoCompleteArrayResult *aPrevResult,
                                   nsIAutoCompleteResult **aResult)

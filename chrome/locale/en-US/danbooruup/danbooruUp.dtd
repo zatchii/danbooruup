@@ -4,7 +4,7 @@
 
 <!ENTITY danbooru-box-title "Upload to Danbooru">
 <!ENTITY danbooru-box-source-label "Source:">
-<!ENTITY danbooru-box-source-accesskey "s">
+<!ENTITY danbooru-box-source-accesskey "c">
 <!ENTITY danbooru-box-tags-label "Tags:">
 <!ENTITY danbooru-box-tags-accesskey "g">
 <!ENTITY danbooru-box-title-label "Title:">

@@ -1,0 +1,9 @@
+#include "nsISupports.idl"
+interface nsIAutoCompleteSearch;
+
+[scriptable, uuid(b6c5931b-eed1-46dc-9457-7d9ee7fe46d8)]
+interface danbooruIJSAutoComplete : nsIAutoCompleteSearch
+{
+	// nothing new
+};
+

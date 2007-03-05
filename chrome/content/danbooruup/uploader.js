@@ -267,28 +267,8 @@ danbooruUploader.prototype = {
         this.mChannel.cancel(0x804b0002);
         os.removeObserver(this, "danbooru-down");
 
-        /*
-        var notificationBox = this.mTab.linkedBrowser.parentNode;
-        var notification = notificationBox.getNotificationWithValue("danbooru-up");
-        if (notification) {
-          notification.label = message;
-        }
-        else {
-          var buttons = [{
-            label: popupButtonText,
-            accessKey: null,
-            popup: null,
-            callback: null
-          }];
-
-          //const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
-          var priority = notificationBox.PRIORITY_INFO_MEDIUM;
-          notificationBox.appendNotification(message, "danbooru-up",
-              "chrome://global/skin/throbber/Throbber-small.png",
-              priority, null);
-        }
-        */
-        addNotification(this.mTab, message, "chrome://global/skin/throbber/Throbber-small.png",
+        addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
+            "chrome://global/skin/throbber/Throbber-small.png",
             this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null);
 
         return true;
@@ -332,7 +312,7 @@ danbooruUploader.prototype = {
          label: commondlgMsg.GetStringFromName('cancelButtonText'),
          accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
          popup: null,
-         callback: this.cancel
+         callback: function() { return this['cancel'].apply(this, arguments); }
     }];
     /*
     //const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
@@ -433,7 +413,7 @@ danbooruPoster.prototype = {
 			label: commondlgMsg.GetStringFromName('cancelButtonText'),
 			accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
 			popup: null,
-			callback: this.cancel
+			callback: function() { return this['cancel'].apply(this, arguments); }
 		}];
     /*
 		//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;

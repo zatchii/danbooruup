@@ -57,6 +57,14 @@ interface danbooruITagHistoryService : nsISupports
   danbooruIAutoCompleteArrayResult searchTags(in AString inputname);
 
   /**
+   * AutoCompleteController-called tag search.
+   */
+
+  void autoCompleteSearch(in AString aInputName,
+                                  in danbooruIAutoCompleteArrayResult aPrevResult,
+                                  inout nsIAutoCompleteResult aResult);
+
+  /**
    * Updates the tag database from a given XML source.
    * @param aXmlURI The URI from which to retrieve tags from.
    * @param insert True if retrieving tags for insertion, false if retrieving tags for clean up.
