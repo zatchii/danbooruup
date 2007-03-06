@@ -35,7 +35,7 @@
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
 <!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here.">
-<!ENTITY danbooruUpOptions.posturi.label		"URL of post/add:">
+<!ENTITY danbooruUpOptions.posturi.label		"URL of api/add_post:">
 <!ENTITY danbooruUpOptions.posturi.accesskey		"U">
 <!ENTITY danbooruUpOptions.add.label			"Add Site">
 <!ENTITY danbooruUpOptions.treehead.sitename.label	"Site">

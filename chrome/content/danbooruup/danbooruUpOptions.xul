@@ -10,7 +10,7 @@
 	title="&danbooruUpOptions.title;"
 	onkeypress="return gDanbooruManager.onWindowKeyPress(event);"
 	onload="gDanbooruManager.onLoad();"
-	onunload="gDanbooruManager.uninit();"
+	onunload="gDanbooruManager.onUnload();"
 	onbeforeaccept="gDanbooruManager.onOK();"
 	persist="screenX screenY">
 

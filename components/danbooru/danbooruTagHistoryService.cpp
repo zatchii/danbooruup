@@ -50,6 +50,7 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
+#include "nsISupportsPrimitives.h"
 
 #include "danbooruAutoCompleteArrayResult.h"
 
@@ -481,6 +482,23 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropTempTagTable));
 	}
 
+	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
+	if (NS_FAILED(rv))
+		return rv;
+
+	if (!service)
+		return NS_OK;
+
+	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
+	if (NS_FAILED(rv))
+		return rv;
+	// container node is included, so subtract 1 for the number of processed nodes
+	rv = nodes->SetData(length - 1);
+	if (NS_FAILED(rv))
+		return rv;
+
+	service->NotifyObservers(nodes, "danbooru-update-done", nsnull);
+
 	return NS_OK;
 }
 
@@ -746,9 +764,15 @@ danbooruTagHistoryService::RemoveAllEntries()
 		return NS_ERROR_NOT_AVAILABLE;
 
 	// or we could just drop the database
-	//mDB->BeginTransaction();
 	mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kRemoveAll));
-	//mDB->CommitTransaction();
+
+	nsresult rv;
+	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
+	if (NS_FAILED(rv))
+		return rv;
+
+	if (service)
+		service->NotifyObservers(nsnull, "danbooru-clear-done", nsnull);
 
 	return NS_OK;
 }
@@ -857,11 +881,14 @@ danbooruTagHistoryService::OpenDatabase()
 
 	gTagHistoryEnabled = PR_FALSE;
 
-	nsCOMPtr<mozIStorageService> storage = do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+	nsresult rv;
+	nsCOMPtr<mozIStorageService> storage(do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID, &rv));
+	if (NS_FAILED(rv))
+		return rv;
 
 	// Get a handle to the database file
 	nsCOMPtr <nsIFile> historyFile;
-	nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
+	rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(historyFile));
 	if(NS_FAILED(rv))
 	{
 		// probably using xpcshell

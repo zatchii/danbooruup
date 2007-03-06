@@ -249,6 +249,28 @@ var gDanbooruManager = {
     }
   },
 
+  // handles tag update notifications
+	observe: function(aSubject, aTopic, aData)
+	{
+		switch (aTopic) {
+		case "danbooru-update-done":
+      var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+			    .getService(Components.interfaces.nsIPromptService);
+      aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
+      promptService.alert(window,
+            this._bundle.GetStringFromName("danbooruUp.opt.updateAlertTitle"),
+            this._bundle.formatStringFromName("danbooruUp.opt.updatedNodes", [aSubject.data], 1));
+      break;
+		case "danbooru-cleared-done":
+      var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+			    .getService(Components.interfaces.nsIPromptService);
+      promptService.alert(window,
+            this._bundle.GetStringFromName("danbooruUp.opt.updateAlertTitle"),
+            this._bundle.GetStringFromName("danbooruUp.opt.clearedTags"));
+      break;
+    }
+  },
+
   // tag type stuff
 
   // serial for tag popup preview needs to be incremented, since fiddling with the rules via DOM doesn't actually
@@ -309,6 +331,10 @@ var gDanbooruManager = {
 
     this.init(null);
 
+    var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+    os.addObserver(this, "danbooru-update-done", false);
+    os.addObserver(this, "danbooru-clear-done", false);
+
     // sort and display the table
     this._tree.treeBoxObject.view = this._view;
     this.onDanbooruSort("rawHost", false);
@@ -365,6 +391,16 @@ var gDanbooruManager = {
     }
   },
 
+  // options unload event
+  onUnload: function ()
+  {
+    var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
+    os.removeObserver(this, "danbooru-update-done");
+    os.removeObserver(this, "danbooru-clear-done");
+
+    this.uninit();
+  },
+
   // not really sure what all this code is for any more
   // updates selected danbooru for upload dialog
   uninit: function ()
@@ -400,7 +436,7 @@ var gDanbooruManager = {
                                     .getService(Components.interfaces.nsIPromptService);
       var message = this._bundle.GetStringFromName("danbooruUp.opt.emptyHosts");
       var title = this._bundle.GetStringFromName("danbooruUp.opt.error");
-      promptService.alert(window, title, message); 
+      promptService.alert(window, title, message);
     } else {
       this._saveDanbooru();
     }

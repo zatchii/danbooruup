@@ -45,7 +45,10 @@ ResultWrapper.prototype = {
 };
 
 var danbooruUpHelperObject = {
-	_tagService: null;
+	_tagService: null,
+	_updating: false,
+	_interactive: false,
+
 	get tagService()
 	{
 		return this._tagService;
@@ -247,6 +250,8 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 		dump("using " + locationURL.spec + "\n");
 
+		this._updating = true;
+		this._interactive = aInteractive;
 		try {
 			this.tagService.updateTagListFromURI(locationURL.spec, true);
 		} catch (e) {
@@ -254,16 +259,17 @@ this.log(this.browserWindows.length+' after unregistering');
 			{
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
-				else
-					return e.result
+				return e.result
 			}
 			else {
+				this._updating = false;
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
 				else
 					return e.result
 			}
 		}
+		this._updating = false;
 		this.mMaxID = this.getMaxID();
 		prefBranch.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
 

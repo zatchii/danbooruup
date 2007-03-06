@@ -312,7 +312,7 @@ danbooruUploader.prototype = {
          label: commondlgMsg.GetStringFromName('cancelButtonText'),
          accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
          popup: null,
-         callback: function() { return this['cancel'].apply(this, arguments); }
+         callback: danbooruUpHitch(this, "cancel")
     }];
     /*
     //const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
@@ -413,7 +413,7 @@ danbooruPoster.prototype = {
 			label: commondlgMsg.GetStringFromName('cancelButtonText'),
 			accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
 			popup: null,
-			callback: function() { return this['cancel'].apply(this, arguments); }
+			callback: danbooruUpHitch(this, "cancel")
 		}];
     /*
 		//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
@@ -467,9 +467,9 @@ danbooruPoster.prototype = {
 					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
 					"chrome://danbooruup/skin/icon.ico",
 					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
-			return true;
+			return false;
 		}
-		return false;
+		return true;
 	},
 
 	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
@@ -493,6 +493,7 @@ danbooruPoster.prototype = {
 	{
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		try { os.removeObserver(this, "danbooru-up"); } catch(e) {}
+		const kErrorNetAborted	= 0x804B0002;
 		const kErrorNetTimeout	= 0x804B000E;
 		const kErrorNetRefused	= 0x804B000D;
 
@@ -660,6 +661,7 @@ danbooruPoster.prototype = {
 					"chrome://danbooruup/skin/danbooru-attention.gif",
 					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
 
+		} else if (status == kErrorNetAborted) { // user cancel, no further action needed
 		} else { // not NS_OK
 			alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+status.toString(16));
 		}

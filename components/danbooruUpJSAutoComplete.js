@@ -1,5 +1,5 @@
 const DANBOORUUPJSAC_CLASSNAME = "danbooruJSAutoComplete";
-const DANBOORUUPJSAC_CONTRACTID = "@mozilla.org/autocomplete/search;1?name=danboorutag;1";
+const DANBOORUUPJSAC_CONTRACTID = "@mozilla.org/autocomplete/search;1?name=danboorutag";
 const DANBOORUUPJSAC_CID = Components.ID("{172802a8-e70c-4316-9ad8-dcade182778a}");
 
 const Cc = Components.classes;
@@ -16,14 +16,23 @@ danbooruUpJSAutoCompleteObject.prototype =
 		if(aListener == null)
 			return Components.results.NS_ERROR_FAILURE;
 
-		var result = Cc["@unbuffered.info/autocomplete/array-result;1"].CreateInstance(Ci.danbooruIAutoCompleteArrayResult);
+		var result = {value:Cc["@unbuffered.info/autocomplete/array-result;1"].createInstance(Ci.danbooruIAutoCompleteArrayResult)};
 		this._tagService.autoCompleteSearch(aString, aPrev, result);
-		aListener.onSearchResult(this, result);
+		aListener.onSearchResult(this, result.value);
 
 		return Components.results.NS_OK;
 	},
 	stopSearch: function() {
 		return Components.results.NS_OK;
+	},
+	QueryInterface: function(aIID) {
+		if (!aIID.equals(Ci.nsISupports) &&
+			!aIID.equals(Ci.nsIAutoCompleteSearch)) {
+			Components.returnCode = Components.results.NS_ERROR_NO_INTERFACE;
+			return null;
+		}
+
+		return this;
 	}
 };
 
@@ -32,7 +41,7 @@ const JSACModule = {
 
 	getClassObject: function(aCompMgr, aCID, aIID) {
 		if (aCID.equals(DANBOORUUPJSAC_CID)) {
-			return SessionStartupFactory;
+			return JSACFactory;
 		}
 
 		Components.returnCode = Components.results.NS_ERROR_NOT_REGISTERED;
@@ -57,7 +66,7 @@ const JSACModule = {
 // Returns the singleton object when needed.
 const JSACFactory = {
 
-	createInstance: function(outer, iid):
+	createInstance: function(outer, iid)
 	{
 		if (outer != null) {
 			Components.returnCode = Components.results.NS_ERROR_NO_AGGREGATION;
@@ -69,7 +78,7 @@ const JSACFactory = {
 
 	QueryInterface: function(aIID) {
 		if (!aIID.equals(Ci.nsISupports) && !aIID.equals(Ci.nsIModule) &&
-			!aIID.equals(Ci.nsIFactory) && !aIID.equals(Ci.nsISessionStartup)) {
+			!aIID.equals(Ci.nsIFactory) && !aIID.equals(Ci.nsIAutoCompleteSearch)) {
 			Components.returnCode = Components.results.NS_ERROR_NO_INTERFACE;
 			return null;
 		}

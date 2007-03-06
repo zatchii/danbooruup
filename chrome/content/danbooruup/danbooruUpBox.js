@@ -22,13 +22,13 @@ function doOK()
 	gDanbooruManager.selectDanbooru(ml.selectedIndex);
 	gDanbooruManager.uninit();
 
+	var helpersvc= Components.classes["@unbuffered.info/danbooru/helper-service;1"]
+			.getService(Components.interfaces.danbooruIHelperService);
 	if(tags.length) {
 		// compact tag input
 		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
 		var flat=[];
 		var needupdate = false;
-		var helpersvc= Components.classes["@unbuffered.info/danbooru/helper-service;1"]
-				.getService(Components.interfaces.danbooruIHelperService);
 		for(var a in tagarr) {
 			flat[tagarr[a]]=null;
 		}
