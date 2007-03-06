@@ -65,20 +65,27 @@ var danbooruUpHelperObject = {
 					.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
 
 		//obService.addObserver(this, "danbooru-options-changed", false);
+
+		this._branch = prefService.getBranch("extensions.danbooruUp.");
+		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
+		this._branch.addObserver("", this, false);
+
 		try {
 			this._tagService = Cc["@unbuffered.info/danbooru/taghistory-service;1"]
 						.getService(Ci.danbooruITagHistoryService);
 		} catch (e) {
 			var check = {};
-			promptService.alertCheck(null, this._danbooruUpMsg.GetStringFromName('danbooruUp.err.title'),
-					this._danbooruUpMsg.GetStringFromName('danbooruUp.err.ac.component'),
-					this._danbooruUpMsg.GetStringFromName('danbooruUp.dont.remind'),
-					check);
+			if(!this._branch.getBoolPref("suppressComponentAlert"))
+			{
+				promptService.alertCheck(null, this._danbooruUpMsg.GetStringFromName('danbooruUp.err.title'),
+						this._danbooruUpMsg.GetStringFromName('danbooruUp.err.ac.component'),
+						this._danbooruUpMsg.GetStringFromName('danbooruUp.dont.remind'),
+						check);
+				if (check.value) {
+					this._branch.setBoolPref("suppressComponentAlert", true);
+				}
+			}
 		}
-
-		this._branch = prefService.getBranch("extensions.danbooruUp.");
-		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
-		this._branch.addObserver("", this, false);
 
 		this.startupUpdate();
 
