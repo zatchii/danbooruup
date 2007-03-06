@@ -89,7 +89,6 @@ MODULE_NAME	= danbooruAutoCompleteModule
 
 # CPPSRCS specifies C++ files to be built into a library.
 CPPSRCS		=		   \
-		danbooruAutoComplete.cpp	   \
 		danbooruAutoCompleteModule.cpp \
 		danbooruTagHistoryService.cpp \
 		danbooruAutoCompleteArrayResult.cpp \
@@ -97,9 +96,11 @@ CPPSRCS		=		   \
 
 # XPIDLSRCS specified IDL files. The build system runs the xpidl tool on these
 # files to generate C++ headers and .xpt typelib files.
-XPIDLSRCS	= danbooruIAutoComplete.idl \
-		  danbooruITagHistoryService.idl \
-		  danbooruIAutoCompleteArrayResult.idl
+XPIDLSRCS	= danbooruITagHistoryService.idl \
+		  danbooruIAutoCompleteArrayResult.idl \
+		  danbooruUpHelper.idl \
+		  danbooruUpJSAutoComplete.idl \
+		  $(NULL)
 
 #MOZ_DEBUG = 1
 #MOZ_DEBUG_MODULES = danbooruac

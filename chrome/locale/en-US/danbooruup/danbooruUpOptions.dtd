@@ -35,7 +35,7 @@
 <!ENTITY danbooruUpOptions.applyStyle.accesskey		"A">
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
-<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here. Note: there must always be at least one entry in this list.">
+<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here. The sites listed here will also have site autocompletion enabled for them. There must always be at least one entry in this list.">
 <!ENTITY danbooruUpOptions.posturi.label		"URL of api/add_post:">
 <!ENTITY danbooruUpOptions.posturi.accesskey		"U">
 <!ENTITY danbooruUpOptions.add.label			"Add Site">
