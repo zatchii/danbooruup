@@ -11,5 +11,5 @@ rem components\*.xpt components\*.js
 zip -9r danbooruup.xpi chrome.manifest install.rdf chrome\danbooruup.jar defaults
 copy /y components\danbooru\danbruac.dll platform\WINNT_x86-msvc\components
 copy /y components\danbooru\_xpidlgen\danbooruac.xpt components
-copy /y components\_xpidlgen\danbooruUpHelper.xpt components
+rem copy /y components\_xpidlgen\danbooruUpHelper.xpt components
 zip -9r danbooruup.xpi components\danbooruUpHelper.js components\*.xpt platform

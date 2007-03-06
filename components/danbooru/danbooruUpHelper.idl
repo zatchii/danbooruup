@@ -5,7 +5,7 @@
 [scriptable, uuid(6cff8d23-68d8-41bf-a4cd-7f89b43e1484)]
 interface danbooruIHelperService : nsISupports
 {
-	danbooruITagHistoryService tagService;
+	readonly attribute danbooruITagHistoryService tagService;
 
 	void contentLoaded(in nsISupports win);
 
