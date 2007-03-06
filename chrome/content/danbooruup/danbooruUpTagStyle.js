@@ -27,8 +27,8 @@ function danbooruAddTagTypeStyleSheet() {
 			try { s = gDanbooruManager._styles[st]; } catch (ex) { }
 		if(!s)
 			try { s = prefs.getCharPref(st); } catch (ex) { }
-	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
-		logStringMessage(st + " ---\n" + s);
+//	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
+//		logStringMessage(st + " ---\n" + s);
 
 		return s;
 	}
@@ -46,8 +46,8 @@ function danbooruAddTagTypeStyleSheet() {
 
 	//css += selector + "::-moz-tree-cell-text\n{\n-moz-padding-start: "+gDanbooruManager.getSID()+"px !important;\n}\n";
 	//css += selector + "::-moz-tree-cell-text(selected)\n{\nfont-weight: bold;\n}\n";
-	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
-		logStringMessage(css);
+//	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
+//		logStringMessage(css);
 
 	var data = "data:text/css;base64," + btoa(css);
 	var pi = document.createProcessingInstruction('xml-stylesheet', 'type="text/css" href="' + data + '"');
