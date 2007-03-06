@@ -12,7 +12,7 @@
 	width="500px"
 	height="175px"
 	persist="screenX screenY width height"
-	onload="init();"
+	onload="init(); setTimeout(danbooruAddTagTypeStyleSheet, 100);"
         ondialogaccept="return doOK();"
         ondialogcancel="return doCancel();">
 

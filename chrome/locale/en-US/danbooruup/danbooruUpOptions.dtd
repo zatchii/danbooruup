@@ -24,7 +24,8 @@
 <!ENTITY danbooruUpOptions.hashingMD5.accesskey		"M">
 <!ENTITY danbooruUpOptions.hashingSHA1.label		"SHA-1">
 <!ENTITY danbooruUpOptions.hashingSHA1.accesskey	"H">
-<!ENTITY danbooruUpOptions.supressComponentAlert.label	"Suppress missing component alert dialog">
+<!ENTITY danbooruUpOptions.notifications.label		"Notifications">
+<!ENTITY danbooruUpOptions.suppressComponentAlert.label	"Suppress missing component alert dialog">
 
 <!ENTITY danbooruUpOptions.styleTab.label		"Tag Styles">
 <!ENTITY danbooruUpOptions.style.description		"Enter CSS rules for tag types here. Style changes will only take effect for newly-opened windows.">
@@ -34,7 +35,7 @@
 <!ENTITY danbooruUpOptions.applyStyle.accesskey		"A">
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
-<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here.">
+<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here. Note: there must always be at least one entry in this list.">
 <!ENTITY danbooruUpOptions.posturi.label		"URL of api/add_post:">
 <!ENTITY danbooruUpOptions.posturi.accesskey		"U">
 <!ENTITY danbooruUpOptions.add.label			"Add Site">

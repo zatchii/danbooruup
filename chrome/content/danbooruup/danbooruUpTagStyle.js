@@ -75,6 +75,6 @@ treechildren.danbooru-autocomplete-treebody::-moz-tree-cell-text(selected) {
 }
 */
 
-if(document.location.href != "chrome://danbooruup/content/danbooruUpOptions.xul")
-	setTimeout(danbooruAddTagTypeStyleSheet, 100);
+//if(document.location.href != "chrome://danbooruup/content/danbooruUpOptions.xul")
+//	setTimeout(danbooruAddTagTypeStyleSheet, 200);
 

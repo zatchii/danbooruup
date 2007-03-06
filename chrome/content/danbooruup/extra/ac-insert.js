@@ -78,7 +78,7 @@ document.getElementsByTagName("head")[0].appendChild(style);
 function createAC(elementID, options)
 {
 	try{
-	var foptions = {tokens:[' ','　'], choices:150, selector:tagSelector};
+	var foptions = {tokens:[' ','　',','], choices:150, selector:tagSelector};
 	var ac = null;
 
 	options = options || {};

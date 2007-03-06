@@ -291,14 +291,21 @@ var gDanbooruManager = {
         }, 0);
     }
   },
-  tagTypeSelected: function ()
+  // listbox style selection changed
+  tagTypeSelected: function (evt)
   {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-    //var style = prefs.getCharPref(this.value);
-    gDanbooruManager._styles[this.oldvalue] = document.getElementById("styleBox").value;
-    document.getElementById("styleBox").value = gDanbooruManager._styles[this.value];
-    this.oldvalue = this.value;
+    var tt = document.getElementById("tagType");
+    // save style to array, and to pref as well if instant apply is active
+    gDanbooruManager._styles[tt.oldvalue] = document.getElementById("styleBox").value;
+    if (document.documentElement.instantApply && tt.oldvalue) {
+      try { prefs.setCharPref(tt.oldvalue, document.getElementById("styleBox").value); }
+      catch (e) { }
+    }
+
+    document.getElementById("styleBox").value = gDanbooruManager._styles[tt.value];
+    tt.oldvalue = tt.value;
     return true;
   },
   revertStyle: function ()
@@ -306,9 +313,16 @@ var gDanbooruManager = {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
     var tt = document.getElementById("tagType");
+
+    var oldstyle = prefs.getCharPref(tt.value);
     // throws if there is no user value
     try { prefs.clearUserPref(tt.value); } catch(ex) { }
     var style = prefs.getCharPref(tt.value);
+
+    // don't actually clear the old value
+    if (!document.documentElement.instantApply)
+      prefs.setCharPref(tt.value, oldstyle);
+
     gDanbooruManager._styles[tt.value] = style;
     document.getElementById("styleBox").value = style;
   },
@@ -316,8 +330,13 @@ var gDanbooruManager = {
   {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-    var style = document.getElementById("styleBox").value;
-    gDanbooruManager._styles[document.getElementById("tagType").value] = style;
+    var styleName = document.getElementById("tagType").value;
+    var styleText = document.getElementById("styleBox").value;
+
+    if (document.documentElement.instantApply)
+      prefs.setCharPref(styleName, styleText);
+
+    gDanbooruManager._styles[styleName] = styleText;
     this._tagView.sid++;
     danbooruAddTagTypeStyleSheet();
   },
@@ -373,7 +392,7 @@ var gDanbooruManager = {
       this._styles[i+".selected"] = prefs.getCharPref(i+".selected");
     }
 
-    tagTypes.addEventListener("ValueChange", function(evt) { gDanbooruManager.tagTypeSelected.apply(this, [evt]); }, false);
+    tagTypes.addEventListener("ValueChange", gDanbooruManager.tagTypeSelected, false);
     tagTypes.selectedIndex = 0;
     danbooruAddTagTypeStyleSheet();
     //document.getElementById("url").focus();
@@ -397,6 +416,9 @@ var gDanbooruManager = {
     var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
     os.removeObserver(this, "danbooru-update-done");
     os.removeObserver(this, "danbooru-clear-done");
+
+    if (document.documentElement.instantApply)
+      this.onOK();
 
     this.uninit();
   },
@@ -452,7 +474,6 @@ var gDanbooruManager = {
       sbranch.setCharPref(i+".selected", this._styles[i+".selected"]);
     }
 
-    this.uninit();
     //var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
     //os.notifyObservers(null, "danbooru-options-changed", null);
     return true;

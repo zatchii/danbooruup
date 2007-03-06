@@ -59,6 +59,6 @@ treechildren.danbooru-autocomplete-treebody::-moz-tree-row(selected) {
 }
 
 treechildren.danbooru-autocomplete-treebody::-moz-tree-cell-text(selected) {
-  color: HighlightText !important;
+  color: HighlightText;
 }
 

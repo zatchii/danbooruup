@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruup-autocomplete.css" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
 
@@ -68,31 +69,35 @@
 				preference="pref.extensions.danbooruUp.hashing.sha1"
 				label="&danbooruUpOptions.hashingSHA1.label;"/>
 		</groupbox>
-		<checkbox id="checkSuppressComponentAlert"
-			preference="pref.extensions.danbooruUp.suppressComponentAlert"
-			label="&danbooruUpOptions.supressComponentAlert.label;"/>
+		<groupbox align="start">
+			<caption label="&danbooruUpOptions.notifications.label;"/>
+			<checkbox id="checkSuppressComponentAlert"
+				preference="pref.extensions.danbooruUp.suppressComponentAlert"
+				label="&danbooruUpOptions.suppressComponentAlert.label;"/>
+		</groupbox>
 	</prefpane>
 
 	<prefpane id="danbooruUpStylePane" flex="1" label="&danbooruUpOptions.styleTab.label;">
 		<preferences>
 		</preferences>
-		<vbox class="contentPane" flex="1">
+		<box>
 		<hbox flex="1">
 			<box id="tagTreeBox" flex="1">
-			<tree anonid="tree" class="danbooru-autocomplete-tree plain" hidecolumnpicker="true" id="tagTree" flex="1" width="300">
-				<treecols anonid="treecols">
-					<treecol id="tagTree-type" class="danbooru-autocomplete-treecol" flex="1"/>
-				</treecols>
-				<treechildren id="tagTreeBody" class="danbooru-autocomplete-treebody"/>
-			</tree>
+				<tree anonid="tree" class="danbooru-autocomplete-tree plain"
+						hidecolumnpicker="true" id="tagTree" flex="1" width="300">
+					<treecols anonid="treecols">
+						<treecol id="tagTree-type" class="danbooru-autocomplete-treecol" flex="1"/>
+					</treecols>
+					<treechildren id="tagTreeBody" class="danbooru-autocomplete-treebody"/>
+				</tree>
 
 			<!--
-			<tree anonid="tree" class="plain" hidecolumnpicker="true" id="tagTree" flex="1" width="300">
-				<treecols anonid="treecols">
-					<treecol id="tagTree-type" flex="1"/>
-				</treecols>
-				<treechildren id="tagTreeBody" />
-			</tree>
+				<tree anonid="tree" class="plain" hidecolumnpicker="true" id="tagTree" flex="1" width="300">
+					<treecols anonid="treecols">
+						<treecol id="tagTree-type" flex="1"/>
+					</treecols>
+					<treechildren id="tagTreeBody" />
+				</tree>
 				-->
 			</box>
 			<vbox flex="3">
@@ -106,50 +111,50 @@
 						accesskey="&danbooruUpOptions.applyStyle.accesskey;"
 						oncommand="gDanbooruManager.applyStyle();"/>
 				</hbox>
+				<separator class="thin"/>
 			</vbox>
 		</hbox>
-		</vbox>
+		</box>
 	</prefpane>
 
 	<prefpane id="danbooruUpDanbooruPane" flex="1" label="&danbooruUpOptions.danbooruTab.label;">
 		<preferences>
 		</preferences>
-	<vbox class="contentPane" flex="1">
-		<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>
-		<separator class="thin"/>
-		<label control="url" value="&danbooruUpOptions.posturi.label;"/>
-		<hbox align="start">
-			<textbox id="url" flex="1"
-				accesskey="&danbooruUpOptions.posturi.accesskey;"
-				oninput="gDanbooruManager.onHostInput(event.target);"
-				onkeypress="return gDanbooruManager.onHostKeyPress(event);"/>
-		</hbox>
-		<hbox pack="end">
-			<button id="btnAdd" disabled="true" label="&danbooruUpOptions.add.label;" default="true"
-				oncommand="gDanbooruManager.addDanbooru();"/>
-		</hbox>
-		<separator class="thin"/>
-		<tree id="danbooruTree" flex="1"
-			hidecolumnpicker="true"
-			onkeypress="gDanbooruManager.onDanbooruKeyPress(event);"
-			onselect="gDanbooruManager.onDanbooruSelected();">
-			<treecols>
-				<treecol id="siteCol" label="&danbooruUpOptions.treehead.sitename.label;" flex="3"
-					onclick="gDanbooruManager.onDanbooruSort('rawHost');"/>
-			</treecols>
-			<treechildren/>
-		</tree>
-		<separator class="thin"/>
-	</vbox>
-	<hbox align="end">
-		<hbox class="actionButtons" flex="1">
-			<button id="removeHost" disabled="true"
-				icon="remove"
-				label="&danbooruUpOptions.removedanbooru.label;"
-				oncommand="gDanbooruManager.onDanbooruDeleted();"/>
-			<spacer flex="1"/>
-		</hbox>
-	</hbox>
+		<vbox class="contentPane" flex="1">
+			<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>
+			<separator class="thin"/>
+			<label control="url" value="&danbooruUpOptions.posturi.label;"/>
+			<hbox align="start">
+				<textbox id="url" flex="1"
+					accesskey="&danbooruUpOptions.posturi.accesskey;"
+					oninput="gDanbooruManager.onHostInput(event.target);"
+					onkeypress="return gDanbooruManager.onHostKeyPress(event);"/>
+			</hbox>
+			<hbox pack="end">
+				<button id="btnAdd" disabled="true" label="&danbooruUpOptions.add.label;" default="true"
+					oncommand="gDanbooruManager.addDanbooru();"/>
+			</hbox>
+			<separator class="thin"/>
+			<tree id="danbooruTree" flex="1"
+				hidecolumnpicker="true"
+				onkeypress="gDanbooruManager.onDanbooruKeyPress(event);"
+				onselect="gDanbooruManager.onDanbooruSelected();">
+				<treecols>
+					<treecol id="siteCol" label="&danbooruUpOptions.treehead.sitename.label;" flex="3"
+						onclick="gDanbooruManager.onDanbooruSort('rawHost');"/>
+				</treecols>
+				<treechildren/>
+			</tree>
+			<separator class="thin"/>
+			<hbox class="actionButtons" flex="1" align="end">
+				<button id="removeHost" disabled="true"
+					icon="remove"
+					label="&danbooruUpOptions.removedanbooru.label;"
+					oncommand="gDanbooruManager.onDanbooruDeleted();"/>
+				<spacer flex="1"/>
+			</hbox>
+		</vbox>
+		<spacer flex="1"/>
 	</prefpane>
 	<prefpane id="danbooruUpAutocompletePane" flex="1" label="&danbooruUpOptions.autocompleteTab.label;">
 		<preferences>
@@ -172,7 +177,6 @@
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.interval"
 			name="extensions.danbooruUp.autocomplete.update.interval"	type="int"/>
 		</preferences>
-		<vbox>
 		<hbox>
 			<checkbox id="enableAC"
 				label="&danbooruUpOptions.enableAC.label;"
@@ -250,7 +254,6 @@
 			</hbox>
 			<separator class="thick"/>
 		</groupbox>
-		</vbox>
 	</prefpane>
 
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
