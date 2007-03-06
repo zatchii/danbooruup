@@ -377,7 +377,7 @@ this.log(this.browserWindows.length+' after unregistering');
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
-				if (winUri.path.match(/\/post\/(list|view|add)(\/|$)/) || 
+				if (winUri.path.match(/\/post\/(list|view|add)(\?|\/|$)/) || 
 					winUri.path.match(/\/tag\/(mass_edit|rename|aliases|implications|set_type)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;
