@@ -10,7 +10,7 @@
 	<RDF:Description RDF:about="urn:mozilla:install-manifest"
 		em:id="{7209145A-6A2A-42C1-99EB-4DE7293990E1}"
 		em:name="Danbooru Uploader"
-		em:version="0.3.0"
+		em:version="0.3.0.1"
 		em:type="2"
 		em:description="Uploads images to danbooru from the context menu."
 		em:creator="Buffered"
