@@ -44,8 +44,8 @@ toolbarbutton#prevSrcBtn[disabled="true"] {
 
 #danbooruUpOptions {
 	padding: 1px;
-	width: 40em;
-	/*height: 220em;*/
+	width: 40em !important;
+	height: 220em !important;
 }
 
 #danbooruUpOptions > prefpane {
@@ -53,13 +53,11 @@ toolbarbutton#prevSrcBtn[disabled="true"] {
 }
 
 #styleBox {
-	min-height: 15em;
+	min-height: 20em;
 }
-
 #danbooruTree {
 	min-height: 15em;
 }
-
 #updateInterval {
 	width: 5em;
 }

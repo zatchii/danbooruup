@@ -81,8 +81,6 @@ for (rule in style_arr) {
 	cssdec += ".danbooruup-ac > ul > li"+ (rule.match(/\.selected$/) || '') +" > span.danbooru-tag-type-" + rule.match(/[^.]+/) + " { " + style_arr[rule] + " }\n";
 }
 
-GM_log(cssdec);
-
 // add the CSS
 var style = document.createElement("style");
 

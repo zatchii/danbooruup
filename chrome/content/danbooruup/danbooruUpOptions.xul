@@ -1,10 +1,14 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<?xml-stylesheet href="chrome://mozapps/content/preferences/preferences.css" type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruup-autocomplete.css" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
 
-<!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
+<!DOCTYPE prefwindow [
+<!ENTITY % danbooruUpOptionsDTD SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
+%danbooruUpOptionsDTD; 
+]>
 
 <prefwindow id="danbooruUpOptions" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	windowtype="danbooruUp:Options"
@@ -82,7 +86,7 @@
 		</preferences>
 		<box>
 		<hbox flex="1">
-			<box id="tagTreeBox" flex="1">
+			<vbox id="tagTreeBox" flex="1">
 				<tree anonid="tree" class="danbooru-autocomplete-tree plain"
 						hidecolumnpicker="true" id="tagTree" flex="1" width="300">
 					<treecols anonid="treecols">
@@ -99,11 +103,11 @@
 					<treechildren id="tagTreeBody" />
 				</tree>
 				-->
-			</box>
+			</vbox>
 			<vbox flex="3">
 				<description>&danbooruUpOptions.style.description;</description>
-				<menulist id="tagType"/>
-				<textbox id="styleBox" flex="1" multiline="true"/>
+				<menulist id="tagType" />
+				<textbox id="styleBox" multiline="true"/>
 				<hbox pack="end">
 					<button id="btnRevertStyle" label="&danbooruUpOptions.revert.label;"
 						oncommand="gDanbooruManager.revertStyle();" tooltip="&danbooruUpOptions.revert.tooltip;"/>
@@ -111,7 +115,6 @@
 						accesskey="&danbooruUpOptions.applyStyle.accesskey;"
 						oncommand="gDanbooruManager.applyStyle();"/>
 				</hbox>
-				<separator class="thin"/>
 			</vbox>
 		</hbox>
 		</box>
@@ -147,8 +150,7 @@
 			</tree>
 			<separator class="thin"/>
 			<hbox class="actionButtons" flex="1" align="end">
-				<button id="removeHost" disabled="true"
-					icon="remove"
+				<button id="btnRemoveHost" disabled="true"
 					label="&danbooruUpOptions.removedanbooru.label;"
 					oncommand="gDanbooruManager.onDanbooruDeleted();"/>
 				<spacer flex="1"/>
@@ -258,20 +260,5 @@
 
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
-	<!--
-	<separator class="thin"/>
-	<hbox align="end" flex="1">
-		<hbox class="actionButtons" flex="1">
-			<spacer flex="1"/>
-			<button oncommand="if (gDanbooruManager.onOK()) close();"
-				label="&danbooruUpOptions.ok.label;"
-				accesskey="&danbooruUpOptions.ok.accesskey;"/>
-			<button oncommand="close();"
-				label="&danbooruUpOptions.cancel.label;"
-				accesskey="&danbooruUpOptions.cancel.accesskey;"/>
-		</hbox>
-		<resizer dir="bottomright"/>
-	</hbox>
-	-->
 </prefwindow>
 

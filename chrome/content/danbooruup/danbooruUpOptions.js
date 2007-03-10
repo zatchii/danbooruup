@@ -483,7 +483,7 @@ var gDanbooruManager = {
   {
     var hasSelection = this._tree.view.selection.count > 0;
     var hasRows = this._tree.view.rowCount > 0;
-    document.getElementById("removeHost").disabled = !hasRows || !hasSelection;
+    document.getElementById("btnRemoveHost").disabled = !hasRows || !hasSelection;
   },
 
   onDanbooruDeleted: function ()
@@ -493,7 +493,7 @@ var gDanbooruManager = {
       this.deleteSelectedItems(this._tree, this._view, this._danbooru, removedDanbooru);
     }
     var hasSelection = this._tree.view.selection.count > 0;
-    document.getElementById("removeHost").disabled = (!this._danbooru.length) || (this._tree.view.selection.count < 1);
+    document.getElementById("btnRemoveHost").disabled = (!this._danbooru.length) || (this._tree.view.selection.count < 1);
   },
 
   onDanbooruKeyPress: function (aEvent)
