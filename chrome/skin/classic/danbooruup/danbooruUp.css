@@ -1,6 +1,47 @@
 @namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 @namespace html url("http://www.w3.org/1999/xhtml");
 
+/* upload dialog */
+
+toolbarbutton#nextSrcBtn {
+	list-style-image: url("chrome://global/skin/toolbar/chevron.gif");
+}
+toolbarbutton#prevSrcBtn {
+	list-style-image: url("chrome://global/skin/toolbar/chevron-rtl.gif");
+}
+
+toolbarbutton#nextSrcBtn[disabled="true"],
+toolbarbutton#prevSrcBtn[disabled="true"] {
+	opacity: 0.5;
+}
+
+/* browser notification link */
+
+.danboorumsglink {
+	top: 10px;
+	text-decoration: underline;
+	color: blue;
+	cursor: pointer;
+	border: 1px solid transparent;
+	margin-top: -1px;
+	margin-bottom: 0px;
+}
+
+.danboorumsglink:hover:active {
+	color: red;
+}
+
+.danboorumsglink:focus {
+	border: 1px dotted black;
+}
+
+/* options dialog */
+
+.windowDialog, .windowDialog prefpane { padding: 0px; }
+.contentPane { margin: 9px 8px 5px 8px; }
+.zcontentPane { margin: 0px 0px 0px 0px; }
+.actionButtons { margin: 0px 3px 6px 3px !important; }
+
 #danbooruUpOptions {
 	padding: 1px;
 	width: 40em;
@@ -34,29 +75,6 @@
 	background-color: -moz-Field;
 	max-width: 15em;
 }
-
-.danboorumsglink {
-	top: 10px;
-	text-decoration: underline;
-	color: blue;
-	cursor: pointer;
-	border: 1px solid transparent;
-	margin-top: -1px;
-	margin-bottom: 0px;
-}
-
-.danboorumsglink:hover:active {
-	color: red;
-}
-
-.danboorumsglink:focus {
-	border: 1px dotted black;
-}
-
-.windowDialog, .windowDialog prefpane { padding: 0px; }
-.contentPane { margin: 9px 8px 5px 8px; }
-.zcontentPane { margin: 0px 0px 0px 0px; }
-.actionButtons { margin: 0px 3px 6px 3px !important; }
 
 #danbooruUpOptions radio[pane] {
 	list-style-image: url(chrome://browser/skin/preferences/Options.png);

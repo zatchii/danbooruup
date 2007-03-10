@@ -1,4 +1,3 @@
-<!-- Entities for the browser integration overlay go here -->
 <!ENTITY danbooru-image-label "Upload Image to Danbooru">
 <!ENTITY danbooru-image-accesskey "b">
 
@@ -18,4 +17,5 @@
 <!ENTITY danbooru-box-safe-label "Safe">
 <!ENTITY danbooru-box-danbooru-label "Danbooru:">
 <!ENTITY danbooru-box-danbooru-accesskey "d">
+<!ENTITY danbooru-box-switch-source-tooltip "Switch between document referrer, document location and image location">
 <!ENTITY danbooru-box-switch-tab-tooltip "Switch to Original Tab">

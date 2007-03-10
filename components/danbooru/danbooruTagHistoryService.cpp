@@ -105,10 +105,10 @@ static const char *kTagTableName = "tags";
 #define kDropTempTagTable "DROP TABLE tagselect"
 // and the cleanup join
 #define kTagClean "DELETE FROM tags WHERE id IN (SELECT t.id FROM tags t LEFT OUTER JOIN tagselect s ON t.id=s.id WHERE s.id IS NULL)"
-#define kTagInsert "INSERT OR REPLACE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
+#define kTagInsert "INSERT OR IGNORE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
+#define kTagUpdateType "UPDATE tags SET tag_type=?1 WHERE id=?2"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
-#define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
-#define kTagSearchCount "SELECT COUNT(*) FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC"
+#define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC LIMIT ?2"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
 #define kRemoveAll "DELETE FROM tags"
@@ -447,6 +447,10 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 				mInsertStmt->BindStringParameter(1, tagname);
 				mInsertStmt->BindStringParameter(2, tagtype);
 				mInsertStmt->Execute();
+				// update tag type since sqlite doesn't have an ON CONFLICT UPDATE clause like mysql
+				mUpdateTypeStmt->BindStringParameter(0, tagtype);
+				mUpdateTypeStmt->BindStringParameter(1, tagid);
+				mUpdateTypeStmt->Execute();
 			}
 		}
 		mDB->CommitTransaction();
@@ -982,13 +986,13 @@ danbooruTagHistoryService::OpenDatabase()
 	// create statements for regular use
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
 	DU_ENSURE_SUCCESS;
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagUpdateType), getter_AddRefs(mUpdateTypeStmt));
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagRemoveByID), getter_AddRefs(mRemoveByIDStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIncrement), getter_AddRefs(mIncrementStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
-	DU_ENSURE_SUCCESS;
-	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearchCount), getter_AddRefs(mSearchCountStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
 	DU_ENSURE_SUCCESS;
@@ -1074,6 +1078,7 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		}
 
 		mSearchStmt->BindStringParameter(0, likeInputName);
+		mSearchStmt->BindInt32Parameter(1, -1);
 		mSearchStmt->ExecuteStep(&row);
 		while (row)
 		{
@@ -1100,19 +1105,9 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 	return NS_OK;
 }
 
-void
-danbooruTagHistoryService::CleanupTagArray(PRUnichar**& aArray, PRUint32& aCount)
-{
-	for (PRInt32 i = aCount - 1; i >= 0; i--) {
-		nsMemory::Free(aArray[i]);
-	}
-	nsMemory::Free(aArray);
-	aArray = NULL;
-	aCount = 0;
-}
-
 NS_IMETHODIMP
 danbooruTagHistoryService::SearchTags(const nsAString &aInputName,
+					const PRInt32 aLimit,
 					danbooruIAutoCompleteArrayResult **_retval)
 {
 	NS_ENSURE_ARG_POINTER(_retval);
@@ -1122,51 +1117,25 @@ danbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 	NS_ENSURE_SUCCESS(rv, rv);
 
 	PRBool row;
-	//PRUint32 ct;
-	//mSearchCountStmt->BindStringParameter(0, aInputName);
-	//mSearchCountStmt->ExecuteStep(&row);
-	//ct = (PRUint32)mSearchCountStmt->AsInt32(0);
-	//mSearchCountStmt->Reset();
 
 	danbooruIAutoCompleteArrayResult *result = new danbooruAutoCompleteArrayResult;
 
-	//if(ct)
+	mSearchStmt->BindStringParameter(0, aInputName);
+	mSearchStmt->BindInt32Parameter(1, aLimit);
+	mSearchStmt->ExecuteStep(&row);
+
+	nsString name;
+	PRUint32 type;
+	while (row)
 	{
-		/*
-	 	PRUnichar** array = (PRUnichar **)nsMemory::Alloc(ct * sizeof(PRUnichar *));
-		if (!array)
-			return NS_ERROR_OUT_OF_MEMORY;
-		*/
-		mSearchStmt->BindStringParameter(0, aInputName);
+		name = mSearchStmt->AsSharedWString(0, nsnull);
+		type = (PRUint32)mSearchStmt->AsInt32(1);
+
+		result->AddRow(name, type);
 		mSearchStmt->ExecuteStep(&row);
-
-		//PRUint32 index = 0;
-		nsString name;
-		PRUint32 type;
-		while (row
-			/* && index < ct */)
-		{
-			name = mSearchStmt->AsSharedWString(0, nsnull);
-			type = (PRUint32)mSearchStmt->AsInt32(1);
-
-			result->AddRow(name, type);
-			/*
-			array[index] = NS_StringCloneData(name);
-			if (!array[index] || !*(array[index])) {
-				CleanupTagArray(array, index);
-				mSearchStmt->Reset();
-				return NS_ERROR_OUT_OF_MEMORY;
-			}
-			*/
-			mSearchStmt->ExecuteStep(&row);
-			//index++;
-		}
-		mSearchStmt->Reset();
-		/*
-		*aResult = array;
-		*aCount = ct;
-		*/
 	}
+	mSearchStmt->Reset();
+
 	NS_ADDREF(*_retval = result);
 	return NS_OK;
 }

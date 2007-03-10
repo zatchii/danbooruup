@@ -392,9 +392,10 @@ this.log(this.browserWindows.length+' after unregistering');
 		return;
 	},
 
-	searchTags: function (s)
+	searchTags: function (s, l)
 	{
-		res = Cc["@unbuffered.info/danbooru/taghistory-service;1"].getService(Ci.danbooruITagHistoryService).searchTags(s);
+		res = Cc["@unbuffered.info/danbooru/taghistory-service;1"]
+			.getService(Ci.danbooruITagHistoryService).searchTags(s, l);
 		wrap = new ResultWrapper(res);
 		return wrap;
 	},
@@ -410,6 +411,19 @@ this.log(this.browserWindows.length+' after unregistering');
 		sandbox.GM_log = danbooruUpHitch(this, "log");
 		sandbox.danbooruUpSearchTags = danbooruUpHitch(this, "searchTags");
 		sandbox.__proto__ = safeWin;
+
+		// put useful declarations into style array inside sandbox
+		const TAGTYPE_COUNT = 5;
+		var rx = new RegExp("s*(background(-w+)?|border(-w+)?|color|font(-w+)?|padding(-w+)?|letter-spacing|margin(-w+)?|outline(-w+)?|text(-w+)?)s*:.*;$","gm");
+		var prefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
+
+		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
+		for(var i=0, rule; i<TAGTYPE_COUNT; i++) {
+			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('');
+			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
+			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('');
+			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
+		}
 
 		try {
 			// load in the source from the content package

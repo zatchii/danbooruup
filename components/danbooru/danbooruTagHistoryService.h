@@ -93,17 +93,16 @@ protected:
   nsCOMPtr<mozIStorageConnection> mDB;
 
   nsCOMPtr<mozIStorageStatement> mInsertStmt;
+  nsCOMPtr<mozIStorageStatement> mUpdateTypeStmt;
   nsCOMPtr<mozIStorageStatement> mRemoveByIDStmt;
   nsCOMPtr<mozIStorageStatement> mIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mSearchStmt;
-  nsCOMPtr<mozIStorageStatement> mSearchCountStmt;
   nsCOMPtr<mozIStorageStatement> mExistsStmt;
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
   nsCOMPtr<mozIStorageStatement> mRowCountStmt;
 
   // XML processing
   nsresult ProcessTagXML(void *, PRBool);
-  void CleanupTagArray(PRUnichar**&, PRUint32&);
 
   static PRBool TagHistoryEnabled();
 

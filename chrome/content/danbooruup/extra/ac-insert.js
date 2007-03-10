@@ -1,6 +1,5 @@
 // insert our prototype and scriptaculous scripts into the page
 // vim:set encoding=utf-8:
-
 const RETRY_INTERVAL = 100;
 const MAX_TRIES = 5;
 
@@ -41,11 +40,10 @@ function tagSelector(instance) {
 		entry = entry.substr(1);
 	}
 
-	result = danbooruUpSearchTags(entry);
+	result = danbooruUpSearchTags(entry, instance.options.choices);
 
 	if (!tags || !result.getMatchCount()) return '<ul></ul>';
 
-	//tags = tags.slice(0, instance.options.choices);
 	var count = Math.min(instance.options.choices, result.getMatchCount());
 
 	// div is for html escaping tag names
@@ -54,24 +52,42 @@ function tagSelector(instance) {
 	div.appendChild(text);
 	for(var i=0; i<count; i++) {
 		text.textContent = result.getValueAt(i);
-		tags.push("<li class=\""+ result.getStyleAt(i) + "\">" + div.innerHTML + "</li>");
+		tags.push("<li><span class=\""+ result.getStyleAt(i) + "\">" + div.innerHTML + "</span></li>");
 	}
 	delete result;
 
 	return "<ul>" + tags.join('') + "</ul>";
 }
 
-// get the pixel height of the A element after the big danbooru link, to size things in multiples of lines
+// get the pixel height of an A element, to size things in multiples of lines
 try {
-var lineHeight = document.getElementsByTagName("a")[1].offsetHeight;
+	var anode = document.createElement('a');
+	anode.style.visibility = 'hidden';
+	anode.style.position = 'absolute';
+	anode.innerHTML = 'Test';
+	document.body.appendChild(anode);
+	var lineHeight = anode.offsetHeight;
+	document.body.removeChild(anode);
 } catch(e) { lineHeight = 16; }
+
+// create the CSS
+var cssdec = ".danbooruup-ac { border: 1px solid black; overflow: auto; background: #fff; min-height: "+lineHeight+"px; z-index: 1000 !important; }\n" +
+		".danbooruup-ac > ul { min-width: inherit; }\n" +
+		".danbooruup-ac > ul > li { display: block; text-align: left; background: #fff; margin: 0; padding: 0; padding-left: 4px; padding-right: 4px;}\n" +
+		".danbooruup-ac > ul > li.selected { background: #ffc; }\n";
+
+// tag style rules
+for (rule in style_arr) {
+	cssdec += ".danbooruup-ac > ul > li"+ (rule.match(/\.selected$/) || '') +" > span.danbooru-tag-type-" + rule.match(/[^.]+/) + " { " + style_arr[rule] + " }\n";
+}
+
+GM_log(cssdec);
 
 // add the CSS
 var style = document.createElement("style");
-style.innerHTML = ".danbooruup-ac { border: 1px solid black; overflow: auto; background: #fff; min-height: "+lineHeight+"px; z-index: 1000 !important; }\n" +
-		".danbooruup-ac ul { min-width: inherit; }\n" +
-		".danbooruup-ac li { display: block; text-align: left; background: #fff; margin: 0; padding: 0; padding-left: 4px; padding-right: 4px;}\n" +
-		".danbooruup-ac li.selected { background: #ffc; }";
+
+style.innerHTML = cssdec;
+
 document.getElementsByTagName("head")[0].appendChild(style);
 
 // creates and hooks the actual Autocompleter object

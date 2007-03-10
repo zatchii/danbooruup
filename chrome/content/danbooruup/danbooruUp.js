@@ -43,10 +43,10 @@ function danbooruUpHitch(ctx, what)
 
 function danbooruImageContext(e) {
 	document.getElementById("danbooru-image").hidden = true;
-	if( gContextMenu.onImage ) {
+	if( gContextMenu.onImage && danbooruHelperService ) {
 		document.getElementById("danbooru-image").hidden = false;
+		danbooruImgNode = gContextMenu.target;
 	}
-	danbooruImgNode = gContextMenu.target;
 	return;
 }
 
@@ -61,6 +61,8 @@ danbooruUpObject.uploadImage = function() {
 	var locationURI	= ioService.newURI(danbooruImgNode.ownerDocument.location.href,
 					danbooruImgNode.ownerDocument.characterSet, null);
 	var imgURI = ioService.newURI(imgURIStr, danbooruImgNode.ownerDocument.characterSet, locationURI);
+
+	var referrerHref = danbooruImgNode.ownerDocument.referrer;
 
 	// update synchronously
 	try {
@@ -77,7 +79,7 @@ danbooruUpObject.uploadImage = function() {
 	{
 		var w = en.getNext();
 		if (w.arguments[0].wind == thistab) {
-			w.arguments = [{imageLocation:locationURI, imageURI:imgURI, wind:thistab}];
+			w.arguments = [{imageLocation:locationURI, imageURI:imgURI, referrer:referrerHref, wind:thistab}];
 			w.init();
 			w.focus();
 			return;
@@ -88,7 +90,7 @@ danbooruUpObject.uploadImage = function() {
 	// we need to use a contentWindow's openDialog since window.openDialog will spawn only one
 	(new XPCNativeWrapper(thistab.linkedBrowser.contentWindow)).openDialog("chrome://danbooruup/content/danbooruUpBox.xul",
 		"danbooruUpBox", "centerscreen,chrome,dialog=no,resizable=yes",
-		{imageLocation:locationURI, imageURI:imgURI, wind:thistab});
+		{imageLocation:locationURI, imageURI:imgURI, referrer:referrerHref, wind:thistab});
 }
 
 danbooruUpObject.contentLoad = function(e)
