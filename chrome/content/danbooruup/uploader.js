@@ -637,9 +637,9 @@ danbooruPoster.prototype = {
 			var str;
 
 			if (status == kErrorNetTimeout)
-				str = errmsg.FormatStringFromName('netTimeout', [channel.URI.spec])
+				str = errmsg.formatStringFromName('netTimeout', [channel.URI.spec], 1)
 			else if (status == kErrorNetRefused)
-				str = errmsg.FormatStringFromName('connectionFailure', [channel.URI.spec])
+				str = errmsg.formatStringFromName('connectionFailure', [channel.URI.spec], 1)
 
       /*
 			var notificationBox = this.mTab.linkedBrowser.parentNode;

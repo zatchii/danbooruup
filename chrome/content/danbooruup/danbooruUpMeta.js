@@ -70,11 +70,11 @@ function getSize(url) {
 	catch(ex) {}
 	try
 	{
+		var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+				.getService(Components.interfaces.nsIIOService);
+		var uriuri = ioService.newURI(url, window.arguments[0].ownerDocument.characterSet, null);
 		if (uriuri.scheme == "file")
 		{
-			var ioService = Components.classes["@mozilla.org/network/io-service;1"]
-					.getService(Components.interfaces.nsIIOService);
-			var uriuri = ioService.newURI(url, window.arguments[0].ownerDocument.characterSet, null);
 			var channel = ioService.newChannelFromURI(uriuri);
 			channel.QueryInterface(Components.interfaces.nsIFileChannel);
 			if(hashMD5 || hashSHA1) {
