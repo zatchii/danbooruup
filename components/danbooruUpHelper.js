@@ -332,6 +332,94 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 	},
 
+	/*
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const ioService		= Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+aURL = "http://localhost:61438/sqlite.db.gz";
+
+var listener = {
+	onStartRequest: function(request, ctxt) {
+	},
+
+	onStopRequest: function(request, ctxt, status) {
+		request.QueryInterface(Ci.nsIHttpChannel);
+		print('stop ' + status +"\n");
+		print('stop ' + request.responseStatus + ' ' + request.responseStatusText + " \n");
+		if(request.responseStatus == 200) {
+			outStr.flush();
+			fileStream.finish();
+		} else {
+			fileStream.close();
+		}
+	},
+
+	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
+	{
+		try {
+			outStr.writeFrom(aInputStream, aInputStream.available());
+			//outStr.writeFrom(aInputStream, aCount);
+		} catch(e) {
+			alert(e);
+		}
+	}
+};
+
+var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties)
+var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
+outFile.append("danboorurelated.sqlite");
+
+var channel = ioService.newChannel(aURL, null, null);
+channel.QueryInterface(Components.interfaces.nsIHttpChannel);
+if (outFile.exists())
+{
+	var modDate = new Date();
+	modDate.setTime(outFile.lastModifiedTime);
+	channel.setRequestHeader("If-Modified-Since", modDate.toUTCString(), false);
+}
+
+var fileStream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream)
+		.QueryInterface(Ci.nsISafeOutputStream);
+fileStream.init(outFile, 0x02 | 0x08 | 0x20, 0600, 0);
+
+var outStr = Components.classes["@mozilla.org/network/buffered-output-stream;1"]
+		.createInstance(Components.interfaces.nsIBufferedOutputStream)
+		.QueryInterface(Components.interfaces.nsIOutputStream);
+outStr.init(fileStream, 65536);
+
+var converter = Cc["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"].createInstance(Components.interfaces.nsIStreamConverter);
+converter.asyncConvertData("gzip", "uncompressed", listener, null);
+
+channel.asyncOpen(converter, null);
+	*/
+
+	downloadRelatedTagDB: function(aURL)
+	{
+		var channel = ioService.newChannel(aURL, null, null);
+		channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
+		channel.notificationCallbacks = this;
+
+		var downloader = Components.classes["@mozilla.org/network/downloader;1"]
+			.createInstance(Ci.nsIDownloader);
+
+		var listener = {
+			onDownloadComplete: function(downloader, request, ctxt, status, result) {
+				if (doInitialBackup)
+					copyToOverwriting(result, backupDir, makeName('initial'));
+				if (doDailyBackup)
+					copyToOverwriting(result, backupDir, dailyBackupFileName);
+
+				aCallback.call(savedthis);
+			},
+		}
+
+		downloader.init(listener, backupFile);
+		try {
+			channel.asyncOpen(downloader, null);
+		} catch(e) {
+		}
+	},
+
 	//
 	// danbooruSiteAutocompleter
 	//
@@ -377,7 +465,8 @@ this.log(this.browserWindows.length+' after unregistering');
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
-				if (winUri.path.match(/\/post\/(list|view|add)(\?|\/|$)/) || 
+				if (winUri.path.match(/\/post\/(list|view|show|add|upload)(\/|$)/) || 
+					winUri.path.match(/\/post(\?|\/index|\/|$)/) ||
 					winUri.path.match(/\/tag\/(mass_edit|rename|aliases|implications|set_type)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;

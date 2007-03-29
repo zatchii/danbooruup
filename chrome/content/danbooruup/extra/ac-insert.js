@@ -129,11 +129,11 @@ function createAC(elementID, options)
 }
 
 // create the autocomplete popups
-// for post/list and the main index
+// for post/(list|index) and the static index
 createAC("tags", {isSearchField: true});
 
-// for post/view and post/add
-if(document.location.href.match(/\/post\/(view|add)(\/|$)/))
+// for post/(view|show) and post/(add|upload)
+if(document.location.href.match(/\/post\/(view|show|add|upload)(\/|$)/))
 {
 	createAC("post_tags");
 }
