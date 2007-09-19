@@ -166,7 +166,8 @@ function addMD5Field()
 	md5row.appendChild(md5label);
 	var md5box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
 	md5box.setAttribute("id", "image-md5-text");
-	md5box.readOnly=true;
+	// apparently setting textbox.readOnly doesn't work
+	md5box.setAttribute("readonly", "true");
 	md5row.appendChild(md5box);
 	eFileSize.parentNode.insertBefore(md5row, eFileSize.nextSibling);
 }
@@ -186,7 +187,7 @@ function addSHA1Field()
 	sha1row.appendChild(sha1label);
 	var sha1box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
 	sha1box.setAttribute("id", "image-sha1-hex-text");
-	sha1box.readOnly=true;
+	sha1box.setAttribute("readonly", "true");
 	sha1row.appendChild(sha1box);
 
 	eFileSize.parentNode.insertBefore(sha1row, eFileSize.nextSibling);
@@ -203,7 +204,7 @@ function addSHA1Field()
 	sha1row.appendChild(sha1label);
 	sha1box = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:textbox");
 	sha1box.setAttribute("id", "image-sha1-base32-text");
-	sha1box.readOnly=true;
+	sha1box.setAttribute("readonly", "true");
 	sha1row.appendChild(sha1box);
 
 	eFileSize.parentNode.insertBefore(sha1row, eFileSize.nextSibling);

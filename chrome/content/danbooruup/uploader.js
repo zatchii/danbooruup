@@ -479,6 +479,7 @@ danbooruPoster.prototype = {
 		var errs="";
 		var viewurl="";
 		var str="";
+		var success=false;
 
 		if(status == Components.results.NS_OK)
 		{
@@ -495,20 +496,31 @@ danbooruPoster.prototype = {
 
 				var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"].createInstance(Components.interfaces.nsIDOMParser);
 				var doc = parser.parseFromString(str, "application/xml");
-				viewurl = doc.evaluate("/response/location/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
-				errs = doc.evaluate("/response/reason/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
 
-				if(doc.evaluate("/response/success/text()", doc, null, XPathResult.BOOLEAN_TYPE, null).booleanValue) {
+				// <response> tag with children
+				if (doc.evaluate("/response/success", doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
+					viewurl = doc.evaluate("/response/location/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
+					errs = doc.evaluate("/response/reason/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
+					success = doc.evaluate("/response/success/text()", doc, null, XPathResult.BOOLEAN_TYPE, null).booleanValue;
+				} else {
+					// <response> tag with attributes
+					viewurl = doc.evaluate("/response/@location", doc, null, XPathResult.STRING_TYPE, null).stringValue;
+					errs = doc.evaluate("/response/@reason", doc, null, XPathResult.STRING_TYPE, null).stringValue;
+					success = doc.evaluate("/response/@success", doc, null, XPathResult.STRING_TYPE, null).stringValue == "true";
+				}
+
+				if(success) {
 					addNotification(this.mTab, 
 							danbooruUpMsg.GetStringFromName("danbooruUp.msg.uploaded"),
 							"chrome://danbooruup/skin/icon.ico",
 							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, viewurl);
 				} else {
-					// failure
 					if(errs == "duplicate")	{
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
 					} else if(errs == "md5 mismatch") {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.corruptupload");
+					} else if(errs == "access denied") {
+						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.accessdenied");
 					} else {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.unhandled") + " " + errs;
 					}
@@ -574,6 +586,12 @@ danbooruPoster.prototype = {
 						alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+e);
 						return;
 					}
+				}
+
+				// plain 500 server errors and the like
+				if(!str)
+				{
+					str = channel.responseStatus + ' ' + channel.responseStatusText;
 				}
 
 				// FIXME: newlines do not work in any fashion

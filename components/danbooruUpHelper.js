@@ -244,9 +244,10 @@ this.log(this.browserWindows.length+' after unregistering');
 				return e.result
 		}
 
+		locationURL.query = "limit=0";
 		if(this.mMaxID>0 && !aFull)
 		{
-			locationURL.query = "after_id="+(this.mMaxID+1);
+			locationURL.query += "&after_id="+(this.mMaxID+1);
 		}
 		dump("using " + locationURL.spec + "\n");
 
@@ -454,8 +455,14 @@ channel.asyncOpen(converter, null);
 
 		var unsafeWin = win.wrappedJSObject;
 		var unsafeLoc = new XPCNativeWrapper(unsafeWin, "location").location;
+		var protocol = new XPCNativeWrapper(unsafeLoc, "protocol").protocol;
 		var href = new XPCNativeWrapper(unsafeLoc, "href").href;
-		var winUri = ioService.newURI(href, null, null);
+		// to shut up the complaint about the following QI in the case of about:blank and such
+		var scheme = ioService.extractScheme(href);
+		if (scheme != "http" && scheme != "https")
+			return;
+
+		var winUri = ioService.newURI(href, null, null).QueryInterface(Ci.nsIURL);
 
 		var sites = prefBranch.getCharPref("extensions.danbooruUp.postadduri").split("`");
 
@@ -465,9 +472,9 @@ channel.asyncOpen(converter, null);
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
-				if (winUri.path.match(/\/post\/(list|view|show|add|upload)(\/|$)/) || 
-					winUri.path.match(/\/post(\?|\/index|\/|$)/) ||
-					winUri.path.match(/\/tag\/(mass_edit|rename|aliases|implications|set_type)(\/|$)/)) {
+				if (winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html$|$)/) || 
+					winUri.filePath.match(/\/post(\/index(\.html)?|\/|$)/) ||
+					winUri.filePath.match(/\/tag(\/mass_edit|\/rename|\/edit|_alias|_implication)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;
 				}

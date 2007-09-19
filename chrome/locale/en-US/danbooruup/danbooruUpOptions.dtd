@@ -28,7 +28,7 @@
 <!ENTITY danbooruUpOptions.suppressComponentAlert.label	"Suppress missing component alert dialog">
 
 <!ENTITY danbooruUpOptions.styleTab.label		"Tag Styles">
-<!ENTITY danbooruUpOptions.style.description		"Enter CSS rules for tag types here. Style changes will only take effect for newly-opened windows.">
+<!ENTITY danbooruUpOptions.style.description		"Enter CSS rules for tag types here. Style changes will only take effect for newly-opened upload windows.">
 <!ENTITY danbooruUpOptions.revert.label			"Restore Default">
 <!ENTITY danbooruUpOptions.revert.tooltip		"Restores the currently selected style to the default value.">
 <!ENTITY danbooruUpOptions.applyStyle.label		"Apply Styles to Preview">

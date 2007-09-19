@@ -95,7 +95,7 @@ danbooruUpObject.uploadImage = function() {
 
 danbooruUpObject.contentLoad = function(e)
 {
-	danbooruHelperService.contentLoaded(e.target.defaultView);
+	danbooruHelperService.contentLoaded({ wrappedJSObject: e.target.defaultView.wrappedJSObject });
 }
 
 danbooruUpObject.init = function(e) {
