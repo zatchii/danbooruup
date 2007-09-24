@@ -108,7 +108,7 @@ static const char *kTagTableName = "tags";
 #define kTagInsert "INSERT OR IGNORE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
 #define kTagUpdateType "UPDATE tags SET tag_type=?1 WHERE id=?2"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
-#define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ORDER BY value DESC, name ASC LIMIT ?2"
+#define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ESCAPE '\\' ORDER BY value DESC, name ASC LIMIT ?2"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
 #define kRemoveAll "DELETE FROM tags"
@@ -1070,8 +1070,10 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		nsString name, likeInputName;
 		PRUint32 type;
 		NS_StringCopy(likeInputName, aInputName);
-		// change * wildcard to SQL % wildcard, escaping the actual %s first
+		// escape SQL wildcards first, and change * wildcard to SQL % wildcard
+		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("\\"), NS_LITERAL_STRING("\\\\"));
 		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("%"), NS_LITERAL_STRING("\\%"));
+		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("_"), NS_LITERAL_STRING("\\_"));
 		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("*"), NS_LITERAL_STRING("%"));
 		if(FindChar(aInputName, '*') == -1) {
 			likeInputName.Append(NS_LITERAL_STRING("%"));

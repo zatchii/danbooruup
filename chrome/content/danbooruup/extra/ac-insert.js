@@ -28,6 +28,8 @@ function tagSelector(instance) {
 	var tags = [];
 	var result;
 
+	entry = entry.replace(/\\/g, '\\\\');
+	entry = entry.replace(/_/g, '\\_');
 	if (entry.indexOf('*') == -1)
 		entry += '%';
 	else
