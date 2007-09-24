@@ -1,8 +1,8 @@
 /* Default prefs for DanbooruUp */
-pref("extensions.danbooruUp.postadduri", "http://danbooru.donmai.us/api/add_post");
+pref("extensions.danbooruUp.postadduri", "http://miezaru.donmai.us/post/create.xml");
 pref("extensions.danbooruUp.postadduri.selected", 0);
 pref("extensions.danbooruUp.fileurlsource", false);
-pref("extensions.danbooruUp.updateuri", "http://danbooru.donmai.us/api/find_tags");
+pref("extensions.danbooruUp.updateuri", "http://miezaru.donmai.us/tag/index.xml");
 pref("extensions.danbooruUp.suppressComponentAlert", false);
 pref("extensions.danbooruUp.autocomplete.enabled", true);
 pref("extensions.danbooruUp.autocomplete.site.enabled", true);
