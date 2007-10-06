@@ -98,8 +98,10 @@ protected:
   nsCOMPtr<mozIStorageStatement> mIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mSearchStmt;
   nsCOMPtr<mozIStorageStatement> mExistsStmt;
+  nsCOMPtr<mozIStorageStatement> mIDForNameStmt;
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
   nsCOMPtr<mozIStorageStatement> mRowCountStmt;
+  nsCOMPtr<mozIStorageStatement> mRelSearchStmt;
 
   // XML processing
   nsresult ProcessTagXML(void *, PRBool);

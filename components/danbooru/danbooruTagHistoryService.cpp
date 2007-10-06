@@ -51,6 +51,7 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsISupportsPrimitives.h"
+#include "nsIConsoleService.h"
 
 #include "danbooruAutoCompleteArrayResult.h"
 
@@ -92,6 +93,7 @@
 #define PREF_FORMFILL_ENABLE "enabled"
 
 static const char *kTagHistoryFileName = "danbooruhistory.sqlite";
+static const char *kRelTagFileName = "danboorurelated.sqlite";
 
 static const char *kTagTableName = "tags";
 
@@ -111,14 +113,20 @@ static const char *kTagTableName = "tags";
 #define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ESCAPE '\\' ORDER BY value DESC, name ASC LIMIT ?2"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
+#define kTagIDForName "SELECT id FROM tags WHERE name=?1"
 #define kRemoveAll "DELETE FROM tags"
 #define kMaxID "SELECT max(id) FROM tags"
 #define kRowCount "SELECT count() FROM tags"
+
+// related tags
+#define kAttachRTDB "ATTACH ?1 AS \"rt\""
+#define kRelTagSearch "SELECT t.name, t.tag_type FROM tags t JOIN rt.cached_tags r ON t.id = r.related_tag_id WHERE r.related_tag_id != ?1 AND r.tag_id = ?1 ORDER BY t.tag_type ASC, t.value DESC, r.post_count DESC"
 
 // migration
 #define kTableIsV2 "SELECT tag_type FROM tags LIMIT 0"
 #define kTableMigrateV1_V2 "ALTER TABLE tags ADD COLUMN tag_type INTEGER NOT NULL DEFAULT 0"
 
+// maintenance
 #define kTableHasNoValueConstraintCheck1 "INSERT OR REPLACE INTO tags (id, name, tag_type) VALUES (-1,'danbooruup_null_test',0)"
 #define kTableHasNoValueConstraintCheck2 "SELECT COUNT(*) FROM tags WHERE name='danbooruup_null_test' AND value IS NULL"
 #define kTableHasNoValueConstraintCheck3 "DELETE FROM tags WHERE name = 'danbooruup_null_test'"
@@ -874,6 +882,10 @@ danbooruTagHistoryService::ReportDBError()
 {
 	nsCString err;
 	mDB->GetLastErrorString(err);
+
+	nsCOMPtr<nsIConsoleService> mConsole = do_GetService("@mozilla.org/consoleservice;1");
+	mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(err).get());
+
 	NS_ERROR(err.get());
 }
 
@@ -983,6 +995,44 @@ danbooruTagHistoryService::OpenDatabase()
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM"));
 	}
 
+	// attach related tags DB if it exists
+	{
+		nsCOMPtr <nsIFile> relatedFile;
+		rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(relatedFile));
+		if(NS_FAILED(rv))
+		{
+			rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(relatedFile));
+			if (NS_FAILED(rv))
+				return rv;
+		}
+		relatedFile->Append(NS_ConvertUTF8toUTF16(kRelTagFileName));
+		PRBool retval = PR_FALSE;
+		rv = relatedFile->Exists(&retval);
+		if(NS_SUCCEEDED(rv) && retval)
+		{
+			nsCOMPtr<mozIStorageStatement> attachStmt;
+			rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kAttachRTDB), getter_AddRefs(attachStmt));
+			DU_ENSURE_SUCCESS;
+
+			nsString path;
+			relatedFile->GetPath(path);
+			attachStmt->BindStringParameter(0, path);
+			attachStmt->Execute();
+			PRInt32 err;
+			mDB->GetLastError(&err);
+			if(err)
+				rv = NS_ERROR_FAILURE;
+			else
+				rv = NS_OK;
+	PR_fprintf(PR_STDERR, "attaching %s rv %d\n", kAttachRTDB, rv);
+			//TODO: figure out what can actually go wrong
+			DU_ENSURE_SUCCESS;
+
+			rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRelTagSearch), getter_AddRefs(mRelSearchStmt));
+			DU_ENSURE_SUCCESS;
+		}
+	}
+
 	// create statements for regular use
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
 	DU_ENSURE_SUCCESS;
@@ -995,6 +1045,8 @@ danbooruTagHistoryService::OpenDatabase()
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
+	DU_ENSURE_SUCCESS;
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIDForName), getter_AddRefs(mIDForNameStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kMaxID), getter_AddRefs(mMaxIDStmt));
 	DU_ENSURE_SUCCESS;
@@ -1137,6 +1189,81 @@ danbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 		mSearchStmt->ExecuteStep(&row);
 	}
 	mSearchStmt->Reset();
+
+	PRUint32 matchCount;
+	result->GetMatchCount(&matchCount);
+	if (matchCount > 0) {
+		result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);
+		result->SetDefaultIndex(0);
+	} else {
+		result->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
+		result->SetDefaultIndex(-1);
+	}
+
+	NS_ADDREF(*_retval = result);
+	return NS_OK;
+}
+
+NS_IMETHODIMP
+danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
+					danbooruIAutoCompleteArrayResult **_retval)
+{
+	NS_ENSURE_ARG_POINTER(_retval);
+	*_retval = nsnull;
+
+	nsresult rv = OpenDatabase();
+	NS_ENSURE_SUCCESS(rv, rv);
+
+	PRBool row;
+	PRUint32 id;
+
+	danbooruIAutoCompleteArrayResult *result = new danbooruAutoCompleteArrayResult;
+
+	mIDForNameStmt->BindStringParameter(0, aInputName);
+	mIDForNameStmt->ExecuteStep(&row);
+	if (row)
+	{
+		PRBool isnull;
+		mIDForNameStmt->GetIsNull(0, &isnull);
+		if (isnull)
+			id = -1;
+		else
+			id = (PRUint32)mIDForNameStmt->AsInt32(0);
+	}
+	mIDForNameStmt->Reset();
+	if (!row || id == -1) {
+		result->SetSearchResult(nsIAutoCompleteResult::RESULT_FAILURE);
+		result->SetDefaultIndex(-1);
+		NS_ADDREF(*_retval = result);
+		return NS_OK;
+	}
+
+	PR_fprintf(PR_STDERR, "related %s = %d\n", NS_ConvertUTF16toUTF8(aInputName).get(), id);
+
+	nsString name;
+	PRUint32 type;
+	mIDForNameStmt->BindInt32Parameter(0, id);
+	mIDForNameStmt->ExecuteStep(&row);
+	while (row)
+	{
+		name = mRelSearchStmt->AsSharedWString(0, nsnull);
+		type = (PRUint32)mRelSearchStmt->AsInt32(1);
+		result->AddRow(name, type);
+		mRelSearchStmt->ExecuteStep(&row);
+
+		PR_fprintf(PR_STDERR, "\t%s %d\n", NS_ConvertUTF16toUTF8(name).get(), type);
+	}
+	mRelSearchStmt->Reset();
+
+	PRUint32 matchCount;
+	result->GetMatchCount(&matchCount);
+	if (matchCount > 0) {
+		result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);
+		result->SetDefaultIndex(0);
+	} else {
+		result->SetSearchResult(nsIAutoCompleteResult::RESULT_NOMATCH);
+		result->SetDefaultIndex(-1);
+	}
 
 	NS_ADDREF(*_retval = result);
 	return NS_OK;

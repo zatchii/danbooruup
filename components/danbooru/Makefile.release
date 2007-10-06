@@ -59,6 +59,9 @@ REQUIRES =	\
 		caps \
 		xmlextras \
 		storage \
+		layout \
+		widget \
+		toolkitcomps \
 		$(NULL)
 
 # This makefile builds the "program" subdirectory.
@@ -90,6 +93,7 @@ MODULE_NAME	= danbooruAutoCompleteModule
 # CPPSRCS specifies C++ files to be built into a library.
 CPPSRCS		=		   \
 		danbooruAutoCompleteModule.cpp \
+		danbooruAutoCompleteController.cpp \
 		danbooruTagHistoryService.cpp \
 		danbooruAutoCompleteArrayResult.cpp \
 		$(NULL)
@@ -97,6 +101,7 @@ CPPSRCS		=		   \
 # XPIDLSRCS specified IDL files. The build system runs the xpidl tool on these
 # files to generate C++ headers and .xpt typelib files.
 XPIDLSRCS	= danbooruITagHistoryService.idl \
+		  danbooruIAutoCompleteController.idl \
 		  danbooruIAutoCompleteArrayResult.idl \
 		  danbooruUpHelper.idl \
 		  danbooruUpJSAutoComplete.idl \

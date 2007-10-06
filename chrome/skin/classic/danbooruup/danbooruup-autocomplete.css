@@ -54,6 +54,12 @@ popup[type="danbooru-autocomplete"] {
   -moz-padding-start: 8px;
 }
 
+treechildren.danbooru-autocomplete-treebody::-moz-tree-twisty {
+        padding: 0;
+        width: 0;
+        list-style-image: none;
+}
+
 treechildren.danbooru-autocomplete-treebody::-moz-tree-row(selected) {
   background-color: Highlight;
 }

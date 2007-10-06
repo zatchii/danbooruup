@@ -57,6 +57,11 @@ interface danbooruITagHistoryService : nsISupports
   danbooruIAutoCompleteArrayResult searchTags(in AString inputname, in long limit);
 
   /**
+   * Scriptable manual search for related tags.
+   */
+  danbooruIAutoCompleteArrayResult searchRelatedTags(in AString inputname);
+
+  /**
    * AutoCompleteController-called tag search.
    */
 

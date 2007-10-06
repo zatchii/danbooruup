@@ -38,6 +38,7 @@
 #include "nsIGenericFactory.h"
 
 //#include "danbooruAutoComplete.h"
+#include "danbooruAutoCompleteController.h"
 #include "danbooruTagHistoryService.h"
 #include "danbooruAutoCompleteArrayResult.h"
 #include "nsIFile.h"
@@ -66,6 +67,7 @@
 //		 constructor nsSampleImpl::nsSampleImpl()
 //
 //NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoComplete)
+NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoCompleteController)
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(danbooruTagHistoryService, danbooruTagHistoryService::GetInstance)
 NS_GENERIC_FACTORY_CONSTRUCTOR(danbooruAutoCompleteArrayResult)
 
@@ -115,6 +117,10 @@ static const nsModuleComponentInfo components[] =
 {
   //{ "Danbooru Autocomplete Component", DANBOORU_AC_CID, DANBOORU_AC_CONTRACTID, danbooruAutoCompleteConstructor, danbooruAutoCompleteRegistrationProc },
   { "Danbooru Tag History Service", DANBOORU_TAGHISTORYSERVICE_CID, DANBOORU_TAGHISTORYSERVICE_CONTRACTID, danbooruTagHistoryServiceConstructor },
+  { "Danbooru AutoComplete Controller",
+	  DANBOORU_ACC_CID,
+	  DANBOORU_ACC_CONTRACTID,
+	  danbooruAutoCompleteControllerConstructor },
   { "Danbooru AutoComplete Array Result",
 	  DANBOORU_AUTOCOMPLETEARRAYRESULT_CID,
 	  DANBOORU_AUTOCOMPLETEARRAYRESULT_CONTRACTID,

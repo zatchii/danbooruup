@@ -146,7 +146,7 @@ danbooruAutoCompleteArrayResult::SetSearchResult(PRUint16 aSearchResult)
 }
 
 ////////////////////////////////////////////////////////////////////////
-//// nsIAutoCompleteArrayResult
+//// danbooruIAutoCompleteArrayResult
 
 NS_IMETHODIMP
 danbooruAutoCompleteArrayResult::AddRow(const nsAString &aName, const PRUint32 aType)
