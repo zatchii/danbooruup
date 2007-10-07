@@ -445,7 +445,8 @@
 	      break;
 	    case KeyEvent.DOM_VK_INSERT:
 	      if(!this.popup.mPopupOpen) break;
-	      cancel = this.mController.QueryInterface(Components.interfaces.nsITreeView).toggleOpenState(this.popup.selectedIndex);
+	      this.mController.QueryInterface(Components.interfaces.nsITreeView).toggleOpenState(this.popup.selectedIndex);
+	      cancel = true;
 	      this.popup.adjustHeight();
 	      break;
             case KeyEvent.DOM_VK_DOWN:

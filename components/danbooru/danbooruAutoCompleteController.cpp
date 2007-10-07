@@ -26,9 +26,6 @@
 #include "nsUnicharUtils.h"
 #endif
 
-//#include "/mingw/work/mozilla/toolkit/components/autocomplete/src/nsAutoCompleteController.h"
-
-
 #ifdef MOZILLA_1_8_BRANCH
 NS_IMPL_ISUPPORTS7(danbooruAutoCompleteController, danbooruIAutoCompleteController,
                                                    nsIAutoCompleteController,
