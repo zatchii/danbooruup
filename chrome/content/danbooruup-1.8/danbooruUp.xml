@@ -247,7 +247,7 @@
               this.setAttribute("open", "true"); 
               this.showHistoryPopup();
             }
-            else {
+	    else {
               this.removeAttribute("open");
               this.closePopup();
             }
@@ -444,8 +444,9 @@
               cancel = this.mController.handleDelete();
 	      break;
 	    case KeyEvent.DOM_VK_INSERT:
-	    //Components.classes['@mozilla.org/consoleservice;1'].getService(Components.interfaces.nsIConsoleService).logStringMessage(this.mController.input.popup);
-	      cancel = this.mController.QueryInterface(Components.interfaces.nsITreeView).toggleOpenState(this.mController.input.popup.QueryInterface(Components.interfaces.nsIAutoCompletePopup).selectedIndex);
+	      if(!this.popup.mPopupOpen) break;
+	      cancel = this.mController.QueryInterface(Components.interfaces.nsITreeView).toggleOpenState(this.popup.selectedIndex);
+	      this.popup.adjustHeight();
 	      break;
             case KeyEvent.DOM_VK_DOWN:
             case KeyEvent.DOM_VK_UP:
@@ -510,13 +511,13 @@
                action="if (this.mController.input == this) this.mController.handleStartComposition();"/>
 
       <handler event="compositionend" phase="capturing"
-               action="if (this.mController.input == this) this.mController.handleEndComposition();"/>
+	       action="if (this.mController.input == this) this.mController.handleEndComposition();"/>
 
       <handler event="focus" phase="capturing"
                action="this.attachController();"/>
 
       <handler event="blur" phase="capturing"
-               action="if (!this._dontBlur) this.detachController();"/>
+	       action="if (!this._dontBlur) this.detachController();"/>
 
       <handler event="contextmenu" phase="capturing"
                action="this.closePopup();"/>
@@ -635,7 +636,7 @@
         <parameter name="aPage"/>
         <body><![CDATA[
           try {
-            var amount = aPage ? 5 : 1;
+            var amount = aPage ? this.maxRows-1 : 1;
             this.selectedIndex = this.getNextIndex(aReverse, amount, this.selectedIndex, this.tree.view.rowCount-1);
             if (this.selectedIndex == -1) {
               this.input._focus();

@@ -37,7 +37,7 @@
 			id="nextSrcBtn"
 			tooltiptext="&danbooru-box-switch-source-tooltip;" onclick="return doSwitchSource(true);"/>
 	</hbox>
-	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" flex="1"/>
+	<textbox id="tags" type="danbooruac" autocompletesearch="danboorutag" maxrows="15" flex="1"/>
 	<hbox>
 		<radiogroup id="ratinggrp">
 			<hbox>

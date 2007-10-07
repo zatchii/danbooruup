@@ -38,6 +38,7 @@
 #include "danbooruIAutoCompleteController.h"
 #include "danbooruIAutoCompleteArrayResult.h"
 #include "nsIAutoCompleteController.h"
+#include "nsIAutoCompleteInput.h"
 #include "nsIAutoCompleteSearch.h"
 #include "nsITreeView.h"
 #include "nsITimer.h"
@@ -87,8 +88,9 @@ protected:
 	nsCOMPtr<nsITimerCallback> mTimer;
 	nsCOMPtr<nsITreeView> mTreeView;
 
-	// copy of the one passed along to the nsIAutoCompleteController
+	// copy of the ones passed along to the nsIAutoCompleteController
 	nsCOMPtr<nsITreeBoxObject> mTree;
+	nsCOMPtr<nsIAutoCompleteInput> mInput;
 
 	// since we can't get a sorted list of hash keys
 	nsTArray<PRUint32> mRelatedKeys;
@@ -96,6 +98,7 @@ protected:
 
 	nsCOMPtr<nsIConsoleService> mConsole;
 
+	void ClearRelated();
 	PRUint32 FirstLevelRowIndex(PRInt32 index);
 };
 

@@ -1239,12 +1239,14 @@ danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
 		return NS_OK;
 	}
 
+#ifdef DEBUG
 	PR_fprintf(PR_STDERR, "related %s = %d\n", NS_ConvertUTF16toUTF8(aInputName).get(), id);
+#endif
 
 	nsString name;
 	PRUint32 type;
-	mIDForNameStmt->BindInt32Parameter(0, id);
-	mIDForNameStmt->ExecuteStep(&row);
+	mRelSearchStmt->BindInt32Parameter(0, id);
+	mRelSearchStmt->ExecuteStep(&row);
 	while (row)
 	{
 		name = mRelSearchStmt->AsSharedWString(0, nsnull);
@@ -1252,7 +1254,9 @@ danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
 		result->AddRow(name, type);
 		mRelSearchStmt->ExecuteStep(&row);
 
+#ifdef DEBUG
 		PR_fprintf(PR_STDERR, "\t%s %d\n", NS_ConvertUTF16toUTF8(name).get(), type);
+#endif
 	}
 	mRelSearchStmt->Reset();
 
