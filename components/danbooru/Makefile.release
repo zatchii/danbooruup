@@ -103,6 +103,7 @@ CPPSRCS		=		   \
 XPIDLSRCS	= danbooruITagHistoryService.idl \
 		  danbooruIAutoCompleteController.idl \
 		  danbooruIAutoCompleteArrayResult.idl \
+		  danbooruIAutoCompletePopup.idl \
 		  danbooruUpHelper.idl \
 		  danbooruUpJSAutoComplete.idl \
 		  $(NULL)

@@ -91,6 +91,7 @@ protected:
 	// copy of the ones passed along to the nsIAutoCompleteController
 	nsCOMPtr<nsITreeBoxObject> mTree;
 	nsCOMPtr<nsIAutoCompleteInput> mInput;
+	nsString mSearchString;
 
 	// since we can't get a sorted list of hash keys
 	nsTArray<PRUint32> mRelatedKeys;
@@ -99,6 +100,7 @@ protected:
 	nsCOMPtr<nsIConsoleService> mConsole;
 
 	void ClearRelated();
-	PRUint32 FirstLevelRowIndex(PRInt32 index);
+	PRInt32 FirstLevelRowIndex(PRInt32 index);
+	nsresult EnterMatch();
 };
 

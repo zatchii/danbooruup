@@ -5,5 +5,6 @@
 [scriptable, uuid(e57488df-6b7a-4be8-af54-5b6624c863e7)]
 interface danbooruIAutoCompleteController : nsISupports
 {
+	long originalRowIndex(in long rowIndex);
 };
 
