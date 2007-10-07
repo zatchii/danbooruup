@@ -1217,6 +1217,7 @@ danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
 
 	PRBool row;
 	PRUint32 id;
+	PRBool isnull = PR_FALSE;
 
 	danbooruIAutoCompleteArrayResult *result = new danbooruAutoCompleteArrayResult;
 
@@ -1224,15 +1225,12 @@ danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
 	mIDForNameStmt->ExecuteStep(&row);
 	if (row)
 	{
-		PRBool isnull;
 		mIDForNameStmt->GetIsNull(0, &isnull);
-		if (isnull)
-			id = -1;
-		else
+		if (!isnull)
 			id = (PRUint32)mIDForNameStmt->AsInt32(0);
 	}
 	mIDForNameStmt->Reset();
-	if (!row || id == -1) {
+	if (!row || isnull) {
 		result->SetSearchResult(nsIAutoCompleteResult::RESULT_FAILURE);
 		result->SetDefaultIndex(-1);
 		NS_ADDREF(*_retval = result);
