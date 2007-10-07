@@ -1,4 +1,6 @@
 #include "danbooruAutoCompleteController.h"
+#include "danbooruITagHistoryService.h"
+#include "nsITreeColumns.h"
 #include "nsToolkitCompsCID.h"
 #include "nsComponentManagerUtils.h"
 #include "nsServiceManagerUtils.h"
@@ -36,10 +38,13 @@ NS_IMPL_ISUPPORTS6(danbooruAutoCompleteController, danbooruIAutoCompleteControll
 						   nsITreeView)
 #endif
 
+PR_STATIC_CALLBACK(PLDHashOperator)
+hashReleaseEnum(nsUint32HashKey::KeyType aKey, danbooruIAutoCompleteArrayResult *&aData, void* userArg)
+{
+	NS_RELEASE(aData);
 
-// don't have the real class, so this seems to be impossible
-//NS_IMPL_ISUPPORTS_INHERITED0(danbooruAutoCompleteController, nsIAutoCompleteController)
-
+	return PL_DHASH_NEXT;
+}
 
 danbooruAutoCompleteController::danbooruAutoCompleteController()
 {
@@ -53,6 +58,7 @@ danbooruAutoCompleteController::danbooruAutoCompleteController()
 
 danbooruAutoCompleteController::~danbooruAutoCompleteController()
 {
+	mRelatedHash.Enumerate(&hashReleaseEnum, nsnull);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -139,19 +145,59 @@ danbooruAutoCompleteController::HandleDelete(PRBool *_retval)
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetValueAt(PRInt32 aIndex, nsAString & _retval)
 {
-	return mController->GetValueAt(aIndex, _retval);
+	PRInt32 idx;
+	GetParentIndex(aIndex, &idx);
+	if(idx == -1)
+		return mController->GetValueAt(FirstLevelRowIndex(aIndex), _retval);
+	danbooruIAutoCompleteArrayResult *result;
+	mRelatedHash.Get(idx, &result);
+
+	PRUint16 searchResult;
+	result->GetSearchResult(&searchResult);
+
+	if (searchResult == nsIAutoCompleteResult::RESULT_SUCCESS)
+	{
+		aIndex -= idx + 1;
+		return result->GetValueAt(aIndex, _retval);
+	} else {
+		return NS_ERROR_FAILURE;
+	}
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetCommentAt(PRInt32 aIndex, nsAString & _retval)
 {
-	return mController->GetCommentAt(aIndex, _retval);
+	PRInt32 idx;
+	GetParentIndex(aIndex, &idx);
+	if(idx == -1)
+		return mController->GetCommentAt(aIndex, _retval);
+	danbooruIAutoCompleteArrayResult *result;
+	mRelatedHash.Get(idx, &result);
+
+	PRUint16 searchResult;
+	result->GetSearchResult(&searchResult);
+
+	if (searchResult == nsIAutoCompleteResult::RESULT_SUCCESS)
+	{
+		aIndex -= idx + 1;
+		return result->GetCommentAt(aIndex, _retval);
+	} else {
+		return NS_ERROR_FAILURE;
+	}
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetStyleAt(PRInt32 aIndex, nsAString & _retval)
 {
-	return mController->GetStyleAt(aIndex, _retval);
+	PRInt32 idx;
+	GetParentIndex(aIndex, &idx);
+	if(idx == -1)
+		return mController->GetStyleAt(aIndex, _retval);
+	danbooruIAutoCompleteArrayResult *result;
+	mRelatedHash.Get(idx, &result);
+
+	aIndex -= idx + 1;
+	return result->GetStyleAt(aIndex, _retval);
 }
 
 NS_IMETHODIMP
@@ -214,10 +260,47 @@ danbooruAutoCompleteController::Notify(nsITimer *timer)
 ////////////////////////////////////////////////////////////////////////
 // nsITreeView
 
+// helper function to subtract open second-level rows above the given row to get the real index
+// assumes that index is actually a first-level row
+PRUint32
+danbooruAutoCompleteController::FirstLevelRowIndex(PRInt32 index)
+{
+	danbooruIAutoCompleteArrayResult *result;
+	PRBool open;
+	PRUint32 otherIndex = index;
+	PRUint32 count;
+	for(PRUint32 i=0; i<mRelatedKeys.Length(); i++)
+	{
+		if (mRelatedKeys[i] > (PRUint32)index) break;
+		mRelatedHash.Get(mRelatedKeys[i], &result);
+		result->GetOpen(&open);
+		if (!open) continue;
+		result->GetMatchCount(&count);
+		otherIndex -= count;
+	}
+	return otherIndex;
+}
+
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetRowCount(PRInt32 *aRowCount)
 {
-	return mTreeView->GetRowCount(aRowCount);
+	PRInt32 count;
+	PRUint32 sub;
+	mTreeView->GetRowCount(&count);
+
+	danbooruIAutoCompleteArrayResult *result;
+	PRBool open;
+	for(PRUint32 i=0; i<mRelatedKeys.Length(); i++)
+	{
+		mRelatedHash.Get(mRelatedKeys[i], &result);
+		result->GetOpen(&open);
+		if (!open) continue;
+		result->GetMatchCount(&sub);
+		count += sub;
+	}
+
+	*aRowCount = count;
+	return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -259,7 +342,27 @@ danbooruAutoCompleteController::GetCellValue(PRInt32 row, nsITreeColumn* col, ns
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetCellText(PRInt32 row, nsITreeColumn* col, nsAString& _retval)
 {
-	return mTreeView->GetCellText(row, col, _retval);
+	PRInt32 idx;
+	GetParentIndex(row, &idx);
+	if(idx == -1)
+		return mTreeView->GetCellText(FirstLevelRowIndex(row), col, _retval);
+	danbooruIAutoCompleteArrayResult *result;
+	mRelatedHash.Get(idx, &result);
+
+	PRUint16 searchResult;
+	result->GetSearchResult(&searchResult);
+
+	if (searchResult == nsIAutoCompleteResult::RESULT_SUCCESS)
+	{
+		const PRUnichar* colID;
+		col->GetIdConst(&colID);		
+		row -= idx + 1;
+		if (NS_LITERAL_STRING("treecolAutoCompleteValue").Equals(nsString(colID)))
+			result->GetValueAt(row, _retval);
+		else if (NS_LITERAL_STRING("treecolAutoCompleteComment").Equals(nsString(colID)))
+			result->GetCommentAt(row, _retval);
+	}
+	return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -268,15 +371,26 @@ danbooruAutoCompleteController::IsContainer(PRInt32 index, PRBool *_retval)
 	char q[256];
 	PR_snprintf(q, 256, "iscontainer %d", index);
 	mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(q).get());
-	*_retval = PR_TRUE;
+
+	PRInt32 level;
+	GetLevel(index, &level);
+
+	if(level)
+		*_retval = PR_FALSE;
+	else
+		*_retval = PR_TRUE;
 	return NS_OK;
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::IsContainerOpen(PRInt32 index, PRBool *_retval)
 {
-	//NS_NOTREACHED("no container cells");
-	*_retval = PR_FALSE;
+	danbooruIAutoCompleteArrayResult *result;
+	PRUint32 otherIndex = FirstLevelRowIndex(index);
+	if (mRelatedHash.Get(otherIndex, &result))
+		result->GetOpen(_retval);
+	else
+		*_retval = PR_FALSE;
 	return NS_OK;
 }
 
@@ -291,41 +405,138 @@ danbooruAutoCompleteController::IsContainerEmpty(PRInt32 index, PRBool *_retval)
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetLevel(PRInt32 index, PRInt32 *_retval)
 {
-	char q[256];
-	PR_snprintf(q, 256, "getlevel %d", index);
-	mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(q).get());
+	{
+		char q[256];
+		PR_snprintf(q, 256, "getlevel %d", index);
+		mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(q).get());
+	}
+
+	danbooruIAutoCompleteArrayResult *result;
+	PRBool open;
+	PRUint32 count;
 	*_retval = 0;
+	for(PRUint32 i=0; i<mRelatedKeys.Length(); i++)
+	{
+		if (mRelatedKeys[i] >= (PRUint32)index) break;
+		mRelatedHash.Get(mRelatedKeys[i], &result);
+		result->GetOpen(&open);
+		if (!open) continue;
+		result->GetMatchCount(&count);
+		if((PRUint32)index <= mRelatedKeys[i] + count)
+		{
+			*_retval = 1;
+			break;
+		}
+	}
+
 	return NS_OK;
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetParentIndex(PRInt32 rowIndex, PRInt32 *_retval)
 {
-	*_retval = 0;
+	danbooruIAutoCompleteArrayResult *result;
+	PRBool open;
+	PRUint32 count;
+
+	*_retval = -1;
+	for(PRUint32 i=0; i<mRelatedKeys.Length(); i++)
+	{
+		if (mRelatedKeys[i] >= (PRUint32)rowIndex) break;
+		mRelatedHash.Get(mRelatedKeys[i], &result);
+		result->GetOpen(&open);
+		if (!open) continue;
+		result->GetMatchCount(&count);
+		if((PRUint32)rowIndex <= mRelatedKeys[i] + count)
+		{
+			*_retval = mRelatedKeys[i];
+			break;
+		}
+	}
 	return NS_OK;
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::HasNextSibling(PRInt32 rowIndex, PRInt32 afterIndex, PRBool *_retval)
 {
-	*_retval = PR_FALSE;
+	PRBool container;
+	IsContainer(afterIndex, &container);
+	if (container)
+		*_retval = PR_FALSE;
+	else
+		*_retval = PR_TRUE;
 	return NS_OK;
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 {
-	char q[256];
-	PR_snprintf(q, 256, "openstate %d", index);
-	mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(q).get());
-	nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
-	sound->Beep();
+	{
+		char q[256];
+		PR_snprintf(q, 256, "openstate %d", index);
+		mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(q).get());
+		nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
+		sound->Beep();
+	}
+
+	PRInt32 level;
+	PRInt32 otherIndex;
+	PRUint32 count;
+	PRBool open;
+	danbooruIAutoCompleteArrayResult *result;
+
+	// second-level toggles are the simplest case
+	GetLevel(index, &level);
+	if(level)
+	{
+		// since we support only one level, toggling while in second level collapses that level
+		GetParentIndex(index, &otherIndex);
+		if (mRelatedHash.Get(otherIndex, &result))
+		{
+			result->ToggleOpen();
+			result->GetMatchCount(&count);
+			mTree->RowCountChanged(otherIndex+1, -((PRInt32)count));
+		} else {
+			NS_NOTREACHED("row level > 0 with no corresponding parent row in hash??");
+		}
+		return NS_OK;
+	}
+
+	otherIndex = FirstLevelRowIndex(index);
+	
+	// at top level, see if we need to make a new search result
+	if(mRelatedHash.Get(otherIndex, &result))
+	{
+		result->ToggleOpen();
+		result->GetMatchCount(&count);
+		result->GetOpen(&open);
+		if(open)
+			mTree->RowCountChanged(index + 1, count);
+		else
+			mTree->RowCountChanged(index + 1, -((PRInt32)count));
+	} else {
+		// new search
+		nsCOMPtr<danbooruITagHistoryService> tagservice;
+		nsString tag;
+		GetValueAt(otherIndex, tag);
+		tagservice->SearchRelatedTags(tag, &result);
+		result->SetIndex(otherIndex);
+
+		mRelatedKeys.AppendElement(otherIndex);
+		mRelatedKeys.Sort();
+		mRelatedHash.Put(otherIndex, result);
+
+		result->SetOpen(PR_TRUE);
+		result->GetMatchCount(&count);
+		mTree->RowCountChanged(index + 1, count);
+	}
 	return NS_OK;
 }
 
 NS_IMETHODIMP
 danbooruAutoCompleteController::SetTree(nsITreeBoxObject *tree)
 {
+	mTree = tree;
 	return mTreeView->SetTree(tree);
 }
 

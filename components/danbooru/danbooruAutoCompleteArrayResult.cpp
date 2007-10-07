@@ -14,7 +14,8 @@ NS_IMPL_RELEASE(danbooruAutoCompleteArrayResult)
 
 danbooruAutoCompleteArrayResult::danbooruAutoCompleteArrayResult() :
   mDefaultIndex(-1),
-  mSearchResult(nsIAutoCompleteResult::RESULT_IGNORED)
+  mSearchResult(nsIAutoCompleteResult::RESULT_IGNORED),
+  mOpen(PR_FALSE)
 {
 }
 
@@ -153,6 +154,44 @@ danbooruAutoCompleteArrayResult::AddRow(const nsAString &aName, const PRUint32 a
 {
 	mResults.AppendElement(NS_StringCloneData(aName));
 	mTypes.AppendElement(aType);
+	return NS_OK;
+}
+
+NS_IMETHODIMP
+danbooruAutoCompleteArrayResult::SetOpen(PRBool aOpen)
+{
+	mOpen = aOpen;
+	return NS_OK;
+}
+
+NS_IMETHODIMP
+danbooruAutoCompleteArrayResult::GetOpen(PRBool *_retval)
+{
+	NS_ENSURE_ARG_POINTER(_retval);
+	*_retval = mOpen;
+	return NS_OK;
+}
+
+NS_IMETHODIMP
+danbooruAutoCompleteArrayResult::ToggleOpen()
+{
+	if(mOpen) mOpen = PR_FALSE;
+	else mOpen = PR_TRUE;
+	return NS_OK;
+}
+
+NS_IMETHODIMP
+danbooruAutoCompleteArrayResult::SetIndex(PRUint32 aIndex)
+{
+	mIndex = aIndex;
+	return NS_OK;
+}
+
+NS_IMETHODIMP
+danbooruAutoCompleteArrayResult::GetIndex(PRUint32 *_retval)
+{
+	NS_ENSURE_ARG_POINTER(_retval);
+	*_retval = mIndex;
 	return NS_OK;
 }
 

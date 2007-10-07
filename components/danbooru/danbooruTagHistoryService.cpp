@@ -753,6 +753,7 @@ danbooruTagHistoryService::EntryExists(const nsAString &aName, const PRInt32 aVa
 NS_IMETHODIMP
 danbooruTagHistoryService::NameExists(const nsAString &aName, PRBool *_retval)
 {
+	NS_ENSURE_ARG_POINTER(_retval);
 	mExistsStmt->BindStringParameter(0, aName);
 	*_retval = PR_FALSE;
 	nsresult rv = mExistsStmt->ExecuteStep(_retval);

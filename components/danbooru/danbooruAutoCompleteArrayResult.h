@@ -37,6 +37,10 @@ protected:
 	nsString mErrorDescription;
 	PRInt32 mDefaultIndex;
 	PRUint32 mSearchResult;
+
+	// related tags variables
+	PRBool mOpen;
+	PRUint32 mIndex;
 };
 
 #endif

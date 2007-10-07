@@ -3,7 +3,8 @@
 [scriptable, uuid(dd0be70d-cd67-4aa1-ab4c-bf0b264e0a5c)]
 interface danbooruIAutoCompleteArrayResult : nsIAutoCompleteResult
 {
-	boolean open;
+	attribute boolean open;
+	attribute unsigned long index;
 
   /**
    * A writer for the readonly attribute 'searchString' which should contain
@@ -31,5 +32,8 @@ interface danbooruIAutoCompleteArrayResult : nsIAutoCompleteResult
 
 	/* Add a row */
 	void addRow(in AString aName, in unsigned long aType);
+
+	/* Toggle the open state */
+	void toggleOpen();
 };
 
