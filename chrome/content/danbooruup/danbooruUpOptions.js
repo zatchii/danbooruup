@@ -274,7 +274,7 @@ var gDanbooruManager = {
   // opens download progress window
   openDownloader: function (aAction)
   {
-    window.openDialog("chrome://danbooruup/content/danbooruUpDown.xul", "danbooruUpDown", "centerscreen,chrome,dialog=yes,modal=no", {action:aAction});
+    window.openDialog("chrome://danbooruup/content/danbooruUpDown.xul", "danbooruUpDown", "centerscreen,chrome,dialog=yes,modal=yes,close=no", {action:aAction});
   },
 
   // tag type stuff
@@ -288,6 +288,7 @@ var gDanbooruManager = {
   },
   invalidateTagTree: function ()
   {
+    // invalidate tends to not redraw if the tree isn't focused
     if(this._tagView) {
       this._tagView.tree.focused = !this._tagView.tree.focused;
       this._tagView.tree.invalidate();
@@ -347,7 +348,7 @@ var gDanbooruManager = {
     danbooruAddTagTypeStyleSheet();
   },
 
-  // load function only for danbooruUpOptions
+  // load function only for danbooruUpOptions window
   onLoad: function ()
   {
     this._bundle = Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService)
@@ -357,7 +358,6 @@ var gDanbooruManager = {
     this.init(null);
 
     var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-    os.addObserver(this, "danbooru-update-done", false);
     os.addObserver(this, "danbooru-clear-done", false);
 
     // sort and display the table
@@ -366,8 +366,15 @@ var gDanbooruManager = {
 
     var tagTypes = document.getElementById("tagType");
     var tagTree = document.getElementById("tagTree");
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+    var tagPrefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
+
+    // we use instantApply as a hack since the helper service reads the prefs directly 
+    // save these for ondialogcancel
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
+    this._oldUpdateURI = prefs.getCharPref("updateuri");
+    this._oldRelatedUpdateURI = prefs.getCharPref("relatedupdateuri");
 
     document.getElementById("tagTreeBox").onPopupClick = function()
     {
@@ -378,7 +385,7 @@ var gDanbooruManager = {
       if(tagTypes.label == type)
       {
         tagTypes.selectedIndex++;
-      } else if (tagTypes.label.match(new RegExp("^"+type))) {
+      } else if (tagTypes.label.match(new RegExp("^"+type+"$"))) {
         tagTypes.selectedIndex--;
       } else {
         tagTypes.selectedIndex = row * 2;
@@ -393,15 +400,14 @@ var gDanbooruManager = {
       this._tagView.addRow([pn]);
 
       tagTypes.appendItem(pn, i);
-      this._styles[i] = prefs.getCharPref(i);
+      this._styles[i] = tagPrefs.getCharPref(i);
       tagTypes.appendItem(this._bundle.GetStringFromName("danbooruUp.tagType."+i+".selected"), i+".selected");
-      this._styles[i+".selected"] = prefs.getCharPref(i+".selected");
+      this._styles[i+".selected"] = tagPrefs.getCharPref(i+".selected");
     }
 
     tagTypes.addEventListener("ValueChange", gDanbooruManager.tagTypeSelected, false);
     tagTypes.selectedIndex = 0;
     danbooruAddTagTypeStyleSheet();
-    //document.getElementById("url").focus();
   },
 
   // used by danbooruUpBox and Options
@@ -420,7 +426,6 @@ var gDanbooruManager = {
   onUnload: function ()
   {
     var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-    os.removeObserver(this, "danbooru-update-done");
     os.removeObserver(this, "danbooru-clear-done");
 
     if (document.documentElement.instantApply)
@@ -429,15 +434,23 @@ var gDanbooruManager = {
     this.uninit();
   },
 
+  onDialogCancel: function ()
+  {
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
+    prefs.setCharPref("updateuri", this._oldUpdateURI);
+    prefs.setCharPref("relatedupdateuri", this._oldRelatedUpdateURI);
+    return true;
+  },
+
   // not really sure what all this code is for any more
   // updates selected danbooru for upload dialog
   uninit: function ()
   {
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-		.getService(Components.interfaces.nsIPrefService);
-    var pbi = prefs.getBranch('extensions.danbooruUp.');
+    var pbi = Components.classes["@mozilla.org/preferences-service;1"]
+                		.getService(Components.interfaces.nsIPrefService).getBranch('extensions.danbooruUp.');
     var selpref = 'postadduri.selected';
     var selected = this.getSelectedDanbooru();
     try {

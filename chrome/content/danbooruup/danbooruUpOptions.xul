@@ -17,6 +17,7 @@
 	onload="gDanbooruManager.onLoad();"
 	onunload="gDanbooruManager.onUnload();"
 	onbeforeaccept="gDanbooruManager.onOK();"
+	ondialogcancel="return gDanbooruManager.onDialogCancel();"
 	persist="screenX screenY">
 
 	<prefpane id="danbooruUpGeneralPane" flex="1" label="&danbooruUpOptions.generalTab.label;">
@@ -164,9 +165,9 @@
 			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.site.enabled"
 			name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
-		<preference id="pref.extensions.danbooruUp.updateuri"
+		<preference id="pref.extensions.danbooruUp.updateuri"			instantApply="true"
 			name="extensions.danbooruUp.updateuri"				type="string"/>
-		<preference id="pref.extensions.danbooruUp.relatedupdateuri"
+		<preference id="pref.extensions.danbooruUp.relatedupdateuri"		instantApply="true"
 			name="extensions.danbooruUp.relatedupdateuri"			type="string"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.onstartup"
 			name="extensions.danbooruUp.autocomplete.update.onstartup"	type="bool"/>

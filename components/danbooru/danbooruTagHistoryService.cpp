@@ -426,9 +426,35 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 	//danbooruTagHistoryService *history = danbooruTagHistoryService::GetInstance();
 	nsString tagid, tagname, tagtype;
 
-	if(aInsert) {	// adding new tags
+	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1"));
+	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
+#ifndef MOZILLA_1_8_BRANCH
+	nsCOMPtr<nsISupportsPRUint32> progressInt = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
+
+	// easier to work out with threads
+	nodes->SetData(length-1);
+	service->NotifyObservers(nodes, "danbooru-update-processing-max", nsnull);
+
+	PRUint32 step = 1;
+
+	if (length >= 100000) {
+		step = 1000;
+	} else if (length >= 10000) {
+		step = 100;
+	} else if (length >= 1000) {
+		step = 10;
+	}
+#endif
+
+	if (aInsert) {	// adding new tags
 		mDB->BeginTransaction();
 		while (index < length) {
+#ifndef MOZILLA_1_8_BRANCH
+			if(index % step == 0) {
+				progressInt->SetData(index);
+				service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
+			}
+#endif
 			nodeList->Item(index++, getter_AddRefs(child));
 			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
 			if (!childElement) {
@@ -465,6 +491,10 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 			}
 		}
 		mDB->CommitTransaction();
+#ifndef MOZILLA_1_8_BRANCH
+		progressInt->SetData(index);
+		service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
+#endif
 	} else {	// pruning old tags
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagTable));
 
@@ -474,6 +504,12 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 
 		mDB->BeginTransaction();
 		while (index < length) {
+#ifndef MOZILLA_1_8_BRANCH
+			if(index % step == 0) {
+				progressInt->SetData(index);
+				service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
+			}
+#endif
 			nodeList->Item(index++, getter_AddRefs(child));
 			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
 			if (!childElement) {
@@ -495,16 +531,13 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagIndex));
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTagClean));
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropTempTagTable));
+#ifndef MOZILLA_1_8_BRANCH
+		progressInt->SetData(index);
+		service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
+#endif
 	}
 
-	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
-	if (NS_FAILED(rv))
-		return rv;
-
-	if (!service)
-		return NS_OK;
-
-	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
+	nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
 	if (NS_FAILED(rv))
 		return rv;
 	// container node is included, so subtract 1 for the number of processed nodes
@@ -522,8 +555,24 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 {
 	NS_PRECONDITION(mRequest, "no previous tag update request");
 
+	PRUint32 status;
+	nsresult rv = mRequest->GetStatus(&status);
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+	if (status != 200)
+	{
+		nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
+		if (NS_FAILED(rv))
+			return rv;
+
+		if (service)
+			service->NotifyObservers(mRequest, "danbooru-update-failed", nsnull);
+		return NS_OK;
+	}
+
 	nsCOMPtr<nsIDOMDocument> document;
-	nsresult rv = mRequest->GetResponseXML(getter_AddRefs(document));
+	rv = mRequest->GetResponseXML(getter_AddRefs(document));
 	if (NS_FAILED(rv)) {
 		return rv;
 	}
@@ -628,6 +677,16 @@ danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool
 	rv = target->AddEventListener(NS_LITERAL_STRING("load"), this, PR_FALSE);
 	if (NS_FAILED(rv)) {
 		return rv;
+	}
+	// XHR does not propagate stop requests to the channel notification callback
+	if (notification)
+	{
+		nsCOMPtr<nsIDOMEventListener> domlistener(do_QueryInterface(notification));
+		if (domlistener)
+		{
+			target->AddEventListener(NS_LITERAL_STRING("load"), domlistener, PR_FALSE);
+			target->AddEventListener(NS_LITERAL_STRING("error"), domlistener, PR_FALSE);
+		}
 	}
 
 	rv = mRequest->Send(nsnull);
