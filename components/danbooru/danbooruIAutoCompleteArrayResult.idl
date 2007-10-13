@@ -1,6 +1,6 @@
 #include "nsIAutoCompleteResult.idl"
 
-[scriptable, uuid(dd0be70d-cd67-4aa1-ab4c-bf0b264e0a5c)]
+[scriptable, uuid(5f95ad0f-a267-4daa-86af-9171507b3380)]
 interface danbooruIAutoCompleteArrayResult : nsIAutoCompleteResult
 {
 	attribute boolean open;

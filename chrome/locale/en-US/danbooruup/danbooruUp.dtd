@@ -1,6 +1,8 @@
 <!ENTITY danbooru-image-label "Upload Image to Danbooru">
 <!ENTITY danbooru-image-accesskey "b">
 
+<!ENTITY danbooru-downloader-title "DanbooruUp">
+
 <!ENTITY danbooru-box-title "Upload to Danbooru">
 <!ENTITY danbooru-box-source-label "Source:">
 <!ENTITY danbooru-box-source-accesskey "c">

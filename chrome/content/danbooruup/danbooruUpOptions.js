@@ -271,6 +271,12 @@ var gDanbooruManager = {
     }
   },
 
+  // opens download progress window
+  openDownloader: function (aAction)
+  {
+    window.openDialog("chrome://danbooruup/content/danbooruUpDown.xul", "danbooruUpDown", "centerscreen,chrome,dialog=yes,modal=no", {action:aAction});
+  },
+
   // tag type stuff
 
   // serial for tag popup preview needs to be incremented, since fiddling with the rules via DOM doesn't actually
@@ -479,6 +485,7 @@ var gDanbooruManager = {
     return true;
   },
 
+  // site list functions
   onDanbooruSelected: function ()
   {
     var hasSelection = this._tree.view.selection.count > 0;
@@ -568,6 +575,7 @@ var gDanbooruManager = {
     return ascending;
   },
 
+  // checkbox functions
   onWriteEnableAC: function ()
   {
     var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");

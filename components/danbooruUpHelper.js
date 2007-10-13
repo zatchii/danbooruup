@@ -534,7 +534,7 @@ function download()
 
 	downloadRelatedTagDB: function(aInteractive,aListener)
 	{
-		this.tagService.detachRelatedTagDB();
+		this.tagService.detachRelatedTagDatabase();
 		var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
 		var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
 		outFile.append("danboorurelated.sqlite");
@@ -546,7 +546,7 @@ function download()
 		{
 			var modDate = new Date();
 			modDate.setTime(outFile.lastModifiedTime);
-			print('lastmod '+modDate.toUTCString());
+			//print('lastmod '+modDate.toUTCString());
 			channel.setRequestHeader("If-Modified-Since", modDate.toUTCString(), false);
 		}
 
@@ -559,17 +559,16 @@ function download()
 			.QueryInterface(Components.interfaces.nsIOutputStream);
 		outStr.init(fileStream, 65536);
 
-		aListener.interactive = aInteractive;
-		aListener.outStream = outStr;
-		aListener.fileStream = fileStream;
+		ctx = {interactive:aInteractive, outStream: outStr, fileStream: fileStream};
+		ctx.wrappedJSObject = ctx;
 
 		var converter = Cc["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"]
 			.createInstance(Components.interfaces.nsIStreamConverter);
-		converter.asyncConvertData("gzip", "uncompressed", listener, null);
+		converter.asyncConvertData("gzip", "uncompressed", aListener, null);
 
-		channel.notificationCallbacks = listener2;
+		channel.notificationCallbacks = aListener;
 		try {
-			channel.asyncOpen(converter, null);
+			channel.asyncOpen(converter, ctx);
 		} catch(e) {
 		}
 	},
@@ -724,12 +723,29 @@ function download()
 		if (!iid.equals(Ci.nsIObserver) &&
 		    !iid.equals(Ci.danbooruIHelperService) &&
 		    !iid.equals(Ci.nsISupports) &&
-		    !iid.equals(Ci.nsISupportsWeakReference))
+		    !iid.equals(Ci.nsISupportsWeakReference) &&
+    		    !iid.equals(Ci.nsIClassInfo))
 			throw Components.results.NS_ERROR_NO_INTERFACE;
 		return this;
 	},
 
-	get wrappedJSObject() { return this; }
+	get wrappedJSObject() { return this; },
+
+	// nsIClassInfo
+	classDescription: "Danbooru Helper Service",
+	classID: DANBOORUUPHELPER_CID,
+	contractID: DANBOORUUPHELPER_CONTRACTID,
+	flags: Ci.nsIClassInfo.SINGLETON,
+	implementationLanguage: Ci.nsIProgrammingLanguage.JAVASCRIPT,
+	getHelperForLanguage: function(lang) { return null; },
+	getInterfaces: function getInterfaces(aCount) {
+		var array = [Ci.nsIObserver,
+			Ci.danbooruIHelperService,
+			Ci.nsISupportsWeakReference,
+			Ci.nsIClassInfo];
+		aCount.value = array.length;
+		return array;
+	}
 }
 
 // Component registration

@@ -213,11 +213,11 @@
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"
-					oncommand="openDownloader('tagupdate')"/>
+					oncommand="gDanbooruManager.openDownloader('tagupdate')"/>
 				<button id="cleanup"
 					label="&danbooruUpOptions.cleanup.label;"
 					accesskey="&danbooruUpOptions.cleanup.accesskey;"
-					oncommand="openDownloader('tagcleanup')"/>
+					oncommand="gDanbooruManager.openDownloader('tagcleanup')"/>
 			</hbox>
 			<hbox align="center" flex="1">
 				<label control="relatedUpdateURL"
@@ -230,7 +230,7 @@
 				<button id="relatedUpdateNow"
 					label="&danbooruUpOptions.relatedUpdateNow.label;"
 					accesskey="&danbooruUpOptions.relatedUpdateNow.accesskey;"
-					oncommand="openDownloader('relatedtagdownload')"/>
+					oncommand="gDanbooruManager.openDownloader('relatedtagdownload')"/>
 			</hbox>
 		</groupbox>
 		<groupbox align="start">
