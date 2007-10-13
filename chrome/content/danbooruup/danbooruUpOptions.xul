@@ -166,6 +166,8 @@
 			name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.updateuri"
 			name="extensions.danbooruUp.updateuri"				type="string"/>
+		<preference id="pref.extensions.danbooruUp.relatedupdateuri"
+			name="extensions.danbooruUp.relatedupdateuri"			type="string"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.onstartup"
 			name="extensions.danbooruUp.autocomplete.update.onstartup"	type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.faststartup"
@@ -211,11 +213,24 @@
 				<button id="updateNow"
 					label="&danbooruUpOptions.updateNow.label;"
 					accesskey="&danbooruUpOptions.updateNow.accesskey;"
-					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).update(true,true);"/>
-				<button id="updateNow"
+					oncommand="openDownloader('tagupdate')"/>
+				<button id="cleanup"
 					label="&danbooruUpOptions.cleanup.label;"
 					accesskey="&danbooruUpOptions.cleanup.accesskey;"
-					oncommand="Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).cleanup(true);"/>
+					oncommand="openDownloader('tagcleanup')"/>
+			</hbox>
+			<hbox align="center" flex="1">
+				<label control="relatedUpdateURL"
+					value="&danbooruUpOptions.relatedUpdateURL.label;"
+					accesskey="&danbooruUpOptions.relatedUpdateURL.accesskey;" align="bottom"/>
+				<textbox id="relatedUpdateURL" flex="1"
+					preference="pref.extensions.danbooruUp.relatedupdateuri" />
+			</hbox>
+			<hbox align="center" pack="end">
+				<button id="relatedUpdateNow"
+					label="&danbooruUpOptions.relatedUpdateNow.label;"
+					accesskey="&danbooruUpOptions.relatedUpdateNow.accesskey;"
+					oncommand="openDownloader('relatedtagdownload')"/>
 			</hbox>
 		</groupbox>
 		<groupbox align="start">

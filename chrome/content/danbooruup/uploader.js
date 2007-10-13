@@ -1,4 +1,5 @@
 // uploading code, loaded into helper service scope
+// in content/ (until 1.9 comes in with C.u.load) because you can't get at compoent/ through chrome URIs
 // vim:set ts=4 sw=4 noet:
 var StrBundleSvc	= Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService);
 var danbooruUpMsg	= StrBundleSvc.createBundle('chrome://danbooruup/locale/danbooruUp.properties');

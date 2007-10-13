@@ -1,28 +1,28 @@
 <?xml version="1.0"?>
 <RDF:RDF xmlns:em="http://www.mozilla.org/2004/em-rdf#"
-	 xmlns:NC="http://home.netscape.com/NC-rdf#"
-	 xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-	<RDF:Description RDF:about="rdf:#$p7Be1H"
-		em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
-		em:minVersion="2.0"
-		em:maxVersion="2.0.0.*"
-		/>
-	<RDF:Description RDF:about="urn:mozilla:install-manifest"
-		em:id="{7209145A-6A2A-42C1-99EB-4DE7293990E1}"
-		em:name="Danbooru Uploader"
-		em:version="0.3.1.2"
-		em:type="2"
-		em:description="Uploads images to danbooru from the context menu."
-		em:creator="Buffered"
-		em:homepageURL="http://unbuffered.info/danbooruup/"
-		em:iconURL="chrome://danbooruup/skin/icon-large.png"
-		em:optionsURL="chrome://danbooruup/content/danbooruUpOptions.xul"
-		em:updateURL="http://unbuffered.info/danbooruup/danbooruup.rdf">
-		<em:file RDF:resource="urn:mozilla:extension:file:danbooruup.jar"/>
-		<em:targetApplication RDF:resource="rdf:#$p7Be1H"/>
-	</RDF:Description>
-	<RDF:Description RDF:about="urn:mozilla:extension:file:danbooruup.jar"
-		em:package="content/danbooruup/"
-		em:locale="locale/en-US/danbooruup/"
-		em:skin="skin/classic/danbooruup/"/>
+         xmlns:NC="http://home.netscape.com/NC-rdf#"
+         xmlns:RDF="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <RDF:Description RDF:about="urn:mozilla:extension:file:danbooruup.jar"
+                   em:package="content/danbooruup/"
+                   em:locale="locale/en-US/danbooruup/"
+                   em:skin="skin/classic/danbooruup/" />
+  <RDF:Description RDF:about="rdf:#$p7Be1H"
+                   em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
+                   em:minVersion="2.0"
+                   em:maxVersion="2.0.0.*" />
+  <RDF:Description RDF:about="urn:mozilla:install-manifest"
+                   em:id="{7209145A-6A2A-42C1-99EB-4DE7293990E1}"
+                   em:name="Danbooru Uploader"
+                   em:version="0.3.1.2"
+                   em:type="2"
+                   em:description="Uploads images to danbooru from the context menu."
+                   em:creator="Buffered"
+                   em:homepageURL="http://unbuffered.info/danbooruup/"
+                   em:iconURL="chrome://danbooruup/skin/icon-large.png"
+                   em:optionsURL="chrome://danbooruup/content/danbooruUpOptions.xul"
+                   em:updateURL="http://unbuffered.info/danbooruup/danbooruup.rdf"
+                   em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDTQWUtIsj7hzUuMQzPq8/zW8RRsYn42vUzdSkTlzOx7ezUN6uGv2my9gPksFCYqlLmFoiugp9jey/X9bKb2SaRYspT7ZIk4m/cxEOcguJ/is8wREYmlpFHI8uSYDeEvGebyVs7iuy1sUUXXdYqq+wVa0GwXNmXdwIETuDgUZ6ZjwIDAQAB">
+    <em:file RDF:resource="urn:mozilla:extension:file:danbooruup.jar"/>
+    <em:targetApplication RDF:resource="rdf:#$p7Be1H"/>
+  </RDF:Description>
 </RDF:RDF>

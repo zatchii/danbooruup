@@ -3,6 +3,7 @@ pref("extensions.danbooruUp.postadduri", "http://miezaru.donmai.us/post/create.x
 pref("extensions.danbooruUp.postadduri.selected", 0);
 pref("extensions.danbooruUp.fileurlsource", false);
 pref("extensions.danbooruUp.updateuri", "http://miezaru.donmai.us/tag/index.xml");
+pref("extensions.danbooruUp.relatedupdateuri", "http://miezaru.donmai.us/sqlite.db.gz");
 pref("extensions.danbooruUp.suppressComponentAlert", false);
 pref("extensions.danbooruUp.autocomplete.enabled", true);
 pref("extensions.danbooruUp.autocomplete.site.enabled", true);

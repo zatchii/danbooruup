@@ -224,7 +224,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 		this.update(false, false);
 	},
-	update: function(aFull, aInteractive)
+	update: function(aFull, aInteractive, aListener)
 	{
 		if (!this.tagService) return Components.results.NS_ERROR_NOT_AVAILABLE;
 		if (!prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") && (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval))
@@ -254,7 +254,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		this._updating = true;
 		this._interactive = aInteractive;
 		try {
-			this.tagService.updateTagListFromURI(locationURL.spec, true);
+			this.tagService.updateTagListFromURI(locationURL.spec, true, aListener);
 		} catch (e) {
 			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
 			{
@@ -280,12 +280,12 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 		return Components.results.NS_OK;
 	},
-	cleanup: function(aInteractive)
+	cleanup: function(aInteractive,aListener)
 	{
 		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
 		try {
-			this.tagService.updateTagListFromURI(locationURL.spec, false);
+			this.tagService.updateTagListFromURI(locationURL.spec, false, aListener);
 		} catch (e) {
 			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
 			{
@@ -338,85 +338,238 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const ioService		= Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 aURL = "http://localhost:61438/sqlite.db.gz";
+aURL = "http://unbuffered.info/junku/sqlite.db.gz";
 
 var listener = {
+	mCount: 0,
+	mOutStr: null,
+	mFileStream: null,
+
 	onStartRequest: function(request, ctxt) {
+		this.mCount = 0;
 	},
 
 	onStopRequest: function(request, ctxt, status) {
+		print('stop ' + NameForStatusCode(status) +"\n");
+		try {
 		request.QueryInterface(Ci.nsIHttpChannel);
-		print('stop ' + status +"\n");
 		print('stop ' + request.responseStatus + ' ' + request.responseStatusText + " \n");
-		if(request.responseStatus == 200) {
-			outStr.flush();
-			fileStream.finish();
-		} else {
-			fileStream.close();
+		} catch(e) { print(e); }
+		if(status == kNS_OK) {
+			if(request.responseStatus == 200) {
+				this.mOutStr.flush();
+				this.mFileStream.finish();
+				return;
+			}
 		}
+		this.mFileStream.close();
 	},
 
 	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
 	{
 		try {
-			outStr.writeFrom(aInputStream, aInputStream.available());
+			this.mOutStr.writeFrom(aInputStream, aInputStream.available());
 			//outStr.writeFrom(aInputStream, aCount);
+			this.mCount += aCount;
 		} catch(e) {
 			alert(e);
 		}
 	}
 };
 
-var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties)
-var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
-outFile.append("danboorurelated.sqlite");
+var listener2 = {
+	mCount: 0,
 
-var channel = ioService.newChannel(aURL, null, null);
-channel.QueryInterface(Components.interfaces.nsIHttpChannel);
-if (outFile.exists())
+	onStartRequest: function(request, ctxt) {
+		print("start");
+	},
+	onStopRequest: function(request, ctxt, status) {
+		print('2stop ' + status);
+		print('2stop ct ' + mCount);
+	},
+	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
+	{
+		print('data ' + aCount);
+		this.mCount += aCount;
+	},
+	onStatus : function(aRequest, aContext, aStatusCode, aStatusArg)
+	{
+		if(aStatusCode == kStatusReceivingFrom_Status) return;
+		print("onStatus:");
+		print("  Request: " + aRequest.name);
+		print("  StatusCode: " + NameForStatusCode(aStatusCode));
+		print("  StatusArg: " + aStatusArg);
+	},
+	onProgress : function(aRequest, aContext, aProgress, aProgressMax)
+	{
+		print("onProgress: " + aProgress + "/" + aProgressMax);
+	},
+	onChannelRedirect : function(aOldChannel, aNewChannel, aFlags)
+	{
+		print("redirect");
+	},
+
+  // nsIPrompt
+  alert : function(dlgTitle, text)
+  {
+    print("nsIPrompt::alert " + text);
+  },
+  alertCheck : function(dlgTitle, text, checkBoxLabel, checkObj)
+  {
+    print("nsIPrompt::alertCheck");
+  },
+  confirm : function(dlgTitle, text)
+  {
+    print("nsIPrompt::confirm");
+  },
+  confirmCheck : function(dlgTitle, text, checkBoxLabel, checkObj)
+  {
+    print("nsIPrompt::confirmCheck");
+  },
+  confirmEx : function(dlgTitle, text, btnFlags,
+                       btn0Title, btn1Title, btn2Title,
+                       checkBoxLabel, checkVal)
+  {
+    print("confirmEx");
+  },
+  select : function(dlgTitle, text, count, selectList, outSelection)
+  {
+    print("nsIPrompt::select");
+  },
+  prompt : function(dlgTitle, label, inputvalueObj,
+                    checkBoxLabel, checkObj)
+  {
+    print("nsIPrompt::prompt");
+  },
+  promptPassword : function(dlgTitle, label, pwObj,
+                            checkBoxLabel, savePWObj)
+  {
+    print("nsIPrompt::promptPassword:");
+    print("  pwObj: " + pwObj.value);
+    print("  checkBoxLabel: " + checkBoxLabel);
+    print("  savePWObj: " + savePWObj.value + " (ignored)");
+  },
+  promptUsernameAndPassword : function(dlgTitle, label,
+                                       userObj, pwObj,
+                                       savePWLabel, savePWObj)
+  {
+    print("nsIPrompt::promptUsernameAndPassword:");
+    print("  userObj: " + userObj.value);
+    print("  pwObj: " + pwObj.value);
+    print("  savePWLabel: " + savePWLabel);
+    print("  savePWObj: " + savePWObj.value + " (ignored)");
+  },
+
+
+	handleEvent: function(evt)
+	{
+		print("event "+evt+" "+evt.type + " target "+evt.target);
+	},
+	// nsISupports
+	QueryInterface : function(aIID)
+	{
+		print("QI "+aIID);
+		if (aIID.equals(Components.interfaces.nsIProgressEventSink)
+			|| aIID.equals(Components.interfaces.nsIChannelEventSink)
+			|| aIID.equals(Components.interfaces.nsIRequestObserver)
+			|| aIID.equals(Components.interfaces.nsIStreamListener)
+			|| aIID.equals(Components.interfaces.nsISupports)
+			|| aIID.equals(Components.interfaces.nsISupportsWeakReference)
+			|| aIID.equals(Components.interfaces.nsIPrompt)
+			//|| aIID.equals(Components.interfaces.nsIAuthPrompt)
+			|| aIID.equals(Components.interfaces.nsIChannelEventSink)
+			//|| aIID.equals(Components.interfaces.nsIDocShellTreeItem)
+			|| aIID.equals(Components.interfaces.nsIDOMEventListener)
+			|| aIID.equals(Components.interfaces.nsIInterfaceRequestor))
+			return this;
+		print("->nope");
+		throw Components.results.NS_NOINTERFACE;
+	},
+
+	// nsIInterfaceRequestor
+	getInterface : function(aIID)
+	{
+		return this.QueryInterface(aIID);
+	}
+};
+
+var helpersvc= Components.classes["@unbuffered.info/danbooru/helper-service;1"].getService(Components.interfaces.danbooruIHelperService);
+helpersvc.tagService.updateTagListFromURI("http://miezaru.donmai.us/tag/index.xml",true, listener2);
+
+function download()
 {
-	var modDate = new Date();
-	modDate.setTime(outFile.lastModifiedTime);
-	channel.setRequestHeader("If-Modified-Since", modDate.toUTCString(), false);
+	var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties)
+	var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
+	outFile.append("danboorurelated.sqlite~");
+
+	var channel = ioService.newChannel(aURL, null, null);
+	channel.QueryInterface(Components.interfaces.nsIHttpChannel);
+	channel.loadFlags = channel.INHIBIT_CACHING | channel.LOAD_BYPASS_CACHE;
+	if (outFile.exists())
+	{
+		var modDate = new Date();
+		modDate.setTime(outFile.lastModifiedTime);
+		print('lastmod '+modDate.toUTCString());
+		channel.setRequestHeader("If-Modified-Since", modDate.toUTCString(), false);
+	}
+
+	var fileStream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream)
+			.QueryInterface(Ci.nsISafeOutputStream);
+	fileStream.init(outFile, 0x02 | 0x08 | 0x20, 0600, 0);
+
+	var outStr = Components.classes["@mozilla.org/network/buffered-output-stream;1"]
+			.createInstance(Components.interfaces.nsIBufferedOutputStream)
+			.QueryInterface(Components.interfaces.nsIOutputStream);
+	outStr.init(fileStream, 65536);
+	listener.mOutStr = outStr;
+	listener.mFileStream = fileStream;
+
+	var converter = Cc["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"].createInstance(Components.interfaces.nsIStreamConverter);
+	converter.asyncConvertData("gzip", "uncompressed", listener, null);
+
+	channel.notificationCallbacks = listener2;
+	channel.asyncOpen(converter, null);
 }
-
-var fileStream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream)
-		.QueryInterface(Ci.nsISafeOutputStream);
-fileStream.init(outFile, 0x02 | 0x08 | 0x20, 0600, 0);
-
-var outStr = Components.classes["@mozilla.org/network/buffered-output-stream;1"]
-		.createInstance(Components.interfaces.nsIBufferedOutputStream)
-		.QueryInterface(Components.interfaces.nsIOutputStream);
-outStr.init(fileStream, 65536);
-
-var converter = Cc["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"].createInstance(Components.interfaces.nsIStreamConverter);
-converter.asyncConvertData("gzip", "uncompressed", listener, null);
-
-channel.asyncOpen(converter, null);
 	*/
 
-	downloadRelatedTagDB: function(aURL)
+	downloadRelatedTagDB: function(aInteractive,aListener)
 	{
-		var channel = ioService.newChannel(aURL, null, null);
-		channel.loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
-		channel.notificationCallbacks = this;
+		this.tagService.detachRelatedTagDB();
+		var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
+		var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
+		outFile.append("danboorurelated.sqlite");
 
-		var downloader = Components.classes["@mozilla.org/network/downloader;1"]
-			.createInstance(Ci.nsIDownloader);
-
-		var listener = {
-			onDownloadComplete: function(downloader, request, ctxt, status, result) {
-				if (doInitialBackup)
-					copyToOverwriting(result, backupDir, makeName('initial'));
-				if (doDailyBackup)
-					copyToOverwriting(result, backupDir, dailyBackupFileName);
-
-				aCallback.call(savedthis);
-			},
+		var channel = ioService.newChannel(prefBranch.getCharPref("extensions.danbooruUp.relatedupdateuri"), null, null)
+				.QueryInterface(Components.interfaces.nsIHttpChannel);
+		channel.loadFlags = channel.INHIBIT_CACHING | channel.LOAD_BYPASS_CACHE;
+		if (outFile.exists())
+		{
+			var modDate = new Date();
+			modDate.setTime(outFile.lastModifiedTime);
+			print('lastmod '+modDate.toUTCString());
+			channel.setRequestHeader("If-Modified-Since", modDate.toUTCString(), false);
 		}
 
-		downloader.init(listener, backupFile);
+		var fileStream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream)
+			.QueryInterface(Ci.nsISafeOutputStream);
+		fileStream.init(outFile, 0x02 | 0x08 | 0x20, 0600, 0);
+
+		var outStr = Components.classes["@mozilla.org/network/buffered-output-stream;1"]
+			.createInstance(Components.interfaces.nsIBufferedOutputStream)
+			.QueryInterface(Components.interfaces.nsIOutputStream);
+		outStr.init(fileStream, 65536);
+
+		aListener.interactive = aInteractive;
+		aListener.outStream = outStr;
+		aListener.fileStream = fileStream;
+
+		var converter = Cc["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"]
+			.createInstance(Components.interfaces.nsIStreamConverter);
+		converter.asyncConvertData("gzip", "uncompressed", listener, null);
+
+		channel.notificationCallbacks = listener2;
 		try {
-			channel.asyncOpen(downloader, null);
+			channel.asyncOpen(converter, null);
 		} catch(e) {
 		}
 	},

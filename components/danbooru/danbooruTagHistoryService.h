@@ -38,22 +38,15 @@
 #ifndef __danbooruTagHistoryService__
 #define __danbooruTagHistoryService__
 
-#include "nsStringAPI.h"
-
 #include "danbooruITagHistoryService.h"
 #include "danbooruIAutoCompleteArrayResult.h"
 #include "nsIXMLHttpRequest.h"
 #include "nsIDOMEventListener.h"
-#include "nsCOMPtr.h"
 #include "nsIObserver.h"
-#include "nsIDOMEventListener.h"
-#include "nsIXMLHttpRequest.h"
 #include "nsIPrefBranch.h"
 #include "nsWeakReference.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
-
-class nsIXMLHttpRequest;
 
 #define DANBOORU_TAGHISTORYSERVICE_CID \
 { 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x48 } }
@@ -87,6 +80,7 @@ protected:
   // Database I/O
   nsresult OpenDatabase();
   nsresult CloseDatabase();
+  nsresult AttachRelatedTagDatabase();
   void ReportDBError();
 
   // mozStorage
@@ -112,6 +106,7 @@ protected:
 
   static PRBool gTagHistoryEnabled;
   static PRBool gPrefsInitialized;
+  PRBool mRelatedTagsAvailable;
 
   nsCOMPtr<nsIXMLHttpRequest> mRequest;
   // no way to get XHR to send this along with the load event, but there's only one request at a time per XHR anyway

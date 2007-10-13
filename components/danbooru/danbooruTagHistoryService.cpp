@@ -43,6 +43,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsComponentManagerUtils.h"
 #include "nsIIOService.h"
+#include "nsIChannel.h"
 #include "nsNetCID.h"
 #include "nsIObserverService.h"
 #include "nsICategoryManager.h"
@@ -120,6 +121,7 @@ static const char *kTagTableName = "tags";
 
 // related tags
 #define kAttachRTDB "ATTACH ?1 AS \"rt\""
+#define kDetachRTDB "DETACH \"rt\""
 #define kRelTagSearch "SELECT t.name, t.tag_type FROM tags t JOIN rt.cached_tags r ON t.id = r.related_tag_id WHERE r.related_tag_id != ?1 AND r.tag_id = ?1 ORDER BY t.tag_type ASC, t.value DESC, r.post_count DESC"
 
 // migration
@@ -270,7 +272,8 @@ static void ReplaceSubstring(nsAString& str, const nsAString& matchVal, const ns
 
 danbooruTagHistoryService::danbooruTagHistoryService() :
 	mDB(nsnull),
-	mRequest(nsnull)
+	mRequest(nsnull),
+	mRelatedTagsAvailable(PR_FALSE)
 {
 }
 
@@ -544,7 +547,7 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 
 /* used to be the nsISchema load */
 NS_IMETHODIMP
-danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool insert)
+danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool insert, nsIInterfaceRequestor *notification)
 {
 	if(!gTagHistoryEnabled)
 		return NS_ERROR_NOT_AVAILABLE;
@@ -591,6 +594,15 @@ danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool
 	rv = mRequest->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_TRUE, empty, empty);
 	if (NS_FAILED(rv)) {
 		return rv;
+	}
+	if (notification) {
+		nsCOMPtr<nsIChannel> channel;
+		rv = mRequest->GetChannel(getter_AddRefs(channel));
+		if (NS_SUCCEEDED(rv))
+		{
+			channel->SetNotificationCallbacks(notification);
+			channel->SetLoadFlags(nsIRequest::LOAD_NORMAL);
+		}
 	}
 
 	// Force the mimetype of the returned stream to be xml.
@@ -915,7 +927,6 @@ danbooruTagHistoryService::OpenDatabase()
 	}
 	historyFile->Append(NS_ConvertUTF8toUTF16(kTagHistoryFileName));
 
-	//rv = storage->GetProfileStorage("profile", getter_AddRefs(mDB));
 	rv = storage->OpenDatabase(historyFile, getter_AddRefs(mDB));
 	NS_ENSURE_SUCCESS(rv, rv);
 	if (mDB == nsnull)
@@ -996,43 +1007,7 @@ danbooruTagHistoryService::OpenDatabase()
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING("VACUUM"));
 	}
 
-	// attach related tags DB if it exists
-	{
-		nsCOMPtr <nsIFile> relatedFile;
-		rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(relatedFile));
-		if(NS_FAILED(rv))
-		{
-			rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(relatedFile));
-			if (NS_FAILED(rv))
-				return rv;
-		}
-		relatedFile->Append(NS_ConvertUTF8toUTF16(kRelTagFileName));
-		PRBool retval = PR_FALSE;
-		rv = relatedFile->Exists(&retval);
-		if(NS_SUCCEEDED(rv) && retval)
-		{
-			nsCOMPtr<mozIStorageStatement> attachStmt;
-			rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kAttachRTDB), getter_AddRefs(attachStmt));
-			DU_ENSURE_SUCCESS;
-
-			nsString path;
-			relatedFile->GetPath(path);
-			attachStmt->BindStringParameter(0, path);
-			attachStmt->Execute();
-			PRInt32 err;
-			mDB->GetLastError(&err);
-			if(err)
-				rv = NS_ERROR_FAILURE;
-			else
-				rv = NS_OK;
-	PR_fprintf(PR_STDERR, "attaching %s rv %d\n", kAttachRTDB, rv);
-			//TODO: figure out what can actually go wrong
-			DU_ENSURE_SUCCESS;
-
-			rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRelTagSearch), getter_AddRefs(mRelSearchStmt));
-			DU_ENSURE_SUCCESS;
-		}
-	}
+	AttachRelatedTagDatabase();
 
 	// create statements for regular use
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
@@ -1054,11 +1029,68 @@ danbooruTagHistoryService::OpenDatabase()
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRowCount), getter_AddRefs(mRowCountStmt));
 	DU_ENSURE_SUCCESS;
 
-#undef DU_ENSURE_SUCCESS
-
 	// all clear
 	gTagHistoryEnabled = PR_TRUE;
 
+	return NS_OK;
+}
+
+// attach related tags DB if it exists
+nsresult
+danbooruTagHistoryService::AttachRelatedTagDatabase()
+{
+	if (mRelatedTagsAvailable)
+		return NS_OK;
+
+	if (!mDB)
+	{
+		return OpenDatabase();
+	}
+
+	nsCOMPtr <nsIFile> relatedFile;
+	nsresult rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(relatedFile));
+	if(NS_FAILED(rv))
+	{
+		rv = NS_GetSpecialDirectory(NS_OS_CURRENT_WORKING_DIR, getter_AddRefs(relatedFile));
+		NS_ENSURE_SUCCESS(rv, rv);
+	}
+	relatedFile->Append(NS_ConvertUTF8toUTF16(kRelTagFileName));
+	PRBool retval = PR_FALSE;
+	rv = relatedFile->Exists(&retval);
+	if(NS_SUCCEEDED(rv) && retval)
+	{
+		nsCOMPtr<mozIStorageStatement> attachStmt;
+		rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kAttachRTDB), getter_AddRefs(attachStmt));
+		DU_ENSURE_SUCCESS;
+
+		nsString path;
+		relatedFile->GetPath(path);
+		attachStmt->BindStringParameter(0, path);
+		attachStmt->Execute();
+		PRInt32 err;
+		mDB->GetLastError(&err);
+		if(err)
+			rv = NS_ERROR_FAILURE;
+		else
+			rv = NS_OK;
+		//TODO: figure out what can actually go wrong
+		DU_ENSURE_SUCCESS;
+
+		rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRelTagSearch), getter_AddRefs(mRelSearchStmt));
+		DU_ENSURE_SUCCESS;
+	}
+
+	mRelatedTagsAvailable = PR_TRUE;
+	return NS_OK;
+}
+#undef DU_ENSURE_SUCCESS
+
+NS_IMETHODIMP
+danbooruTagHistoryService::DetachRelatedTagDatabase()
+{
+	mRelatedTagsAvailable = PR_FALSE;
+	if (mDB == nsnull) return NS_OK;
+	mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDetachRTDB));
 	return NS_OK;
 }
 
@@ -1213,6 +1245,9 @@ danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
 	*_retval = nsnull;
 
 	nsresult rv = OpenDatabase();
+	NS_ENSURE_SUCCESS(rv, rv);
+
+	rv = AttachRelatedTagDatabase();
 	NS_ENSURE_SUCCESS(rv, rv);
 
 	PRBool row;

@@ -36,6 +36,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsISupports.idl"
+#include "nsIInterfaceRequestor.idl"
 #include "danbooruIAutoCompleteArrayResult.idl"
 
 [scriptable, uuid(0afd6b91-10db-485e-a6e2-455e704af672)]
@@ -74,7 +75,7 @@ interface danbooruITagHistoryService : nsISupports
    * @param aXmlURI The URI from which to retrieve tags from.
    * @param insert True if retrieving tags for insertion, false if retrieving tags for clean up.
    */
-  void updateTagListFromURI(in AString aXmlURI, in boolean insert);
+  void updateTagListFromURI(in AString aXmlURI, in boolean insert, in nsIInterfaceRequestor notification);
 
   /**
    * Gets the name and value at a position in the tag history.
@@ -133,5 +134,10 @@ interface danbooruITagHistoryService : nsISupports
    * Returns true if the value was incremented, false if the name does not exist.
    */
   boolean incrementValueForName(in AString name);
+
+  /**
+   * Detaches the related tag database for updates.
+   */
+  void detachRelatedTagDatabase();
 };
 

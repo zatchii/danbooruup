@@ -683,12 +683,14 @@ danbooruAutoCompleteController::HasNextSibling(PRInt32 rowIndex, PRInt32 afterIn
 NS_IMETHODIMP
 danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 {
+#ifdef DEBUG
 	{
 		char q[256];
 		PR_snprintf(q, 256, "openstate %d", index);
 		PR_fprintf(PR_STDERR, "%s\n", q);
 		mConsole->LogStringMessage(NS_ConvertUTF8toUTF16(q).get());
 	}
+#endif
 
 	PRInt32 level;
 	PRInt32 otherIndex;
@@ -749,7 +751,12 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 
 		nsString tag;
 		GetValueAt(index, tag);
-		tagservice->SearchRelatedTags(tag, &result);
+		rv = tagservice->SearchRelatedTags(tag, &result);
+		if(NS_FAILED(rv)) {
+			nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
+			sound->Beep();
+			return NS_OK;
+		}
 		result->SetIndex(otherIndex);
 
 		result->GetMatchCount(&count);

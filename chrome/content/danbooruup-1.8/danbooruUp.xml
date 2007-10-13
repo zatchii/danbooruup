@@ -444,6 +444,7 @@
               cancel = this.mController.handleDelete();
 	      break;
 	    case KeyEvent.DOM_VK_INSERT:
+	    case KeyEvent.DOM_VK_HELP:
 	      if(!this.popup.mPopupOpen) break;
 	      this.mController.QueryInterface(Components.interfaces.nsITreeView).toggleOpenState(this.popup.selectedIndex);
 	      cancel = true;
@@ -553,8 +554,8 @@
       ]]></constructor>
 
       <!-- =================== danbooruIAutoCompletePopup =================== -->
-      <property name="controller" onget="return this.mController"/>
-      <property name="indexHack" onget="return this.mIndexHack"/>
+      <property name="controller" onget="return this.mController" onset="this.mController = val; return val;"/>
+      <property name="indexHack" onget="return this.mIndexHack" onset="this.mIndexHack = val; return val;"/>
 
       <!-- =================== nsIAutoCompletePopup =================== -->
 
