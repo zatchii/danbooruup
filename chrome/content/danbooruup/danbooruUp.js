@@ -50,7 +50,7 @@ function danbooruImageContext(e) {
 	return;
 }
 
-danbooruUpObject = new Object();
+var danbooruUpObject = new Object();
 
 danbooruUpObject.uploadImage = function() {
 	var imgURIStr	= danbooruImgNode.getAttribute("src");

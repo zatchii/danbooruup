@@ -85,6 +85,14 @@ danbooruAutoCompleteArrayResult::GetCommentAt(PRInt32 aIndex, nsAString & _retva
 }
 
 NS_IMETHODIMP
+danbooruAutoCompleteArrayResult::GetImageAt(PRInt32 aIndex, nsAString & _retval)
+{
+	NS_ENSURE_TRUE(aIndex >= 0 && aIndex < mResults.Count(), NS_ERROR_ILLEGAL_VALUE);
+
+	return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 danbooruAutoCompleteArrayResult::GetStyleAt(PRInt32 aIndex, nsAString & _retval)
 {
 	NS_ENSURE_TRUE(aIndex >= 0 && aIndex < mResults.Count(), NS_ERROR_ILLEGAL_VALUE);

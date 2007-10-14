@@ -47,7 +47,7 @@
       </field>
 
       <constructor><![CDATA[
-        mController = Components.classes["@mozilla.org/autocomplete/controller;1"].
+        mController = Components.classes["@unbuffered.info/danbooru/autocomplete-controller;1"].
                         getService(Components.interfaces.nsIAutoCompleteController);
       ]]></constructor>
 
@@ -66,13 +66,13 @@
 
       <field name="popup"><![CDATA[
         var popup = null;
-        var popupId = this.getAttribute("autocompletepopup");
+	var popupId = this.getAttribute("autocompletepopup");
         if (popupId)
           popup = document.getElementById(popupId);
         if (!popup) {
-          popup = document.createElement("popup");
+          popup = document.createElement("panel");
           popup.setAttribute("type", "danbooru-autocomplete");
-          popup.setAttribute("hidden", "true");
+          popup.setAttribute("noautofocus", "true");
           
           var popupset = document.getAnonymousElementByAttribute(this, "anonid", "popupset");
           popupset.appendChild(popup);
@@ -110,6 +110,10 @@
       <property name="showCommentColumn"
                 onset="this.setAttribute('showcommentcolumn', val); return val;"
                 onget="return this.getAttribute('showcommentcolumn') == 'true';"/>
+
+      <property name="showImageColumn"
+                onset="this.setAttribute('showimagecolumn', val); return val;"
+                onget="return this.getAttribute('showimagecolumn') == 'true';"/>
 
       <property name="timeout"
                 onset="this.setAttribute('timeout', val); return val;"
@@ -317,7 +321,7 @@
 
       <method name="openPopup">
         <body><![CDATA[
-          this.popup.openPopup(this, -1, -1, this.boxObject.width);
+          this.popup.QueryInterface(Components.interfaces.nsIAutoCompletePopup).openAutocompletePopup(this, this);
         ]]></body>
       </method>
 
@@ -382,7 +386,7 @@
           //XXXpch this is so bogus...
           if (aEvent.getPreventDefault())
             return false;
-
+	    
           var cancel = false;
 
           // Catch any keys that could potentially move the caret. Ctrl can be
@@ -429,6 +433,13 @@
             case KeyEvent.DOM_VK_DELETE:
               cancel = this.mController.handleDelete();
               break;
+	    case KeyEvent.DOM_VK_INSERT:
+	    case KeyEvent.DOM_VK_HELP:
+	      if(!this.popup.mPopupOpen) break;
+	      this.mController.QueryInterface(Components.interfaces.nsITreeView).toggleOpenState(this.popup.selectedIndex);
+	      cancel = true;
+	      this.popup.adjustHeight();
+	      break;
             case KeyEvent.DOM_VK_DOWN:
             case KeyEvent.DOM_VK_UP:
               if (aEvent.altKey)
@@ -502,9 +513,8 @@
 
       <handler event="contextmenu" phase="capturing"
                action="this.closePopup();"/>
-
     </handlers>
-  </binding> 
+  </binding>
 
   <binding id="danbooru-autocomplete-result-popup" extends="chrome://global/content/bindings/popup.xml#popup">
     <resources>
@@ -515,20 +525,27 @@
     <content>
       <xul:tree anonid="tree" class="danbooru-autocomplete-tree plain" hidecolumnpicker="true" flex="1">
         <xul:treecols anonid="treecols">
-          <xul:treecol id="treecolAutoCompleteValue" class="danbooru-autocomplete-treecol" flex="1"/>
+          <xul:treecol id="treecolAutoCompleteValue" class="danbooru-autocomplete-treecol" primary="true" flex="1"/>
         </xul:treecols>
         <xul:treechildren class="danbooru-autocomplete-treebody"/>
       </xul:tree>
     </content>
     
-    <implementation implements="nsIAutoCompletePopup">
+    <implementation implements="nsIAutoCompletePopup,danbooruIAutoCompletePopup">
       <field name="mInput">null</field>
+      <field name="mController">null</field>
+      <field name="mIndexHack">false</field>
       <field name="mPopupOpen">false</field>
       <field name="mShowCommentCol">false</field>
-      
+      <field name="mShowImageCol">false</field>
+
       <constructor><![CDATA[
         this.setAttribute("ignorekeys", "true");
       ]]></constructor>
+
+      <!-- =================== danbooruIAutoCompletePopup =================== -->
+      <property name="controller" onget="return this.mController" onset="this.mController = val; return val;"/>
+      <property name="indexHack" onget="return this.mIndexHack" onset="this.mIndexHack = val; return val;"/>
 
       <!-- =================== nsIAutoCompletePopup =================== -->
 
@@ -539,7 +556,7 @@
                 onget="return null;"/>
 
       <property name="selectedIndex"
-                onget="return this.tree.currentIndex;">
+                onget="if (this.mIndexHack) { return this.mController.originalRowIndex(this.tree.currentIndex); } else { return this.tree.currentIndex; }">
         <setter><![CDATA[
           this.tree.view.selection.select(val);
           if (this.tree.treeBoxObject.height > 0)
@@ -556,11 +573,9 @@
       <property name="popupOpen" readonly="true"
                 onget="return this.mPopupOpen;"/>
 
-      <method name="openPopup">
+      <method name="openAutocompletePopup">
         <parameter name="aInput"/>
-        <parameter name="aX"/>
-        <parameter name="aY"/>
-        <parameter name="aWidth"/>
+        <parameter name="aElement"/>
         <body><![CDATA[
           if (!this.mPopupOpen) {
             this.mInput = aInput;
@@ -568,19 +583,16 @@
             this.invalidate();
             
             this.showCommentColumn = this.mInput.showCommentColumn;
-            
-            this.removeAttribute("hidden");
-            this.setAttribute("width", aWidth < 100 ? 100 : aWidth);
+            this.showImageColumn = this.mInput.showImageColumn;
 
             document.popupNode = null;
-            if (aY == -1) {
-              this.showPopup(this.mInput, -1, -1, "popup", 'bottomleft', 'topleft');
-            }
-            else {
-              this.showPopup(document.documentElement, aX, aY, "popup", null, null);            
-            }
-            this.enableRollup(false);
-            this.mInput.controller.attachRollupListener();
+
+            var rect = aElement.getBoundingClientRect();
+            var width = rect.right - rect.left;
+            this.setAttribute("width", width > 100 ? width : 100);
+            this.openPopup(aElement, "after_start", 0, 0, false, false);
+
+            this.popupBoxObject.setConsumeRollupEvent(this.mInput.consumeRollupEvent);
           }
         ]]></body>
       </method>
@@ -590,9 +602,8 @@
           if (this.mPopupOpen) {
             this.hidePopup();
             document.popupNode = null;
-
-            this.setAttribute("hidden", "true");
-            this.mInput.controller.detachRollupListener();
+//            this.setAttribute("hidden", "true");
+            this.removeAttribute("width");
           }
         ]]></body>
       </method>
@@ -609,7 +620,7 @@
         <parameter name="aPage"/>
         <body><![CDATA[
           try {
-            var amount = aPage ? 5 : 1;
+            var amount = aPage ? this.maxRows-1 : 1;
             this.selectedIndex = this.getNextIndex(aReverse, amount, this.selectedIndex, this.tree.view.rowCount-1);
             if (this.selectedIndex == -1) {
               this.input._focus();
@@ -669,7 +680,7 @@
                 onget="return this.mShowCommentColumn;">
         <setter><![CDATA[
           if (!val && this.mShowCommentColumn) {
-            // reset the flex on the value column and add the comment column
+            // reset the flex on the value column and remove the comment column
             document.getElementById("treecolAutoCompleteValue").setAttribute("flex", 1);
             this.removeColumn("treecolAutoCompleteComment");
           } else if (val && !this.mShowCommentColumn) {
@@ -680,6 +691,23 @@
           this.mShowCommentColumn = val;
           return val;
         ]]></setter>
+      </property>
+
+      <property name="showImageColumn"
+                onget="return this.mShowImageColumn;">
+        <setter>
+          <![CDATA[
+          if (!val && this.mShowImageColumn) {
+            // remove the image column
+            this.removeColumn("treecolAutoCompleteImage");
+          } else if (val && !this.mShowImageColumn) {
+            // add the image column
+            this.addColumn({id: "treecolAutoCompleteImage", flex: 1});
+          }
+          this.mShowImageColumn = val;
+          return val;
+        ]]>
+        </setter>
       </property>
 
       <method name="addColumn">
@@ -706,6 +734,8 @@
           // detect the desired height of the tree
           var bx = this.tree.treeBoxObject;
           var view = this.tree.view;
+          if (!view)
+            return;
           var rows = this.maxRows;
           if (!view.rowCount || (rows && view.rowCount < rows))
             rows = view.rowCount;
@@ -768,7 +798,10 @@
         this.mPopupOpen = true;
       ]]></handler>
 
-      <handler event="popuphiding">
+      <handler event="popuphiding"><![CDATA[
+        var controller = this.view.QueryInterface(Components.interfaces.nsIAutoCompleteController);
+        controller.stopSearch();
+
         this.mPopupOpen = false;
 
         // Reset the maxRows property to the cached "normal" value, and reset
@@ -776,7 +809,7 @@
         // when the popupshowing handler runs.
         this.mInput.maxRows = this._normalMaxRows;
         this._normalMaxRows = -1;
-      </handler>
+      ]]></handler>
     </handlers>
   </binding>
 
@@ -792,38 +825,22 @@
   <binding id="danbooru-autocomplete-treebody">
     <implementation>
       <field name="mLastMoveTime">new Date()</field>
-
-      <method name="getHoverCell">
-        <parameter name="aEvent"/>
-        <body><![CDATA[
-           var row = {}; var col = {}; var obj = {};
-           // XXXbz We really want client*, but event.client* is bogus inside a
-           // popup!
-           var x = aEvent.screenX - document.documentElement.boxObject.screenX;
-           var y = aEvent.screenY - document.documentElement.boxObject.screenY;
-           this.parentNode.treeBoxObject.getCellAt(x, y, row, col, obj);
-           if (row.value >= 0)
-             return {row: row.value, column: col.value.id};
-           else
-            return null;
-        ]]></body>
-      </method>
     </implementation>
     
     <handlers>
       <handler event="mouseup" action="this.parentNode.parentNode.onPopupClick(event);"/>
 
       <handler event="mousedown"><![CDATA[
-         var rc = this.getHoverCell(event);
-         if (rc && rc.row != this.parentNode.currentIndex)
-            this.parentNode.view.selection.select(rc.row);
+         var rc = this.parentNode.treeBoxObject.getRowAt(event.clientX, event.clientY);
+         if (rc != this.parentNode.currentIndex)
+            this.parentNode.view.selection.select(rc);
       ]]></handler>
 
       <handler event="mousemove"><![CDATA[
         if (new Date() - this.mLastMoveTime > 30) {
-         var rc = this.getHoverCell(event);
-         if (rc && rc.row != this.parentNode.currentIndex)
-            this.parentNode.view.selection.select(rc.row);
+         var rc = this.parentNode.treeBoxObject.getRowAt(event.clientX, event.clientY);
+         if (rc != this.parentNode.currentIndex)
+            this.parentNode.view.selection.select(rc);
          this.mLastMoveTime = new Date();
         }
       ]]></handler>

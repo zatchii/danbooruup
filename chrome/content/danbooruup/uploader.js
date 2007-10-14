@@ -40,6 +40,12 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRe
 		do {
 			// need a little more alacrity than removeNotification provides
 			notificationBox.removeChild(notification);
+			var idx = notificationBox.allNotifications.length - 2;
+			if (idx >= 0) {
+				notificationBox.currentNotification = notificationBox.allNotifications[idx];
+			} else {
+				notificationBox.currentNotification = null;
+			}
 		} while (notification = notificationBox.getNotificationWithValue("danbooru-up"));
 		// try again a little later
 		if (!aRetry) {

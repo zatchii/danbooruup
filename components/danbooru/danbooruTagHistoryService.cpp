@@ -53,6 +53,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIConsoleService.h"
+#include "nsIProxyObjectManager.h"
 
 #include "danbooruAutoCompleteArrayResult.h"
 
@@ -273,8 +274,10 @@ static void ReplaceSubstring(nsAString& str, const nsAString& matchVal, const ns
 danbooruTagHistoryService::danbooruTagHistoryService() :
 	mDB(nsnull),
 	mRequest(nsnull),
+	mLock(nsnull),
 	mRelatedTagsAvailable(PR_FALSE)
 {
+	mLock = PR_NewLock();
 }
 
 danbooruTagHistoryService::~danbooruTagHistoryService()
@@ -282,6 +285,7 @@ danbooruTagHistoryService::~danbooruTagHistoryService()
 	gTagHistory = nsnull;
 	//NS_IF_RELEASE(gCaseConv);
 	CloseDatabase();
+	PR_DestroyLock(mLock);
 }
 
 nsresult
@@ -338,6 +342,15 @@ danbooruTagHistoryService::TagHistoryEnabled()
   return gTagHistoryEnabled;
 }
 
+////////////////////////////////////////////////////////////////////////
+//// nsIRunnable
+
+NS_IMETHODIMP
+danbooruTagHistoryService::Run()
+{
+	ProcessTagXML();
+	return NS_OK;
+}
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIDanbooruTagHistoryService
@@ -394,18 +407,26 @@ GetResolvedURI(const nsAString& aSchemaURI,
 }
 
 nsresult
-danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
+danbooruTagHistoryService::ProcessTagXML()
 {
-	NS_ENSURE_ARG(document);
+	nsCOMPtr<nsIDOMDocument> document;
+	nsresult rv = mRequest->GetResponseXML(getter_AddRefs(document));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
 
-	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
+	nsCOMPtr<nsIDOMElement> element;
+	document->GetDocumentElement(getter_AddRefs(element));
+	NS_ENSURE_TRUE(element != nsnull, NS_ERROR_FAILURE);
+
+	rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
 
 	nsCOMPtr<nsIDOMNodeList> nodeList;
 	PRUint32 index = 0;
 	PRUint32 length = 0;
 
-	((nsIDOMElement *)document)->GetChildNodes(getter_AddRefs(nodeList));
+	element->GetChildNodes(getter_AddRefs(nodeList));
 
 	if (nodeList) {
 		nodeList->GetLength(&length);
@@ -414,6 +435,7 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 #ifdef DANBOORUUP_TESTING
  		NS_WARNING("no tags");
 #endif
+		mDocElement = nsnull;
 		return NS_OK;
 	}
 #if defined(DANBOORUUP_TESTING) || defined(DEBUG)
@@ -421,6 +443,8 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
  	PR_fprintf(PR_STDERR, "got %d nodes\n", length);
 }
 #endif
+
+	PR_Lock(mLock);
 
 	nsCOMPtr<nsIDOMNode> child;
 	//danbooruTagHistoryService *history = danbooruTagHistoryService::GetInstance();
@@ -446,7 +470,7 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 	}
 #endif
 
-	if (aInsert) {	// adding new tags
+	if (mInserting) {	// adding new tags
 		mDB->BeginTransaction();
 		while (index < length) {
 #ifndef MOZILLA_1_8_BRANCH
@@ -536,6 +560,26 @@ danbooruTagHistoryService::ProcessTagXML(void *document, PRBool aInsert)
 		service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
 #endif
 	}
+	mDocElement = nsnull;
+	PR_Unlock(mLock);
+
+#ifndef MOZILLA_1_8_BRANCH
+	nsCOMPtr<nsIThread> proxy;
+	nsIThread *current;
+	NS_GetCurrentThread(&current);
+	nsCOMPtr<nsIProxyObjectManager> proxyMgr(do_GetService("@mozilla.org/xpcomproxy;1"));
+
+	proxyMgr->GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
+					NS_GET_IID(nsIThread),
+					current,
+					NS_PROXY_ASYNC,
+					getter_AddRefs(proxy));
+	if (proxy) {
+		proxy->Shutdown();
+	} else {
+		NS_WARNING("danbooruTagHistoryService leaking thread");
+	}
+#endif
 
 	nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
 	if (NS_FAILED(rv))
@@ -571,25 +615,13 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 		return NS_OK;
 	}
 
-	nsCOMPtr<nsIDOMDocument> document;
-	rv = mRequest->GetResponseXML(getter_AddRefs(document));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-
-	nsCOMPtr<nsIDOMElement> element;
-	document->GetDocumentElement(getter_AddRefs(element));
-	if (element) {
 #ifdef DANBOORUUP_TESTING
 	PR_fprintf(PR_STDERR,"processing %s\n", mInserting?"insertion":"removal");
 #endif
-		ProcessTagXML(element, mInserting);
-		rv = NS_OK;
-	} else {
-		rv = NS_ERROR_CANNOT_CONVERT_DATA;
-	}
-#ifdef DANBOORUUP_TESTING
-	PR_fprintf(PR_STDERR,"done %08x\n", rv);
+#ifdef MOZILLA_1_8_BRANCH
+	rv = ProcessTagXML();
+#else
+	NS_NewThread(getter_AddRefs(mThread), this);
 #endif
 	return rv;
 }
@@ -1137,9 +1169,10 @@ danbooruTagHistoryService::AttachRelatedTagDatabase()
 
 		rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRelTagSearch), getter_AddRefs(mRelSearchStmt));
 		DU_ENSURE_SUCCESS;
+
+		mRelatedTagsAvailable = PR_TRUE;
 	}
 
-	mRelatedTagsAvailable = PR_TRUE;
 	return NS_OK;
 }
 #undef DU_ENSURE_SUCCESS
@@ -1308,6 +1341,11 @@ danbooruTagHistoryService::SearchRelatedTags(const nsAString &aInputName,
 
 	rv = AttachRelatedTagDatabase();
 	NS_ENSURE_SUCCESS(rv, rv);
+
+	if (!mRelatedTagsAvailable)
+	{
+		return NS_ERROR_NOT_AVAILABLE;
+	}
 
 	PRBool row;
 	PRUint32 id;

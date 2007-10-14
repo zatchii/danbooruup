@@ -54,7 +54,7 @@ function danbooruAddTagTypeStyleSheet() {
 	pi.name = "danbooruUpTagTypeStyleSheet";
 
 	// remove old PI, doesn't do anything in gecko 1.8 though
-	if(document.firstChild.name == "danbooruUpTagTypeStyleSheet")
+	if(document.firstChild.name && document.firstChild.name == "danbooruUpTagTypeStyleSheet")
 	{
 		document.removeChild(document.firstChild);
 	}

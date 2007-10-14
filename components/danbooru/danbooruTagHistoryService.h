@@ -44,6 +44,7 @@
 #include "nsIDOMEventListener.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
+#include "nsThreadUtils.h"
 #include "nsWeakReference.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
@@ -55,11 +56,14 @@
 class danbooruTagHistoryService : public danbooruITagHistoryService,
                       public nsIObserver,
                       public nsIDOMEventListener,
-//                      public nsIFormSubmitObserver,
+#ifndef MOZILLA_1_8_BRANCH
+                      public nsRunnable,
+#endif
                       public nsSupportsWeakReference
 {
 public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSIRUNNABLE
   NS_DECL_DANBOORUITAGHISTORYSERVICE
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
@@ -98,7 +102,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mRelSearchStmt;
 
   // XML processing
-  nsresult ProcessTagXML(void *, PRBool);
+  nsresult ProcessTagXML();
 
   static PRBool TagHistoryEnabled();
 
@@ -111,9 +115,11 @@ protected:
   nsCOMPtr<nsIXMLHttpRequest> mRequest;
   // no way to get XHR to send this along with the load event, but there's only one request at a time per XHR anyway
   PRBool mInserting;
+  nsCOMPtr<nsIDOMElement> mDocElement;
 
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
-
+  nsCOMPtr<nsIThread> mThread;
+  PRLock* mLock;
 };
 
 #endif // __danbooruTagHistoryService__

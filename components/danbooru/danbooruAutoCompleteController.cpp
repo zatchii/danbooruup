@@ -4,9 +4,15 @@
 #include "danbooruTagHistoryService.h"
 #include "nsIAutoCompletePopup.h"
 // bypass inclusion of internal string API
+#ifdef MOZILLA_1_8_BRANCH
 #define nsAString_h___
+#endif
 #include "nsIAtomService.h"
+#ifdef MOZILLA_1_8_BRANCH
 #undef nsAString_h___
+#endif
+
+#include "nsIDOMKeyEvent.h"
 #include "nsIObserverService.h"
 #include "nsITreeColumns.h"
 #include "nsToolkitCompsCID.h"
@@ -200,8 +206,13 @@ danbooruAutoCompleteController::HandleTab()
 	return mController->HandleTab();
 }
 
+#ifdef MOZILLA_1_8_BRANCH
 NS_IMETHODIMP
 danbooruAutoCompleteController::HandleKeyNavigation(PRUint16 aKey, PRBool *_retval)
+#else
+NS_IMETHODIMP
+danbooruAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retval)
+#endif
 {
 	// need to intercept left, right and home keys which complete
 	*_retval = PR_FALSE;
@@ -217,10 +228,11 @@ danbooruAutoCompleteController::HandleKeyNavigation(PRUint16 aKey, PRBool *_retv
 	NS_ENSURE_TRUE(!disabled, NS_OK);
 
 	// doesn't handle completeSelectedIndex, but we don't use that for danbooru AC
-	if (   aKey == nsIAutoCompleteController::KEY_LEFT 
-	    || aKey == nsIAutoCompleteController::KEY_RIGHT 
+	// 
+	if (   aKey == nsIDOMKeyEvent::DOM_VK_LEFT
+	    || aKey == nsIDOMKeyEvent::DOM_VK_RIGHT
 #ifndef XP_MACOSX
-	    || aKey == nsIAutoCompleteController::KEY_HOME
+	    || aKey == nsIDOMKeyEvent::DOM_VK_HOME
 #endif
 	   )
 	{
@@ -341,6 +353,8 @@ danbooruAutoCompleteController::SetSearchString(const nsAString &aSearchString)
 	return mController->SetSearchString(aSearchString);
 }
 
+#ifdef MOZILLA_1_8_BRANCH
+// nsIAutoCompleteController_MOZILLA_1_8_BRANCH
 NS_IMETHODIMP
 danbooruAutoCompleteController::AttachRollupListener()
 {
@@ -352,6 +366,46 @@ danbooruAutoCompleteController::DetachRollupListener()
 {
 	return mController->DetachRollupListener();
 }
+#else
+// 1.9 functions
+NS_IMETHODIMP
+danbooruAutoCompleteController::StopSearch()
+{
+	return mController->StopSearch();
+}
+
+NS_IMETHODIMP
+danbooruAutoCompleteController::GetImageAt(PRInt32 aIndex, nsAString & _retval)
+{
+	PRInt32 idx;
+	GetParentIndex(aIndex, &idx);
+	if(idx == -1)
+	{
+		mController->GetImageAt(aIndex, _retval);
+#ifdef DEBUG
+	{
+		nsString text;
+		GetValueAt(aIndex, text);
+		PR_fprintf(PR_STDERR, "imageat\t%d %s\t%s\n", aIndex, NS_ConvertUTF16toUTF8(text).get(), NS_ConvertUTF16toUTF8(_retval).get());
+	}
+#endif
+		return NS_OK;
+	}
+	danbooruIAutoCompleteArrayResult *result;
+
+	aIndex -= idx + 1;
+	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	result->GetImageAt(aIndex, _retval);
+#ifdef DEBUG
+	{
+		nsString text;
+		GetValueAt(aIndex, text);
+		PR_fprintf(PR_STDERR, "styleat sub\t%d %s\t%s\n", aIndex, NS_ConvertUTF16toUTF8(text).get(), NS_ConvertUTF16toUTF8(_retval).get());
+	}
+#endif
+	return NS_OK;
+}
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIAutoCompleteObserver
@@ -837,6 +891,14 @@ danbooruAutoCompleteController::IsEditable(PRInt32 row, nsITreeColumn* col, PRBo
 	return mTreeView->IsEditable(row, col, _retval);
 }
 
+#ifndef MOZILLA_1_8_BRANCH
+NS_IMETHODIMP
+danbooruAutoCompleteController::IsSelectable(PRInt32 row, nsITreeColumn* col, PRBool *_retval)
+{
+	return mTreeView->IsSelectable(row, col, _retval);
+}
+#endif
+
 NS_IMETHODIMP
 danbooruAutoCompleteController::IsSeparator(PRInt32 index, PRBool *_retval)
 {
@@ -882,8 +944,26 @@ danbooruAutoCompleteController::PerformActionOnCell(const PRUnichar* action, PRI
 ////////////////////////////////////////////////////////////////////////
 // danbooruIAutoCompleteController
 
+PR_STATIC_CALLBACK(PLDHashOperator)
+hashCloseRelatedEnum(nsUint32HashKey::KeyType aKey, danbooruIAutoCompleteArrayResult *&aData, void* userArg)
+{
+	PRBool open;
+	aData->GetOpen(&open);
+	if (open)
+	{
+		PRUint32 count;
+		aData->GetMatchCount(&count);
+		aData->SetOpen(PR_FALSE);
+		((nsITreeBoxObject*)userArg)->RowCountChanged(0, -((PRInt32)count));
+	}
+	return PL_DHASH_NEXT;
+}
+
 void danbooruAutoCompleteController::ClearRelated()
 {
+	// rowcount assert suppression
+	if (mTree)
+		mRelatedHash.Enumerate(&hashCloseRelatedEnum, ((nsITreeBoxObject*)mTree));
 	mRelatedHash.Enumerate(&hashReleaseEnum, nsnull);
 	mRelatedHash.Clear();
 	mRelatedKeys.Clear();

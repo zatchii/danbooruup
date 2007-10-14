@@ -41,14 +41,17 @@ function init()
 	{
 	case 'tagupdate':
 		gListener = new DanbooruDownloadListener();
+		gListener.ownerWindow = window;
 		helperSvc.update(true,true,gListener);
 		break;
 	case 'tagcleanup':
 		gListener = new DanbooruDownloadListener();
+		gListener.ownerWindow = window;
 		helperSvc.cleanup(true,gListener);
 		break;
 	case 'relatedtagdownload':
 		gListener = new DanbooruDownloadListener();
+		gListener.ownerWindow = window;
 		helperSvc.downloadRelatedTagDB(true,gListener);
 		break;
 	default:
@@ -104,6 +107,7 @@ DanbooruDownloadListener.prototype = {
 	mChannel: null,
 	mStatus: -1,
 	mInteractive: true,
+	mOwnerWindow: null,
 
 	set outStream(x) { this.mOutStream = x; },
 	get outStream() { return this.mOutStream; },
@@ -111,6 +115,8 @@ DanbooruDownloadListener.prototype = {
 	get fileStream() { return this.mFileStream; },
 	set interactive(x) { this.mInteractive = x; },
 	get interactive() { return this.mInteractive; },
+	set ownerWindow(x) { this.mOwnerWindow = x},
+	get ownerWindow() { return this.mOwnerWindow; },
 
 	set statusCode(x) { },
 	get statusCode() { return this.mStatus; },
@@ -217,7 +223,8 @@ DanbooruDownloadListener.prototype = {
 	cancel : function()
 	{
 		this.mCanceled = true;
-		this.mChannel.cancel(kErrorAbort);
+		if (this.mChannel)
+			this.mChannel.cancel(kErrorAbort);
 	},
 
 	// nsIDOMEventListener
@@ -248,6 +255,9 @@ DanbooruDownloadListener.prototype = {
 	{
 		if (!this.mInteractive)
 			return;
+		try { __log("1 "+Components); } catch(e) { }
+		try { __log("2 "+window + "\n" + window.Components); } catch(e) { }
+		try { __log("3 "+this.ownerWindow + "\n" + this.ownerWindow.Components); } catch(e) { }
 		switch (aTopic) {
 		case "danbooru-update-done":
 			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
