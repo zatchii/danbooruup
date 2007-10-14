@@ -32,7 +32,7 @@ function getSize(url) {
 	return -1;
 }
 
-function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aLink, aRetry)
+function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRetry)
 {
 	var notificationBox = aTab.linkedBrowser.parentNode;
 	var notification;
@@ -50,13 +50,17 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aLink, aRet
 					.rootTreeItem
 				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
 					.getInterface(Components.interfaces.nsIDOMWindow)
-				.setTimeout(addNotification, 100, aTab, aMessage, aIcon, aPriority, aButtons, aLink, true);
+				.setTimeout(addNotification, 100, aTab, aMessage, aIcon, aPriority, aButtons, aExtra, true);
 		}
 	}
 
 	notification = notificationBox.appendNotification(aMessage, "danbooru-up", aIcon, aPriority, aButtons);
-	if (aLink)
-		addLinkToNotification(notification, aLink);
+	if (aExtra) {
+		if (aExtra.type == 'link')
+			addLinkToNotification(notification, aExtra.link);
+		else if (aExtra.type == 'progress')
+			addProgressToNotification(notification);
+	}
 }
 
 // hack to get a clickable link in the browser message
@@ -70,6 +74,19 @@ function addLinkToNotification(notification, viewurl)
 	link.setAttribute("flex", "1");
 	link.setAttribute("onclick", "if(!handleLinkClick(event,'" + viewurl + "',this)) loadURI('" + viewurl + "', null, null);");
 	msgtext.appendChild(link);
+}
+
+function addProgressToNotification(notification)
+{
+	var msgtext = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "messageText");
+	var meter = notification.ownerDocument.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", "xul:progressmeter");
+	//debugger;
+	meter.setAttribute("class", "danboorumsgprogress");
+	meter.setAttribute("anonid", "danbooruprogress");
+	meter.mode = 'determined';
+	meter.setAttribute("value", "0");
+	meter.setAttribute("flex", "1");
+	msgtext.appendChild(meter);
 }
 
 /*
@@ -272,7 +289,7 @@ danbooruUploader.prototype = {
 			if(this.mChannel)
 			{
 				var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-				this.mChannel.cancel(0x804b0002);
+				this.mChannel.cancel(kErrorAbort);
 				try { os.removeObserver(this, "danbooru-down"); } catch(ex) {}
 
 				addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
@@ -389,12 +406,19 @@ danbooruPoster.prototype = {
 	mChannel:null,
 	mTab:null,
 	mLocation:"",
+	mUpURIStr:"",
+	mImgURI:null,
 	mStorage:null,
+	mDataStr:null,
 	mOutStr:null,
 	mUpdateTags:false,
 
-	start:function(aDatastream, aImgURI, aUpURIStr, aTab, aUpdateTags) {
+	start: function (aDatastream, aImgURI, aUpURIStr, aTab, aUpdateTags) {
+		// save everything for retry
 		this.mUpdateTags = aUpdateTags;
+		this.mDataStr = aDatastream;
+		this.mUpURIStr = aUpURIStr;
+		this.mImgURI = aImgURI;
 		// upload URI and cookie info
 		this.mChannel = ioService.newChannel(aUpURIStr, "", null)
 						.QueryInterface(Components.interfaces.nsIRequest)
@@ -420,7 +444,42 @@ danbooruPoster.prototype = {
 				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+aImgURI.spec+
 				((size != -1) ?(' ('+kbSize+' KB)') : ''),
 				"chrome://global/skin/throbber/Throbber-small.gif",
-				this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, buttons);
+				this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, buttons, {type:'progress'});
+
+		// upload progress callback object
+		var callback = new Object;
+		callback._meter = null;
+		callback.onStatus = function(aRequest, aContext, aStatus) {}
+		callback.onProgress = function(aRequest, aContext, aProgress, aProgressMax) {
+			if (aProgressMax > 0 && aProgress > 0)
+			{
+				// references to notifications and the progressmeter element within go stale between
+				// the time they are gotten/created and the time this function is first called
+				if (!this._meter)
+				{
+					var notification = aTab.linkedBrowser.parentNode.getNotificationWithValue("danbooru-up");
+					this._meter = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "danbooruprogress");
+				}
+				this._meter.value = aProgress/aProgressMax*100;
+			}
+		}
+		callback.QueryInterface = function(aIID) {
+			if (aIID.equals(Components.interfaces.nsIProgressEventSink) ||
+					aIID.equals(Components.interfaces.nsIPrompt) ||
+					aIID.equals(Components.interfaces.nsIInterfaceRequestor) ||
+					aIID.equals(Components.interfaces.nsISupports))
+				return this;
+			throw Components.results.NS_NOINTERFACE;
+		}
+		callback.getInterface = function(aIID)	{
+			return this.QueryInterface(aIID);
+		}
+		callback.wrappedJSObject = callback;
+
+		AddDanbooruPromptWrapper(callback);
+		callback.mInteractive = true;
+
+		this.mChannel.notificationCallbacks = callback;
 
 		try{
 			this.mChannel.asyncOpen(this, null);
@@ -431,21 +490,33 @@ danbooruPoster.prototype = {
 		return false;
 	},
 
-	cancel:function()
+	cancel: function()
 	{
 		if(this.mChannel)
 		{
 			var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-			this.mChannel.cancel(0x804b0002);
+			this.mChannel.cancel(kErrorAbort);
 			try { os.removeObserver(this, "danbooru-up"); } catch(e) {}
 
+			var buttons = [{
+					 label: danbooruUpMsg.GetStringFromName('danbooruUp.msg.retry'),
+					 accessKey: danbooruUpMsg.GetStringFromName('danbooruUp.msg.retry.accessKey'),
+					 popup: null,
+					 callback: danbooruUpHitch(this, "retry")
+			}];
 			addNotification(this.mTab, 
 					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
 					"chrome://danbooruup/skin/icon.ico",
-					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
+					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, buttons);
 			return false;
 		}
 		return true;
+	},
+	retry: function()
+	{
+		this.mDataStr.QueryInterface(Components.interfaces.nsISeekableStream);
+		this.mDataStr.seek(0, 0);
+		this.start(this.mDataStr, this.mImgURI, this.mUpURIStr, this.mTab, this.mUpdateTags);
 	},
 
 	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
@@ -469,9 +540,6 @@ danbooruPoster.prototype = {
 	{
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		try { os.removeObserver(this, "danbooru-up"); } catch(e) {}
-		const kErrorNetAborted	= 0x804B0002;
-		const kErrorNetTimeout	= 0x804B000E;
-		const kErrorNetRefused	= 0x804B000D;
 
 		channel.QueryInterface(Components.interfaces.nsIHttpChannel);
 
@@ -481,6 +549,13 @@ danbooruPoster.prototype = {
 		var viewurl="";
 		var str="";
 		var success=false;
+
+		var buttons = [{
+				 label: danbooruUpMsg.GetStringFromName('danbooruUp.msg.retry'),
+				 accessKey: danbooruUpMsg.GetStringFromName('danbooruUp.msg.retry.accessKey'),
+				 popup: null,
+				 callback: danbooruUpHitch(this, "retry")
+		}];
 
 		if(status == Components.results.NS_OK)
 		{
@@ -514,7 +589,7 @@ danbooruPoster.prototype = {
 					addNotification(this.mTab, 
 							danbooruUpMsg.GetStringFromName("danbooruUp.msg.uploaded"),
 							"chrome://danbooruup/skin/icon.ico",
-							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, viewurl);
+							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
 				} else {
 					if(errs == "duplicate")	{
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
@@ -526,7 +601,7 @@ danbooruPoster.prototype = {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.unhandled") + " " + errs;
 					}
 					addNotification(this.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
-							this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, viewurl);
+							this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:viewurl});
 				}
 				return;
 			}
@@ -546,7 +621,7 @@ danbooruPoster.prototype = {
 					addNotification(this.mTab, 
 							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
 							"chrome://danbooruup/skin/icon.ico",
-							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, viewurl);
+							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
 
 					//if (viewurl)
 					//	this.addLinkToBrowserMessage(notification, viewurl);
@@ -566,7 +641,7 @@ danbooruPoster.prototype = {
 				}
 
 				addNotification(this.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
-						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, viewurl);
+						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:viewurl});
 
 				//if (viewurl)
 				//	this.addLinkToBrowserMessage(notification, viewurl);
@@ -598,7 +673,7 @@ danbooruPoster.prototype = {
 				// FIXME: newlines do not work in any fashion
 				addNotification(this.mTab, 
 						str, "chrome://danbooruup/skin/danbooru-attention.gif",
-						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
+						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, buttons);
 
 				if (sis)
 				{
@@ -606,20 +681,20 @@ danbooruPoster.prototype = {
 					sis.close();
 				}
 			}
-		} else if (status == kErrorNetTimeout || status == kErrorNetRefused) {
+		} else if (status == kNetTimeout || status == kConnectionRefused || status == kNetReset) {
 			var errmsg = StrBundleSvc.createBundle('chrome://global/locale/appstrings.properties');
 
-			if (status == kErrorNetTimeout)
+			if (status == kNetTimeout)
 				str = errmsg.formatStringFromName('netTimeout', [channel.URI.spec], 1)
-			else if (status == kErrorNetRefused)
+			else if (status == kConnectionRefused || status == kNetReset)
 				str = errmsg.formatStringFromName('connectionFailure', [channel.URI.spec], 1)
 
 			addNotification(this.mTab, 
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
 					"chrome://danbooruup/skin/danbooru-attention.gif",
-					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null);
+					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, buttons);
 
-		} else if (status == kErrorNetAborted) { // user cancel, no further action needed
+		} else if (status == kErrorAbort) { // user cancel, no further action needed
 		} else { // not NS_OK
 			alert(danbooruUpMsg.GetStringFromName('danbooruUp.err.poststop')+status.toString(16));
 		}

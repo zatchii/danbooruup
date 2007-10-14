@@ -87,7 +87,7 @@ danbooruUpObject.uploadImage = function() {
 	}
 
 	// dialog=yes raises asserts that I don't feel like ignoring all the time using a debug build
-	// we need to use a contentWindow's openDialog since window.openDialog will spawn only one
+	// we need to use a contentWindow's openDialog since window.openDialog will spawn only one usign the browser's window
 	(new XPCNativeWrapper(thistab.linkedBrowser.contentWindow)).openDialog("chrome://danbooruup/content/danbooruUpBox.xul",
 		"danbooruUpBox", "centerscreen,chrome,dialog=no,resizable=yes",
 		{imageLocation:locationURI, imageURI:imgURI, referrer:referrerHref, wind:thistab});

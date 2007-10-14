@@ -28,6 +28,8 @@ function __log(msg) {
 }
 
 Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
+	.loadSubScript("chrome://danbooruup/content/utils.js");
+Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
 	.loadSubScript("chrome://danbooruup/content/uploader.js");
 
 ResultWrapper = function(result) { this._result = result; }

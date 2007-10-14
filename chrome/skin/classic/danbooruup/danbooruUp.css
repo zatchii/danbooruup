@@ -15,7 +15,11 @@ toolbarbutton#prevSrcBtn[disabled="true"] {
 	opacity: 0.5;
 }
 
-/* browser notification link */
+/* browser notifications */
+
+.danboorumsgprogress {
+	vertical-align: middle;
+}
 
 .danboorumsglink {
 	top: 10px;

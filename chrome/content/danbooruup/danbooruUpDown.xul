@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/global.css" type="text/css"?>
+<?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
+
+<!DOCTYPE dialog SYSTEM "chrome://danbooruup/locale/danbooruUp.dtd">
+
+<dialog id="danbooruUpDownloader" title="&danbooru-downloader-title;"
+	windowtype = "danbooru:DownloadProgress"
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	buttons="none"
+	width="300px"
+	height="60px"
+	onload="onLoad();"
+	onunload="onUnload();"
+	ondialogcancel="gListener.cancel(); return true;"
+	>
+
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
+	<script type="application/x-javascript" src="chrome://danbooruup/content/utils.js"/>
+	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpDown.js"/>
+
+	<vbox>
+		<label id="label" value=""/>
+		<progressmeter id="progress" mode="undetermined"/>
+	</vbox>
+	<hbox align="right" style="margin-top: 0.4em;">
+		<button id="button" label="" oncommand="clicked();"/>
+	</hbox>
+</dialog>
+
