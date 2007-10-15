@@ -419,10 +419,12 @@ public:
 #endif
 
 	NS_IMETHOD Run() {
+		danbooruTagHistoryService *tagservice = danbooruTagHistoryService::GetInstance();
 		if (mType == MSG_PROCESSNODES)
-			danbooruTagHistoryService::GetInstance()->ProcessNodes();
+			tagservice->ProcessNodes();
 		else if (mType == MSG_COMPLETE)
-			danbooruTagHistoryService::GetInstance()->FinishProcessingNodes();
+			tagservice->FinishProcessingNodes();
+		NS_RELEASE(tagservice);
 		return NS_OK;
 	}
 
@@ -498,6 +500,9 @@ danbooruTagHistoryService::FinishProcessingNodes()
 		return;
 
 	mNodeList = nsnull;
+	mRequest = nsnull;
+	mThread->Shutdown();
+	mThread = nsnull;
 
 	service->NotifyObservers(nodect, "danbooru-update-done", nsnull);
 }
@@ -516,7 +521,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	mNodeList->GetLength(&mNodes);
 #if defined(DANBOORUUP_TESTING) || defined(DEBUG)
 {
- 	PR_fprintf(PR_STDERR, "got %d nodes\n", length);
+ 	PR_fprintf(PR_STDERR, "got %d nodes\n", mNodes);
 }
 #endif
 
@@ -642,6 +647,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_COMPLETE);
 	NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
 
+	/*
 	nsCOMPtr<nsIProxyObjectManager> proxyMgr(do_GetService("@mozilla.org/xpcomproxy;1"));
 	nsCOMPtr<nsIThread> proxy;
 	nsIThread *current;
@@ -657,6 +663,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	} else {
 		NS_WARNING("danbooruTagHistoryService leaking thread");
 	}
+	*/
 #else
 	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
 	if (NS_FAILED(rv))
@@ -1291,8 +1298,18 @@ danbooruTagHistoryService::DetachRelatedTagDatabase()
 nsresult
 danbooruTagHistoryService::CloseDatabase()
 {
-	// mozStorageConnection destructor takes care of this
+	mInsertStmt = nsnull;
+	mUpdateTypeStmt = nsnull;
+	mRemoveByIDStmt = nsnull;
+	mIncrementStmt = nsnull;
+	mSearchStmt = nsnull;
+	mExistsStmt = nsnull;
+	mIDForNameStmt = nsnull;
+	mMaxIDStmt = nsnull;
+	mRowCountStmt = nsnull;
+	mRelSearchStmt = nsnull;
 
+	mDB = nsnull;
 	return NS_OK;
 }
 

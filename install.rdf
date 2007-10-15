@@ -20,8 +20,8 @@
                    em:homepageURL="http://unbuffered.info/danbooruup/"
                    em:iconURL="chrome://danbooruup/skin/icon-large.png"
                    em:optionsURL="chrome://danbooruup/content/danbooruUpOptions.xul"
-                   em:updateURL="http://unbuffered.info/danbooruup/danbooruup.rdf"
                    em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDTQWUtIsj7hzUuMQzPq8/zW8RRsYn42vUzdSkTlzOx7ezUN6uGv2my9gPksFCYqlLmFoiugp9jey/X9bKb2SaRYspT7ZIk4m/cxEOcguJ/is8wREYmlpFHI8uSYDeEvGebyVs7iuy1sUUXXdYqq+wVa0GwXNmXdwIETuDgUZ6ZjwIDAQAB">
+		   <!--em:updateURL="http://unbuffered.info/danbooruup/danbooruup.rdf"-->
     <em:file RDF:resource="urn:mozilla:extension:file:danbooruup.jar"/>
     <em:targetApplication RDF:resource="rdf:#$p7Be1H"/>
   </RDF:Description>
