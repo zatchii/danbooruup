@@ -12,7 +12,7 @@
 	height="60px"
 	onload="onLoad();"
 	onunload="onUnload();"
-	ondialogcancel="gListener.cancel(); return true;"
+	ondialogcancel="return gListener.cancel();"
 	>
 
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>

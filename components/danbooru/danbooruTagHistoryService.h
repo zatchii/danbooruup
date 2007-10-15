@@ -42,9 +42,11 @@
 #include "danbooruIAutoCompleteArrayResult.h"
 #include "nsIXMLHttpRequest.h"
 #include "nsIDOMEventListener.h"
+#include "nsIProgressEventSink.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
 #include "nsThreadUtils.h"
+#include "nsVoidArray.h"
 #include "nsWeakReference.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
@@ -79,6 +81,8 @@ public:
   nsresult Init();
 
   static danbooruTagHistoryService *GetInstance();
+  void ProcessNodes();
+  void FinishProcessingNodes();
 
 protected:
   // Database I/O
@@ -115,7 +119,17 @@ protected:
   nsCOMPtr<nsIXMLHttpRequest> mRequest;
   // no way to get XHR to send this along with the load event, but there's only one request at a time per XHR anyway
   PRBool mInserting;
-  nsCOMPtr<nsIDOMElement> mDocElement;
+  //nsCOMPtr<nsIDOMElement> mDocElement;
+  nsCOMPtr<nsIDOMNodeList> mNodeList;
+
+  nsCOMPtr<nsIProgressEventSink> mProgress;
+
+  // using COM for this would be too much effort
+  PRUint32	mStep;
+  PRUint32	mNodes;
+  nsStringArray mIdArray;
+  nsStringArray mNameArray;
+  nsStringArray mTypeArray;
 
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
   nsCOMPtr<nsIThread> mThread;

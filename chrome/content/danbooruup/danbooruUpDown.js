@@ -214,6 +214,11 @@ DanbooruDownloadListener.prototype = {
 		$('progress').mode = 'determined';
 		if (aProgressMax > 0 && aProgress > 0)
 			$('progress').setAttribute('value', aProgress/aProgressMax*100);
+		if (aRequest == null && aContext == null)
+		{
+			$('label').setAttribute('value', danBundle.GetStringFromName('danbooruUp.msg.processing'));
+			$('button').disabled = true;
+		}
 	},
 	onChannelRedirect : function(aOldChannel, aNewChannel, aFlags)
 	{
@@ -225,6 +230,7 @@ DanbooruDownloadListener.prototype = {
 		this.mCanceled = true;
 		if (this.mChannel)
 			this.mChannel.cancel(kErrorAbort);
+		return !($('button').disabled);
 	},
 
 	// nsIDOMEventListener
@@ -275,10 +281,8 @@ DanbooruDownloadListener.prototype = {
 			break;
 		case "danbooru-update-processing-max":
 			this.mNodes = aSubject.data;
-			$('label').setAttribute('value', danBundle.GetStringFromName('danbooruUp.msg.processing'));
 			$('progress').mode = 'determined';
 			$('progress').setAttribute('value', 0);
-			$('button').disabled = true;
 			break;
 		case "danbooru-update-processing-progress":
 			$('progress').setAttribute('value', aSubject.data/this.mNodes*100);

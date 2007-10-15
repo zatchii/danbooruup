@@ -54,6 +54,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsIConsoleService.h"
 #include "nsIProxyObjectManager.h"
+#include "nsAutoLock.h"
 
 #include "danbooruAutoCompleteArrayResult.h"
 
@@ -275,6 +276,7 @@ danbooruTagHistoryService::danbooruTagHistoryService() :
 	mDB(nsnull),
 	mRequest(nsnull),
 	mLock(nsnull),
+	mNodeList(nsnull),
 	mRelatedTagsAvailable(PR_FALSE)
 {
 	mLock = PR_NewLock();
@@ -406,81 +408,138 @@ GetResolvedURI(const nsAString& aSchemaURI,
   return NS_OK;
 }
 
+class danbooruNodeProcessEvent : public nsRunnable
+{
+public:
+	danbooruNodeProcessEvent(PRUint32 type = MSG_PROCESSNODES) : mType(type) { }
+#ifdef DEBUG
+	~danbooruNodeProcessEvent() {
+		PR_fprintf(PR_STDERR, "danbooruNodeProcessEvent %08x dtor\n", this);
+	}
+#endif
+
+	NS_IMETHOD Run() {
+		if (mType == MSG_PROCESSNODES)
+			danbooruTagHistoryService::GetInstance()->ProcessNodes();
+		else if (mType == MSG_COMPLETE)
+			danbooruTagHistoryService::GetInstance()->FinishProcessingNodes();
+		return NS_OK;
+	}
+
+	enum
+	{
+		MSG_PROCESSNODES,
+		MSG_COMPLETE
+	};
+	PRUint32 mType;
+};
+
+void
+danbooruTagHistoryService::ProcessNodes()
+{
+	nsCOMPtr<nsIDOMNode> child;
+	nsString tagid, tagname, tagtype;
+
+	PR_Lock(mLock);
+
+	mIdArray.Clear();
+	mNameArray.Clear();
+	mTypeArray.Clear();
+
+	for(PRUint32 i=0; i < mStep && mNodes; i++, mNodes--) {
+		mNodeList->Item(i, getter_AddRefs(child));
+		nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
+
+		if (!childElement)
+			continue;
+
+		childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
+		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
+		childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
+		if (!tagname.IsEmpty()) {
+			mIdArray.AppendString(tagid);
+			mNameArray.AppendString(tagname);
+			mTypeArray.AppendString(tagtype);
+		}
+	}
+	PR_Unlock(mLock);
+
+	if (mProgress)
+	{
+		PRUint32 total;
+		mNodeList->GetLength(&total);
+		mProgress->OnProgress(nsnull, nsnull, total - mNodes, total);
+	}
+}
+
+void
+danbooruTagHistoryService::FinishProcessingNodes()
+{
+	nsAutoLock lock(mLock);
+
+	mIdArray.Clear();
+	mNameArray.Clear();
+	mTypeArray.Clear();
+
+	nsresult rv;
+	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
+	if (NS_FAILED(rv))
+		return;
+
+	nsCOMPtr<nsISupportsPRUint32> nodect = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
+	if (NS_FAILED(rv))
+		return;
+
+	// container node is included, so subtract 1 for the number of processed nodes
+	PRUint32 length;
+	mNodeList->GetLength(&length);
+	rv = nodect->SetData(length - 1);
+	if (NS_FAILED(rv))
+		return;
+
+	mNodeList = nsnull;
+
+	service->NotifyObservers(nodect, "danbooru-update-done", nsnull);
+}
+
 nsresult
 danbooruTagHistoryService::ProcessTagXML()
 {
-	nsCOMPtr<nsIDOMDocument> document;
-	nsresult rv = mRequest->GetResponseXML(getter_AddRefs(document));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
+	NS_ENSURE_TRUE(mNodeList != nsnull, NS_ERROR_FAILURE);
 
-	nsCOMPtr<nsIDOMElement> element;
-	document->GetDocumentElement(getter_AddRefs(element));
-	NS_ENSURE_TRUE(element != nsnull, NS_ERROR_FAILURE);
-
-	rv = OpenDatabase(); // lazily ensure that the database is open
+	nsresult rv = OpenDatabase(); // lazily ensure that the database is open
 	NS_ENSURE_SUCCESS(rv, rv);
 
-	nsCOMPtr<nsIDOMNodeList> nodeList;
 	PRUint32 index = 0;
 	PRUint32 length = 0;
 
-	element->GetChildNodes(getter_AddRefs(nodeList));
-
-	if (nodeList) {
-		nodeList->GetLength(&length);
-	} else {
-		// no tags?
-#ifdef DANBOORUUP_TESTING
- 		NS_WARNING("no tags");
-#endif
-		mDocElement = nsnull;
-		return NS_OK;
-	}
+	mNodeList->GetLength(&mNodes);
 #if defined(DANBOORUUP_TESTING) || defined(DEBUG)
 {
  	PR_fprintf(PR_STDERR, "got %d nodes\n", length);
 }
 #endif
 
-	PR_Lock(mLock);
-
 	nsCOMPtr<nsIDOMNode> child;
-	//danbooruTagHistoryService *history = danbooruTagHistoryService::GetInstance();
 	nsString tagid, tagname, tagtype;
 
+#ifdef MOZILLA_1_8_BRANCH
 	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1"));
-	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
-#ifndef MOZILLA_1_8_BRANCH
-	nsCOMPtr<nsISupportsPRUint32> progressInt = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
-
-	// easier to work out with threads
-	nodes->SetData(length-1);
-	service->NotifyObservers(nodes, "danbooru-update-processing-max", nsnull);
-
-	PRUint32 step = 1;
-
+#else
 	if (length >= 100000) {
-		step = 1000;
-	} else if (length >= 10000) {
-		step = 100;
-	} else if (length >= 1000) {
-		step = 10;
+		mStep = 1000;
+	} else {
+		mStep = 100;
 	}
 #endif
 
 	if (mInserting) {	// adding new tags
 		mDB->BeginTransaction();
+#ifdef MOZILLA_1_8_BRANCH
 		while (index < length) {
-#ifndef MOZILLA_1_8_BRANCH
-			if(index % step == 0) {
-				progressInt->SetData(index);
-				service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
-			}
-#endif
-			nodeList->Item(index++, getter_AddRefs(child));
+			mNodeList->Item(index++, getter_AddRefs(child));
 			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
+
 			if (!childElement) {
 				continue;
 			}
@@ -504,6 +563,17 @@ danbooruTagHistoryService::ProcessTagXML()
 	nsMemory::Free(z);
 }
 #endif
+#else // !defined(MOZILLA_1_8_BRANCH)
+		nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_PROCESSNODES);
+		while (mNodes)
+		{
+			NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+			PR_Lock(mLock);
+			for (index = 0; (PRInt32)index < mIdArray.Count(); index++) {
+				mIdArray.StringAt(index, tagid);
+				mNameArray.StringAt(index, tagname);
+				mTypeArray.StringAt(index, tagtype);
+#endif // defined(MOZILLA_1_8_BRANCH)
 				mInsertStmt->BindStringParameter(0, tagid);
 				mInsertStmt->BindStringParameter(1, tagname);
 				mInsertStmt->BindStringParameter(2, tagtype);
@@ -513,12 +583,11 @@ danbooruTagHistoryService::ProcessTagXML()
 				mUpdateTypeStmt->BindStringParameter(1, tagid);
 				mUpdateTypeStmt->Execute();
 			}
+#ifndef MOZILLA_1_8_BRANCH
+			PR_Unlock(mLock);
+#endif
 		}
 		mDB->CommitTransaction();
-#ifndef MOZILLA_1_8_BRANCH
-		progressInt->SetData(index);
-		service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
-#endif
 	} else {	// pruning old tags
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagTable));
 
@@ -527,14 +596,9 @@ danbooruTagHistoryService::ProcessTagXML()
 		NS_ENSURE_SUCCESS(rv, rv);
 
 		mDB->BeginTransaction();
+#ifdef MOZILLA_1_8_BRANCH
 		while (index < length) {
-#ifndef MOZILLA_1_8_BRANCH
-			if(index % step == 0) {
-				progressInt->SetData(index);
-				service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
-			}
-#endif
-			nodeList->Item(index++, getter_AddRefs(child));
+			mNodeList->Item(index++, getter_AddRefs(child));
 			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
 			if (!childElement) {
 				continue;
@@ -544,30 +608,44 @@ danbooruTagHistoryService::ProcessTagXML()
 			childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
 			childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
 			if (!tagname.IsEmpty()) {
+#else
+		nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_PROCESSNODES);
+		while (mNodes) {
+			NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+			PR_Lock(mLock);
+			mIdArray.StringAt(index, tagid);
+			mNameArray.StringAt(index, tagname);
+			mTypeArray.StringAt(index, tagtype);
+			for (index = 0; (PRInt32)index < mIdArray.Count(); index++) {
+#endif
 				tempInsertStmt->BindStringParameter(0, tagid);
 				tempInsertStmt->BindStringParameter(1, tagname);
 				tempInsertStmt->BindStringParameter(2, tagtype);
 				tempInsertStmt->Execute();
 			}
+#ifndef MOZILLA_1_8_BRANCH
+			PR_Unlock(mLock);
+#endif
 		}
 		mDB->CommitTransaction();
 
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagIndex));
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTagClean));
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropTempTagTable));
-#ifndef MOZILLA_1_8_BRANCH
-		progressInt->SetData(index);
-		service->NotifyObservers(progressInt, "danbooru-update-processing-progress", nsnull);
-#endif
 	}
-	mDocElement = nsnull;
-	PR_Unlock(mLock);
 
+	if (mProgress)
+	{
+		mProgress = nsnull;
+	}
 #ifndef MOZILLA_1_8_BRANCH
+	nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_COMPLETE);
+	NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+
+	nsCOMPtr<nsIProxyObjectManager> proxyMgr(do_GetService("@mozilla.org/xpcomproxy;1"));
 	nsCOMPtr<nsIThread> proxy;
 	nsIThread *current;
 	NS_GetCurrentThread(&current);
-	nsCOMPtr<nsIProxyObjectManager> proxyMgr(do_GetService("@mozilla.org/xpcomproxy;1"));
 
 	proxyMgr->GetProxyForObject(NS_PROXY_TO_MAIN_THREAD,
 					NS_GET_IID(nsIThread),
@@ -579,9 +657,8 @@ danbooruTagHistoryService::ProcessTagXML()
 	} else {
 		NS_WARNING("danbooruTagHistoryService leaking thread");
 	}
-#endif
-
-	nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
+#else
+	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
 	if (NS_FAILED(rv))
 		return rv;
 	// container node is included, so subtract 1 for the number of processed nodes
@@ -591,6 +668,8 @@ danbooruTagHistoryService::ProcessTagXML()
 
 	service->NotifyObservers(nodes, "danbooru-update-done", nsnull);
 
+	mNodeList = nsnull;
+#endif
 	return NS_OK;
 }
 
@@ -618,6 +697,28 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 #ifdef DANBOORUUP_TESTING
 	PR_fprintf(PR_STDERR,"processing %s\n", mInserting?"insertion":"removal");
 #endif
+
+	nsCOMPtr<nsIDOMDocument> document;
+	rv = mRequest->GetResponseXML(getter_AddRefs(document));
+	if (NS_FAILED(rv)) {
+		return rv;
+	}
+
+	nsCOMPtr<nsIDOMElement> element;
+	document->GetDocumentElement(getter_AddRefs(element));
+	NS_ENSURE_TRUE(element != nsnull, NS_ERROR_FAILURE);
+
+	//nsCOMPtr<nsIDOMNodeList> nodeList;
+	element->GetChildNodes(getter_AddRefs(mNodeList));
+	if (!mNodeList) {
+		// no tags?
+#ifdef DANBOORUUP_TESTING
+ 		NS_WARNING("no tags");
+#endif
+		mNodeList = nsnull;
+		return NS_OK;
+	}
+
 #ifdef MOZILLA_1_8_BRANCH
 	rv = ProcessTagXML();
 #else
@@ -678,6 +779,7 @@ danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool
 	}
 	if (notification) {
 		nsCOMPtr<nsIChannel> channel;
+		mProgress = do_QueryInterface(notification);
 		rv = mRequest->GetChannel(getter_AddRefs(channel));
 		if (NS_SUCCEEDED(rv))
 		{
