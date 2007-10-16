@@ -42,14 +42,16 @@
 #include "danbooruIAutoCompleteArrayResult.h"
 #include "nsIXMLHttpRequest.h"
 #include "nsIDOMEventListener.h"
-#include "nsIProgressEventSink.h"
 #include "nsIObserver.h"
 #include "nsIPrefBranch.h"
-#include "nsThreadUtils.h"
-#include "nsVoidArray.h"
 #include "nsWeakReference.h"
+#include "nsIProgressEventSink.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageStatement.h"
+#ifndef MOZILLA_1_8_BRANCH
+#include "nsVoidArray.h"
+#include "nsThreadUtils.h"
+#endif
 
 #define DANBOORU_TAGHISTORYSERVICE_CID \
 { 0xa6c3c34, 0x6560, 0x4000, { 0xb7, 0xe, 0x7f, 0xc8, 0x9d, 0x6b, 0xc1, 0x48 } }
@@ -65,7 +67,9 @@ class danbooruTagHistoryService : public danbooruITagHistoryService,
 {
 public:
   NS_DECL_ISUPPORTS
+#ifndef MOZILLA_1_8_BRANCH
   NS_DECL_NSIRUNNABLE
+#endif
   NS_DECL_DANBOORUITAGHISTORYSERVICE
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIDOMEVENTLISTENER
@@ -73,16 +77,15 @@ public:
   // nsIFormSubmitObserver
   //NS_IMETHOD Notify(nsIContent* formNode, nsIDOMWindowInternal* window, nsIURI* actionURL, PRBool* cancelSubmit);
 
-  // nsIDOMEventListener
-  //NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
-
   danbooruTagHistoryService();
   virtual ~danbooruTagHistoryService();
   nsresult Init();
 
   static danbooruTagHistoryService *GetInstance();
+#ifndef MOZILLA_1_8_BRANCH
   void ProcessNodes();
   void FinishProcessingNodes();
+#endif
 
 protected:
   // Database I/O
@@ -116,24 +119,26 @@ protected:
   static PRBool gPrefsInitialized;
   PRBool mRelatedTagsAvailable;
 
+  nsCOMPtr<nsIPrefBranch> mPrefBranch;
+
   nsCOMPtr<nsIXMLHttpRequest> mRequest;
   // no way to get XHR to send this along with the load event, but there's only one request at a time per XHR anyway
   PRBool mInserting;
-  //nsCOMPtr<nsIDOMElement> mDocElement;
-  nsCOMPtr<nsIDOMNodeList> mNodeList;
 
   nsCOMPtr<nsIProgressEventSink> mProgress;
 
-  // using COM for this would be too much effort
+  nsCOMPtr<nsIDOMNodeList> mNodeList;
   PRUint32	mStep;
   PRUint32	mNodes;
+  // using COM instead of these would be too much effort
+#ifndef MOZILLA_1_8_BRANCH
   nsStringArray mIdArray;
   nsStringArray mNameArray;
   nsStringArray mTypeArray;
 
-  nsCOMPtr<nsIPrefBranch> mPrefBranch;
   nsCOMPtr<nsIThread> mThread;
   PRLock* mLock;
+#endif
 };
 
 #endif // __danbooruTagHistoryService__

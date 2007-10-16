@@ -84,6 +84,7 @@ danbooruAutoCompleteArrayResult::GetCommentAt(PRInt32 aIndex, nsAString & _retva
 	return NS_ERROR_NOT_IMPLEMENTED;
 }
 
+#ifndef MOZILLA_1_8_BRANCH
 NS_IMETHODIMP
 danbooruAutoCompleteArrayResult::GetImageAt(PRInt32 aIndex, nsAString & _retval)
 {
@@ -91,6 +92,7 @@ danbooruAutoCompleteArrayResult::GetImageAt(PRInt32 aIndex, nsAString & _retval)
 
 	return NS_ERROR_NOT_IMPLEMENTED;
 }
+#endif
 
 NS_IMETHODIMP
 danbooruAutoCompleteArrayResult::GetStyleAt(PRInt32 aIndex, nsAString & _retval)

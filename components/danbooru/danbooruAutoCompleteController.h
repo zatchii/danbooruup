@@ -45,7 +45,7 @@
 #include "nsIRollupListener.h"
 #include "nsIConsoleService.h"
 #include "nsTArray.h"
-#include "nsDataHashtable.h"
+#include "nsRefPtrHashtable.h"
 
 #define DANBOORU_ACC_CID \
 { 0xc6c02dc0, 0x7630, 0x4a92, { 0x9a, 0x1c, 0x14, 0xc6, 0xf0, 0xe2, 0x7, 0x96 } }
@@ -95,7 +95,7 @@ protected:
 
 	// since we can't get a sorted list of hash keys
 	nsTArray<PRUint32> mRelatedKeys;
-	nsDataHashtable<nsUint32HashKey, danbooruIAutoCompleteArrayResult* > mRelatedHash;
+	nsRefPtrHashtable<nsUint32HashKey, danbooruIAutoCompleteArrayResult > mRelatedHash;
 
 	nsCOMPtr<nsIConsoleService> mConsole;
 

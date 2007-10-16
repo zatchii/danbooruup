@@ -53,8 +53,11 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIConsoleService.h"
+
+#ifndef MOZILLA_1_8_BRANCH
 #include "nsIProxyObjectManager.h"
 #include "nsAutoLock.h"
+#endif
 
 #include "danbooruAutoCompleteArrayResult.h"
 
@@ -275,11 +278,12 @@ static void ReplaceSubstring(nsAString& str, const nsAString& matchVal, const ns
 danbooruTagHistoryService::danbooruTagHistoryService() :
 	mDB(nsnull),
 	mRequest(nsnull),
-	mLock(nsnull),
 	mNodeList(nsnull),
 	mRelatedTagsAvailable(PR_FALSE)
 {
+#ifndef MOZILLA_1_8_BRANCH
 	mLock = PR_NewLock();
+#endif
 }
 
 danbooruTagHistoryService::~danbooruTagHistoryService()
@@ -287,7 +291,9 @@ danbooruTagHistoryService::~danbooruTagHistoryService()
 	gTagHistory = nsnull;
 	//NS_IF_RELEASE(gCaseConv);
 	CloseDatabase();
+#ifndef MOZILLA_1_8_BRANCH
 	PR_DestroyLock(mLock);
+#endif
 }
 
 nsresult
@@ -347,12 +353,14 @@ danbooruTagHistoryService::TagHistoryEnabled()
 ////////////////////////////////////////////////////////////////////////
 //// nsIRunnable
 
+#ifndef MOZILLA_1_8_BRANCH
 NS_IMETHODIMP
 danbooruTagHistoryService::Run()
 {
 	ProcessTagXML();
 	return NS_OK;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIDanbooruTagHistoryService
@@ -408,6 +416,7 @@ GetResolvedURI(const nsAString& aSchemaURI,
   return NS_OK;
 }
 
+#ifndef MOZILLA_1_8_BRANCH
 class danbooruNodeProcessEvent : public nsRunnable
 {
 public:
@@ -477,6 +486,9 @@ danbooruTagHistoryService::ProcessNodes()
 void
 danbooruTagHistoryService::FinishProcessingNodes()
 {
+	if (!mNodeList)
+		return;
+
 	nsAutoLock lock(mLock);
 
 	mIdArray.Clear();
@@ -506,6 +518,7 @@ danbooruTagHistoryService::FinishProcessingNodes()
 
 	service->NotifyObservers(nodect, "danbooru-update-done", nsnull);
 }
+#endif
 
 nsresult
 danbooruTagHistoryService::ProcessTagXML()
@@ -669,7 +682,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	if (NS_FAILED(rv))
 		return rv;
 	// container node is included, so subtract 1 for the number of processed nodes
-	rv = nodes->SetData(length - 1);
+	rv = nodes->SetData(mNodes - 1);
 	if (NS_FAILED(rv))
 		return rv;
 
@@ -728,6 +741,7 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 
 #ifdef MOZILLA_1_8_BRANCH
 	rv = ProcessTagXML();
+	mRequest = nsnull;
 #else
 	NS_NewThread(getter_AddRefs(mThread), this);
 #endif

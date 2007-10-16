@@ -20,9 +20,9 @@
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpBox.js"/>
 
-	<popupset>
+<!--	<popupset>
 		<panel type="danbooru-autocomplete" id="DanbooruAutocompletePopup" noautofocus="true"/>
-	</popupset>
+	</popupset>-->
 <grid>
 <columns>
 <column>
@@ -44,14 +44,14 @@
 	<textbox id="tags"
 		type="danbooruac"
 		autocompletesearch="danboorutag"
-		autocompletepopup="DanbooruAutocompletePopup"
-		completeselectedindex="false"
-		tabscrolling="false"
-		showcommentcolumn="false"
-		showimagecolumn="false"
 		newlines="stripsurroundingwhitespace"
 		maxrows="15"
 		flex="1"/>
+	<!--	showcommentcolumn="false"
+		autocompletepopup="DanbooruAutocompletePopup"
+		completeselectedindex="false"
+		tabscrolling="false"
+		showimagecolumn="false" -->
 	<hbox>
 		<radiogroup id="ratinggrp">
 			<hbox>

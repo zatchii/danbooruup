@@ -61,16 +61,21 @@ danbooruAutoCompleteController::danbooruAutoCompleteController()
 }
 
 PR_STATIC_CALLBACK(PLDHashOperator)
-hashReleaseEnum(nsUint32HashKey::KeyType aKey, danbooruIAutoCompleteArrayResult *&aData, void* userArg)
+hashReleaseEnum(nsUint32HashKey::KeyType aKey, nsRefPtr<danbooruIAutoCompleteArrayResult> &aData, void* userArg)
 {
-	NS_RELEASE(aData);
+	//NS_RELEASE(aData);
 
-	return PL_DHASH_NEXT;
+	return PL_DHASH_REMOVE;
 }
 
 danbooruAutoCompleteController::~danbooruAutoCompleteController()
 {
 	mRelatedHash.Enumerate(&hashReleaseEnum, nsnull);
+	mController = nsnull;
+	mRollup = nsnull;
+	mTimer = nsnull;
+	mTreeView = nsnull;
+	mConsole = nsnull;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -278,8 +283,8 @@ danbooruAutoCompleteController::GetValueAt(PRInt32 aIndex, nsAString & _retval)
 	GetParentIndex(aIndex, &idx);
 	if(idx == -1)
 		return mController->GetValueAt(FirstLevelRowIndex(aIndex), _retval);
-	danbooruIAutoCompleteArrayResult *result;
-	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
+	mRelatedHash.Get(FirstLevelRowIndex(idx), getter_AddRefs(result));
 
 	PRUint16 searchResult;
 	result->GetSearchResult(&searchResult);
@@ -300,8 +305,8 @@ danbooruAutoCompleteController::GetCommentAt(PRInt32 aIndex, nsAString & _retval
 	GetParentIndex(aIndex, &idx);
 	if(idx == -1)
 		return mController->GetCommentAt(aIndex, _retval);
-	danbooruIAutoCompleteArrayResult *result;
-	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
+	mRelatedHash.Get(FirstLevelRowIndex(idx), getter_AddRefs(result));
 
 	PRUint16 searchResult;
 	result->GetSearchResult(&searchResult);
@@ -332,10 +337,10 @@ danbooruAutoCompleteController::GetStyleAt(PRInt32 aIndex, nsAString & _retval)
 #endif
 		return NS_OK;
 	}
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 
 	aIndex -= idx + 1;
-	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	mRelatedHash.Get(FirstLevelRowIndex(idx), getter_AddRefs(result));
 	result->GetStyleAt(aIndex, _retval);
 #ifdef DEBUG
 	{
@@ -391,10 +396,10 @@ danbooruAutoCompleteController::GetImageAt(PRInt32 aIndex, nsAString & _retval)
 #endif
 		return NS_OK;
 	}
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 
 	aIndex -= idx + 1;
-	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	mRelatedHash.Get(FirstLevelRowIndex(idx), getter_AddRefs(result));
 	result->GetImageAt(aIndex, _retval);
 #ifdef DEBUG
 	{
@@ -457,11 +462,11 @@ danbooruAutoCompleteController::GetRowCount(PRInt32 *aRowCount)
 	PRUint32 sub;
 	mTreeView->GetRowCount(&count);
 
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	PRBool open;
 	for(PRUint32 i=0; i<mRelatedKeys.Length(); i++)
 	{
-		mRelatedHash.Get(mRelatedKeys[i], &result);
+		mRelatedHash.Get(mRelatedKeys[i], getter_AddRefs(result));
 		result->GetOpen(&open);
 		if (!open) continue;
 		result->GetMatchCount(&sub);
@@ -495,8 +500,8 @@ danbooruAutoCompleteController::GetCellProperties(PRInt32 row, nsITreeColumn* co
 #endif
 		return mTreeView->GetCellProperties(FirstLevelRowIndex(row), col, properties);
 	}
-	danbooruIAutoCompleteArrayResult *result;
-	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
+	mRelatedHash.Get(FirstLevelRowIndex(idx), getter_AddRefs(result));
 #ifdef DEBUG
 	{
 		PRUint32 ct;
@@ -569,8 +574,8 @@ danbooruAutoCompleteController::GetCellText(PRInt32 row, nsITreeColumn* col, nsA
 #endif
 		return NS_OK;
 	}
-	danbooruIAutoCompleteArrayResult *result;
-	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
+	mRelatedHash.Get(FirstLevelRowIndex(idx), getter_AddRefs(result));
 
 	PRUint16 searchResult;
 	result->GetSearchResult(&searchResult);
@@ -615,9 +620,9 @@ danbooruAutoCompleteController::IsContainer(PRInt32 index, PRBool *_retval)
 NS_IMETHODIMP
 danbooruAutoCompleteController::IsContainerOpen(PRInt32 index, PRBool *_retval)
 {
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	PRUint32 otherIndex = FirstLevelRowIndex(index);
-	if (mRelatedHash.Get(otherIndex, &result))
+	if (mRelatedHash.Get(otherIndex, getter_AddRefs(result)))
 		result->GetOpen(_retval);
 	else
 		*_retval = PR_FALSE;
@@ -643,14 +648,14 @@ danbooruAutoCompleteController::GetLevel(PRInt32 index, PRInt32 *_retval)
 	}
 #endif
 
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	PRBool open;
 	PRUint32 count;
 	*_retval = 0;
 	for(PRUint32 i=0, offset=0; i<mRelatedKeys.Length(); i++)
 	{
 		if (mRelatedKeys[i] + offset >= (PRUint32)index) break;
-		mRelatedHash.Get(mRelatedKeys[i], &result);
+		mRelatedHash.Get(mRelatedKeys[i], getter_AddRefs(result));
 		result->GetOpen(&open);
 		if (!open) continue;
 		result->GetMatchCount(&count);
@@ -668,7 +673,7 @@ danbooruAutoCompleteController::GetLevel(PRInt32 index, PRInt32 *_retval)
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetParentIndex(PRInt32 rowIndex, PRInt32 *_retval)
 {
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	PRBool open;
 	PRUint32 count;
 
@@ -681,7 +686,7 @@ danbooruAutoCompleteController::GetParentIndex(PRInt32 rowIndex, PRInt32 *_retva
 	}
 #endif
 		if (mRelatedKeys[i] + offset >= (PRUint32)rowIndex) break;
-		mRelatedHash.Get(mRelatedKeys[i], &result);
+		mRelatedHash.Get(mRelatedKeys[i], getter_AddRefs(result));
 		result->GetOpen(&open);
 #ifdef DEBUG
 	{
@@ -750,7 +755,7 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 	PRInt32 otherIndex;
 	PRUint32 count;
 	PRBool open;
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 
 	// second-level toggles are the simplest case
 	GetLevel(index, &level);
@@ -758,7 +763,7 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 	{
 		// since we support only one level, toggling while in second level collapses that level
 		GetParentIndex(index, &otherIndex);
-		if (mRelatedHash.Get(FirstLevelRowIndex(otherIndex), &result))
+		if (mRelatedHash.Get(FirstLevelRowIndex(otherIndex), getter_AddRefs(result)))
 		{
 			result->ToggleOpen();
 			result->GetMatchCount(&count);
@@ -783,7 +788,7 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 #endif
 
 	// at top level, see if we need to make a new search result
-	if(mRelatedHash.Get(otherIndex, &result))
+	if(mRelatedHash.Get(otherIndex, getter_AddRefs(result)))
 	{
 		result->ToggleOpen();
 		result->GetMatchCount(&count);
@@ -805,7 +810,7 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 
 		nsString tag;
 		GetValueAt(index, tag);
-		rv = tagservice->SearchRelatedTags(tag, &result);
+		rv = tagservice->SearchRelatedTags(tag, getter_AddRefs(result));
 		if(NS_FAILED(rv)) {
 			nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
 			sound->Beep();
@@ -945,7 +950,7 @@ danbooruAutoCompleteController::PerformActionOnCell(const PRUnichar* action, PRI
 // danbooruIAutoCompleteController
 
 PR_STATIC_CALLBACK(PLDHashOperator)
-hashCloseRelatedEnum(nsUint32HashKey::KeyType aKey, danbooruIAutoCompleteArrayResult *&aData, void* userArg)
+hashCloseRelatedEnum(nsUint32HashKey::KeyType aKey, nsRefPtr<danbooruIAutoCompleteArrayResult> &aData, void* userArg)
 {
 	PRBool open;
 	aData->GetOpen(&open);
@@ -981,14 +986,14 @@ danbooruAutoCompleteController::OriginalRowIndex(PRInt32 rowIndex, PRInt32 *_ret
 PRInt32
 danbooruAutoCompleteController::FirstLevelRowIndex(PRInt32 index)
 {
-	danbooruIAutoCompleteArrayResult *result;
+	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	PRBool open;
 	PRUint32 otherIndex = index;
 	PRUint32 count;
 	for(PRUint32 i=0; i<mRelatedKeys.Length(); i++)
 	{
 		if (mRelatedKeys[i] >= (PRUint32)otherIndex) break;
-		mRelatedHash.Get(mRelatedKeys[i], &result);
+		mRelatedHash.Get(mRelatedKeys[i], getter_AddRefs(result));
 		result->GetOpen(&open);
 		if (!open) continue;
 		result->GetMatchCount(&count);
