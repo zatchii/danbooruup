@@ -583,7 +583,7 @@ danbooruPoster.prototype = {
 				if (doc.evaluate("/response/success", doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
 					viewurl = doc.evaluate("/response/location/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
 					errs = doc.evaluate("/response/reason/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
-					success = doc.evaluate("/response/success/text()", doc, null, XPathResult.BOOLEAN_TYPE, null).booleanValue;
+					success = doc.evaluate("/response/success/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue == "true";
 				} else {
 					// <response> tag with attributes
 					viewurl = doc.evaluate("/response/@location", doc, null, XPathResult.STRING_TYPE, null).stringValue;
@@ -603,6 +603,8 @@ danbooruPoster.prototype = {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.corruptupload");
 					} else if(errs == "access denied") {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.accessdenied");
+					} else if(errs == "daily limit exceeded") {
+						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.limitexceeded");
 					} else {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.unhandled") + " " + errs;
 					}

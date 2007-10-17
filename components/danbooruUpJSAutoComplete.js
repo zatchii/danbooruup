@@ -16,9 +16,10 @@ danbooruUpJSAutoCompleteObject.prototype =
 		if(aListener == null)
 			return Components.results.NS_ERROR_FAILURE;
 
-		var result = {value:Cc["@unbuffered.info/autocomplete/array-result;1"].createInstance(Ci.danbooruIAutoCompleteArrayResult)};
+		var result = {value:null};
 		this._tagService.autoCompleteSearch(aString, aPrev, result);
 		aListener.onSearchResult(this, result.value);
+		delete result.value;
 
 		return Components.results.NS_OK;
 	},

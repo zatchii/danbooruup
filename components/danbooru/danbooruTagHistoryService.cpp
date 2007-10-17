@@ -421,11 +421,6 @@ class danbooruNodeProcessEvent : public nsRunnable
 {
 public:
 	danbooruNodeProcessEvent(PRUint32 type = MSG_PROCESSNODES) : mType(type) { }
-#ifdef DEBUG
-	~danbooruNodeProcessEvent() {
-		PR_fprintf(PR_STDERR, "danbooruNodeProcessEvent %08x dtor\n", this);
-	}
-#endif
 
 	NS_IMETHOD Run() {
 		danbooruTagHistoryService *tagservice = danbooruTagHistoryService::GetInstance();

@@ -161,7 +161,7 @@ else if(document.location.href.match(/\/tag\/aliases(\/|$)/))
 	createAC("name", {isSearchField: true});
 	createAC("alias", {isSearchField: true});
 }
-else if(document.location.href.match(/\/tag_alias/add(\/|$)/))
+else if(document.location.href.match(/\/tag_alias\/add(\/|$)/))
 {
 	createAC("tag_alias_name", {isSearchField: true});
 	createAC("tag_alias_alias", {isSearchField: true});
@@ -172,7 +172,7 @@ else if(document.location.href.match(/\/tag\/implications(\/|$)/))
 	createAC("child", {isSearchField: true});
 	createAC("parent", {isSearchField: true});
 }
-else if(document.location.href.match(/\/tag_implication/add(\/|$)/))
+else if(document.location.href.match(/\/tag_implication\/add(\/|$)/))
 {
 	createAC("tag_implication_predicate", {isSearchField: true});
 	createAC("tag_implication_consequent", {isSearchField: true});
