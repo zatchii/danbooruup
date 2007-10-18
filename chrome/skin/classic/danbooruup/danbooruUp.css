@@ -4,10 +4,10 @@
 /* upload dialog */
 
 toolbarbutton#nextSrcBtn {
-	list-style-image: url("chrome://global/skin/toolbar/chevron.gif");
+	list-style-image: url("chrome://global/skin/arrow/arrow-rit-sharp.gif");
 }
 toolbarbutton#prevSrcBtn {
-	list-style-image: url("chrome://global/skin/toolbar/chevron-rtl.gif");
+	list-style-image: url("chrome://global/skin/arrow/arrow-lft-sharp.gif");
 }
 
 toolbarbutton#nextSrcBtn[disabled="true"],

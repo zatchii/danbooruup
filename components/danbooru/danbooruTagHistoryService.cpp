@@ -181,6 +181,7 @@ NS_strcmp(const PRUnichar *a, const PRUnichar *b)
   return *a != '\0';
 }
 
+/*
 static PRUint32
 NS_strlen(const PRUnichar *aString)
 {
@@ -192,6 +193,7 @@ NS_strlen(const PRUnichar *aString)
 
   return end - aString;
 }
+*/
 
 static PRBool
 Equals(const nsAString &str, const nsDependentSubstring &other, ComparatorFunc c)

@@ -117,7 +117,6 @@ protected:
 
   static PRBool gTagHistoryEnabled;
   static PRBool gPrefsInitialized;
-  PRBool mRelatedTagsAvailable;
 
   nsCOMPtr<nsIPrefBranch> mPrefBranch;
 
@@ -130,8 +129,11 @@ protected:
   nsCOMPtr<nsIDOMNodeList> mNodeList;
   PRUint32	mStep;
   PRUint32	mNodes;
-  // using COM instead of these would be too much effort
+
+  PRBool mRelatedTagsAvailable;
+
 #ifndef MOZILLA_1_8_BRANCH
+  // using COM instead of these would be too much effort
   nsStringArray mIdArray;
   nsStringArray mNameArray;
   nsStringArray mTypeArray;
