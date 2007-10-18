@@ -137,9 +137,11 @@ danbooruAutoCompleteController::HandleEnter(PRBool *_retval)
 
 	// allow the event through unless there is something selected in the popup
 	mInput->GetPopupOpen(_retval);
+
+	nsCOMPtr<nsIAutoCompletePopup> popup;
+	mInput->GetPopup(getter_AddRefs(popup));
+
 	if (*_retval) {
-		nsCOMPtr<nsIAutoCompletePopup> popup;
-		mInput->GetPopup(getter_AddRefs(popup));
 
 		if (popup) {
 			PRInt32 selectedIndex;
@@ -159,8 +161,6 @@ danbooruAutoCompleteController::HandleEnter(PRBool *_retval)
 		}
 	}
 
-	nsCOMPtr<nsIAutoCompletePopup> popup;
-	mInput->GetPopup(getter_AddRefs(popup));
 #ifdef DEBUG
 	{
 		nsString text;

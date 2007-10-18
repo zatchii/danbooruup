@@ -544,7 +544,6 @@
     
     <implementation implements="nsIAutoCompletePopup,danbooruIAutoCompletePopup">
       <field name="mInput">null</field>
-      <field name="mController">null</field>
       <field name="mIndexHack">false</field>
       <field name="mPopupOpen">false</field>
       <field name="mShowCommentCol">false</field>
@@ -554,7 +553,6 @@
       ]]></constructor>
 
       <!-- =================== danbooruIAutoCompletePopup =================== -->
-      <property name="controller" onget="return this.mController" onset="this.mController = val; return val;"/>
       <property name="indexHack" onget="return this.mIndexHack" onset="this.mIndexHack = val; return val;"/>
 
       <!-- =================== nsIAutoCompletePopup =================== -->
@@ -565,8 +563,15 @@
       <property name="overrideValue" readonly="true"
                 onget="return null;"/>
 
-      <property name="selectedIndex"
-                onget="if (this.mIndexHack) { return this.mController.originalRowIndex(this.tree.currentIndex); } else { return this.tree.currentIndex; }">
+      <property name="selectedIndex">
+        <getter><![CDATA[
+          if (this.mInput && this.mInput.controller && this.mIndexHack) {
+            return this.mInput.controller.QueryInterface(Components.interfaces.danbooruIAutoCompleteController)
+              .originalRowIndex(this.tree.currentIndex);
+          } else {
+            return this.tree.currentIndex;
+          }
+        ]]></getter>
         <setter><![CDATA[
           this.tree.view.selection.select(val);
           if (this.tree.treeBoxObject.height > 0)

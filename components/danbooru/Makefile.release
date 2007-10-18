@@ -36,8 +36,8 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= /cygdrive/c/mingw/work/mozilla/obj-i686-pc-cygwin/
-topsrcdir	= /cygdrive/c/mingw/work/mozilla/
+DEPTH		= /c/mingw/work/mozilla/obj-i686-pc-mingw32/
+topsrcdir	= /c/mingw/work/mozilla/
 srcdir		= .
 VPATH		= .
 
