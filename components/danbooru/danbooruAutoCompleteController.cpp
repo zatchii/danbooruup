@@ -65,7 +65,7 @@ hashReleaseEnum(nsUint32HashKey::KeyType aKey, danbooruIAutoCompleteArrayResult 
 {
 	NS_RELEASE(aData);
 
-	return PL_DHASH_NEXT;
+	return PL_DHASH_REMOVE;
 }
 
 danbooruAutoCompleteController::~danbooruAutoCompleteController()
@@ -159,18 +159,17 @@ danbooruAutoCompleteController::HandleEnter(PRBool *_retval)
 		}
 	}
 
+	nsCOMPtr<nsIAutoCompletePopup> popup;
+	mInput->GetPopup(getter_AddRefs(popup));
 #ifdef DEBUG
 	{
 		nsString text;
-		nsCOMPtr<nsIAutoCompletePopup> popup;
 		PRInt32 selectedIndex;
 		popup->GetSelectedIndex(&selectedIndex);
 		GetValueAt(selectedIndex, text);
 		PR_fprintf(PR_STDERR, "handleenter \t%d (%d) %s\n", selectedIndex, FirstLevelRowIndex(selectedIndex), NS_ConvertUTF16toUTF8(text).get());
 	}
 #endif
-	nsCOMPtr<nsIAutoCompletePopup> popup;
-	mInput->GetPopup(getter_AddRefs(popup));
 
 	nsCOMPtr<danbooruIAutoCompletePopup> dpopup( do_QueryInterface(popup) );
 	dpopup->SetIndexHack(PR_TRUE);
@@ -925,6 +924,8 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 		GetValueAt(index, tag);
 		rv = tagservice->SearchRelatedTags(tag, &result);
 		if(NS_FAILED(rv)) {
+			if (result)
+				NS_RELEASE(result);
 			nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
 			sound->Beep();
 			return NS_OK;
@@ -947,6 +948,8 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 #endif
 			mTree->RowCountChanged(index + 1, count);
 		} else {
+			if (result)
+				NS_RELEASE(result);
 			nsCOMPtr<nsISound> sound(do_CreateInstance("@mozilla.org/sound;1"));
 			sound->Beep();
 		}

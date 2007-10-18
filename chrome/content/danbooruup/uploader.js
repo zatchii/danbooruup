@@ -140,6 +140,7 @@ danbooruUploader.prototype = {
 	mStorage:null,
 	mOutStr:null,
 	mInStr:null,
+	mMimeIS:null,
 	mLocation:"",
 	mUpdateTags:false,
 
@@ -208,6 +209,63 @@ danbooruUploader.prototype = {
 			outMD5Hex += alpha.charAt(n>>4) + alpha.charAt(n & 0xF);
 		}
 
+		try {
+		var prefBranch = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
+		if (prefBranch.getBoolPref("extensions.danbooruUp.checkMD5BeforeUpload") && upURI.path.match(/\/post\/create\.xml$/))
+		{
+			var xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Components.interfaces.nsIXMLHttpRequest);
+			this.mQueryRequest = xhr;
+			var postIndexURI = upURI.clone().QueryInterface(Components.interfaces.nsIURL);
+			postIndexURI.path = postIndexURI.path.replace(/\/create\.xml$/, '/index.xml');
+			postIndexURI.query = "tags=md5%3A" + outMD5Hex;
+			xhr.open("GET", postIndexURI.spec, true);
+			xhr.overrideMimeType("text/xml");
+			xhr.QueryInterface(Components.interfaces.nsIJSXMLHttpRequest);
+			this.mDuplicate = null;
+
+			var self = this;
+			function queryLoad(event) {
+				var responseXML = xhr.responseXML;
+				if (responseXML && responseXML.documentElement.namespaceURI != "http://www.mozilla.org/newlayout/xml/parsererror.xml" &&
+					(xhr.status == 200 || xhr.status == 0)) {
+					result = responseXML.evaluate("/posts/post", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+					if (result.snapshotLength) {
+						var str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
+						var postShowURI = upURI.clone();
+						postShowURI.path = postShowURI.path.replace(/\/create\.xml$/, '/show/'+result.snapshotItem(0).getAttribute('id'));
+						addNotification(self.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
+								self.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:postShowURI.spec});
+						self.mDuplicate = true;
+						self.mQueryRequest = null;
+						return;
+					}
+				}
+				self.mDuplicate = false;
+				self.mQueryRequest = null;
+			}
+			function queryError(event) {
+				self.mDuplicate = false;
+				self.mQueryRequest = null;
+			}
+
+			xhr.onload = queryLoad;
+			xhr.onerror = queryError;
+
+			var buttons = [{
+					 label: commondlgMsg.GetStringFromName('cancelButtonText'),
+					 accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
+					 popup: null,
+					 callback: danbooruUpHitch(this, "cancel")
+			}];
+
+			addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.checking'),
+					"chrome://global/skin/throbber/Throbber-small.gif",
+					this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, buttons);
+
+			xhr.send(null);
+		}
+		} catch (e) { }
+
 		// cookie info
 		try {
 			var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
@@ -274,23 +332,63 @@ danbooruUploader.prototype = {
 		postDS.appendStream(endIS);
 
 		// turn it into a MIME stream
-		var mimeIS = Components.classes["@mozilla.org/network/mime-input-stream;1"]
+		this.mMimeIS = Components.classes["@mozilla.org/network/mime-input-stream;1"]
 					.createInstance(Components.interfaces.nsIMIMEInputStream);
-		mimeIS.addHeader("Content-Type", "multipart/form-data; boundary="+ boundary, false);
+		this.mMimeIS.addHeader("Content-Type", "multipart/form-data; boundary="+ boundary, false);
 		//mimeIS.addHeader("Cookie", cookieStr, false);
 
-		mimeIS.addContentLength = true;
-		mimeIS.setData(postDS);
+		this.mMimeIS.addContentLength = true;
+		this.mMimeIS.setData(postDS);
 
 		// post
 
+		if (this.mQueryRequest)
+		{
+			this.mTab.linkedBrowser.contentWindow
+				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+					.getInterface(Components.interfaces.nsIWebNavigation)
+				.QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+					.rootTreeItem
+				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+					.getInterface(Components.interfaces.nsIDOMWindow)
+				.setTimeout(danbooruUpHitch(this, "waitForMD5Query"), 500);
+		} else {
+			this.doPost();
+		}
+	},
+	waitForMD5Query:function()
+	{
+		while (this.mDuplicate === null)
+		{
+			this.mTab.linkedBrowser.contentWindow
+				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+					.getInterface(Components.interfaces.nsIWebNavigation)
+				.QueryInterface(Components.interfaces.nsIDocShellTreeItem)
+					.rootTreeItem
+				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+					.getInterface(Components.interfaces.nsIDOMWindow)
+				.setTimeout(danbooruUpHitch(this, "waitForMD5Query"), 500);
+			return;
+		}
+		if (!this.mDuplicate)
+			this.doPost();
+	},
+	doPost:function()
+	{
 		var postage = new danbooruPoster();
 		var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		os.addObserver(postage, "danbooru-up", false);
-		postage.start(mimeIS, this.mRealSource, this.mDest, this.mTab, this.mUpdateTags);
+		postage.start(this.mMimeIS, this.mRealSource, this.mDest, this.mTab, this.mUpdateTags);
 	},
 	cancel:function()
 	{
+		this.mDuplicate = true;
+		if(this.mQueryRequest)
+		{
+			this.mQueryRequest.abort();
+			this.mQueryRequest = null;
+			return false;
+		}
 		try{
 			if(this.mChannel)
 			{

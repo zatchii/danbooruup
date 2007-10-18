@@ -524,7 +524,6 @@ danbooruTagHistoryService::ProcessTagXML()
 	NS_ENSURE_SUCCESS(rv, rv);
 
 	PRUint32 index = 0;
-	PRUint32 length = 0;
 
 	mNodeList->GetLength(&mNodes);
 #if defined(DANBOORUUP_TESTING) || defined(DEBUG)
@@ -539,7 +538,7 @@ danbooruTagHistoryService::ProcessTagXML()
 #ifdef MOZILLA_1_8_BRANCH
 	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1"));
 #else
-	if (length >= 100000) {
+	if (mNodes >= 100000) {
 		mStep = 1000;
 	} else {
 		mStep = 100;
@@ -549,7 +548,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	if (mInserting) {	// adding new tags
 		mDB->BeginTransaction();
 #ifdef MOZILLA_1_8_BRANCH
-		while (index < length) {
+		while (index < mNodes) {
 			mNodeList->Item(index++, getter_AddRefs(child));
 			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
 
@@ -570,10 +569,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	bob += tagid;
 	bob += b;
 	bob += tagname;
-	PRUnichar *z;
-	NS_StringGetData(bob, &z);
-	PR_fprintf(PR_STDERR, "%s\n", NS_ConvertUTF16toUTF8(z));
-	nsMemory::Free(z);
+	PR_fprintf(PR_STDERR, "%s\n", NS_ConvertUTF16toUTF8(bob).get());
 }
 #endif
 #else // !defined(MOZILLA_1_8_BRANCH)
@@ -610,7 +606,7 @@ danbooruTagHistoryService::ProcessTagXML()
 
 		mDB->BeginTransaction();
 #ifdef MOZILLA_1_8_BRANCH
-		while (index < length) {
+		while (index < mNodes) {
 			mNodeList->Item(index++, getter_AddRefs(child));
 			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
 			if (!childElement) {

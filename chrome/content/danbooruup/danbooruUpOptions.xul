@@ -24,6 +24,8 @@
 	<preferences>
 		<preference id="pref.extensions.danbooruUp.fileurlsource"
 			name="extensions.danbooruUp.fileurlsource"			type="bool"/>
+		<preference id="pref.extensions.danbooruUp.checkMD5BeforeUpload"
+			name="extensions.danbooruUp.checkMD5BeforeUpload"		type="bool"/>
 		<preference id="pref.extensions.danbooruUp.tooltipcrop"
 			name="extensions.danbooruUp.tooltipcrop"			type="string"/>
 		<preference id="pref.extensions.danbooruUp.hashing.md5"
@@ -40,9 +42,10 @@
 		<textbox id="text_postadduri" preference="postadduri" width="400px"/>
 	</vbox>-->
 
-		<hbox>
+		<groupbox align="start">
 			<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="pref.extensions.danbooruUp.fileurlsource" />
-		</hbox>
+			<checkbox id="checkMD5BeforeUpload" label="&danbooruUpOptions.checkMD5BeforeUpload.label;" accesskey="&danbooruUpOptions.checkMD5BeforeUpload.accesskey;" preference="pref.extensions.danbooruUp.checkMD5BeforeUpload" />
+		</groupbox>
 		<groupbox align="start">
 			<caption label="&danbooruUpOptions.toolTipCrop.label;"/>
 			<radiogroup id="cropGroup"

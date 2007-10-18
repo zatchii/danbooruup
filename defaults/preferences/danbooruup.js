@@ -2,6 +2,7 @@
 pref("extensions.danbooruUp.postadduri", "http://miezaru.donmai.us/post/create.xml");
 pref("extensions.danbooruUp.postadduri.selected", 0);
 pref("extensions.danbooruUp.fileurlsource", false);
+pref("extensions.danbooruUp.checkMD5BeforeUpload", true);
 pref("extensions.danbooruUp.updateuri", "http://miezaru.donmai.us/tag/index.xml");
 pref("extensions.danbooruUp.relatedupdateuri", "http://miezaru.donmai.us/sqlite.db.gz");
 pref("extensions.danbooruUp.suppressComponentAlert", false);

@@ -8,13 +8,15 @@
 <!ENTITY danbooruUpOptions.generalTab.label		"General">
 <!ENTITY danbooruUpOptions.fileURISource.label		"Show file:// URLs in Source field">
 <!ENTITY danbooruUpOptions.fileURISource.accesskey	"S">
+<!ENTITY danbooruUpOptions.checkMD5BeforeUpload.label		"Check for duplicate before uploading data">
+<!ENTITY danbooruUpOptions.checkMD5BeforeUpload.accesskey	"k">
 <!ENTITY danbooruUpOptions.toolTipCrop.label		"Crop tooltips at (affects every HTML tooltip)">
 <!ENTITY danbooruUpOptions.toolTipCrop.start.label	"Start">
 <!ENTITY danbooruUpOptions.toolTipCrop.start.accesskey	"t">
 <!ENTITY danbooruUpOptions.toolTipCrop.end.label	"End">
 <!ENTITY danbooruUpOptions.toolTipCrop.end.accesskey	"E">
 <!ENTITY danbooruUpOptions.toolTipCrop.center.label	"Center">
-<!ENTITY danbooruUpOptions.toolTipCrop.center.accesskey	"C">
+<!ENTITY danbooruUpOptions.toolTipCrop.center.accesskey	"r">
 <!ENTITY danbooruUpOptions.toolTipCrop.none.label	"None">
 <!ENTITY danbooruUpOptions.toolTipCrop.none.accesskey	"N">
 <!ENTITY danbooruUpOptions.toolTipCrop.default.label	"Default">

@@ -173,7 +173,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 	},
 	setTooltipCrop: function() {
-		var cropping = prefBranch.getCharPref("extensions.danbooruUp.tooltipcrop");
+		var cropping = this._branch.getCharPref("tooltipcrop");
 		var wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
 		var en = wm.getEnumerator("navigator:browser");
 
@@ -193,32 +193,32 @@ this.log(this.browserWindows.length+' after unregistering');
 	{
 		if (this.mTimer)
 			this.mTimer.cancel();
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer"))
+		if (!this._branch.getBoolPref("autocomplete.update.ontimer"))
 			return;
 		this.mTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-		this.mTimer.initWithCallback(this, prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.interval")*60*1000, this.mTimer.TYPE_REPEATING_SLACK);
+		this.mTimer.initWithCallback(this, prefBranch.getIntPref("autocomplete.update.interval")*60*1000, this.mTimer.TYPE_REPEATING_SLACK);
 	},
 	startupUpdate: function()
 	{
 		if (!this.tagService) return;
 		var full = true;
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+		if (!this._branch.getBoolPref("autocomplete.enabled"))
 			return;
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.onstartup"))
+		if (!this._branch.getBoolPref("autocomplete.update.onstartup"))
 			return;
-		if (prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.faststartup") &&
+		if (this._branch.getBoolPref("autocomplete.update.faststartup") &&
 			this.tagService.rowCount > 0) {
 			full = false;
 			this.mMaxID = this.getMaxID();
 		}
-		prefBranch.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
+		this._branch.setIntPref("autocomplete.update.lastupdate", Date.now());
 		this.update(full, false);
 	},
 	notify: function(aTimer)
 	{
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+		if (!this._branch.getBoolPref("autocomplete.enabled"))
 			return;
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer"))
+		if (!this._branch.getBoolPref("autocomplete.update.ontimer"))
 		{
 			aTimer.cancel();
 			this.mTimer = null;
@@ -229,15 +229,15 @@ this.log(this.browserWindows.length+' after unregistering');
 	update: function(aFull, aInteractive, aListener)
 	{
 		if (!this.tagService) return Components.results.NS_ERROR_NOT_AVAILABLE;
-		if (!prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") && (prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval))
+		if (!this._branch.getIntPref("autocomplete.update.lastupdate") && (this._branch.getIntPref("autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval))
 		{
-			dump("skipping tag update, " + (Date.now() + cMinTagUpdateInterval - prefBranch.getIntPref("extensions.danbooruUp.autocomplete.update.lastupdate")) + " seconds left\n");
+			dump("skipping tag update, " + (Date.now() + cMinTagUpdateInterval - this._branch.getIntPref("autocomplete.update.lastupdate")) + " seconds left\n");
 			return;
 		}
 
 		var locationURL;
 		try {
-			locationURL = ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+			locationURL = ioService.newURI(this._branch.getCharPref("updateuri"), '', null)
 					.QueryInterface(Ci.nsIURL);
 		} catch (e) {
 			if(aInteractive)
@@ -274,9 +274,9 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 		this._updating = false;
 		this.mMaxID = this.getMaxID();
-		prefBranch.setIntPref("extensions.danbooruUp.autocomplete.update.lastupdate", Date.now());
+		this._branch.setIntPref("autocomplete.update.lastupdate", Date.now());
 
-		if (prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.update.ontimer") && !this.mTimer)
+		if (this._branch.getBoolPref("autocomplete.update.ontimer") && !this.mTimer)
 		{
 			this.startTimer();
 		}
@@ -284,7 +284,7 @@ this.log(this.browserWindows.length+' after unregistering');
 	},
 	cleanup: function(aInteractive,aListener)
 	{
-		var locationURL	= ioService.newURI(prefBranch.getCharPref("extensions.danbooruUp.updateuri"), '', null)
+		var locationURL	= ioService.newURI(this._branch.getCharPref("updateuri"), '', null)
 				.QueryInterface(Ci.nsIURL);
 		locationURL.query = "limit=0";
 		try {
@@ -343,7 +343,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
 		outFile.append("danboorurelated.sqlite");
 
-		var channel = ioService.newChannel(prefBranch.getCharPref("extensions.danbooruUp.relatedupdateuri"), null, null)
+		var channel = ioService.newChannel(this._branch.getCharPref("relatedupdateuri"), null, null)
 				.QueryInterface(Components.interfaces.nsIHttpChannel);
 		channel.loadFlags = channel.INHIBIT_CACHING | channel.LOAD_BYPASS_CACHE;
 		if (outFile.exists())
@@ -404,9 +404,9 @@ this.log(this.browserWindows.length+' after unregistering');
 	contentLoaded: function (win)
 	{
 		// only putting the check here is lazy, but works
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.enabled"))
+		if (!this._branch.getBoolPref("autocomplete.enabled"))
 			return;
-		if (!prefBranch.getBoolPref("extensions.danbooruUp.autocomplete.site.enabled"))
+		if (!this._branch.getBoolPref("autocomplete.site.enabled"))
 			return;
 
 		var unsafeWin = win.wrappedJSObject;
@@ -420,7 +420,7 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		var winUri = ioService.newURI(href, null, null).QueryInterface(Ci.nsIURL);
 
-		var sites = prefBranch.getCharPref("extensions.danbooruUp.postadduri").split("`");
+		var sites = this._branch.getCharPref("postadduri").split("`");
 
 		// determine injection based on URI and elements
 		for (var i = 0; i < sites.length; ++i) {
