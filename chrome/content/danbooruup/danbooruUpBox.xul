@@ -61,6 +61,7 @@
 			</hbox>
 		</radiogroup>
 		<spacer flex="1"/>
+		<toolbarbutton image="chrome://danbooruup/skin/glass-trimmed.png" id="artistSearch" tooltiptext="&danbooru-box-artist-search-tooltip;" onclick="return doArtistSearch();"/>
 		<toolbarbutton image="chrome://help/skin/Weblink.png" tooltiptext="&danbooru-box-switch-tab-tooltip;" onclick="return doSwitchTab();"/>
 	</hbox>
 	<menulist id="danbooru" flex="1" crop="end"/>

@@ -15,6 +15,17 @@ toolbarbutton#prevSrcBtn[disabled="true"] {
 	opacity: 0.5;
 }
 
+toolbarbutton#artistSearch {
+	/* unfortunately this causes the button to balloon to an unacceptable size
+	 * list-style-image: url("chrome://browser/skin/Search-glass.png");
+	 * -moz-image-region: rect(3px, 44px, 29px, 18px);
+	 */
+	padding: 0px !important;
+}
+toolbarbutton#artistSearch > .toolbarbutton-icon {
+	-moz-margin-start: 5px !important;
+}
+
 /* browser notifications */
 
 .danboorumsgprogress {

@@ -20,4 +20,5 @@
 <!ENTITY danbooru-box-danbooru-label "Danbooru:">
 <!ENTITY danbooru-box-danbooru-accesskey "d">
 <!ENTITY danbooru-box-switch-source-tooltip "Switch between document referrer, document location and image location">
-<!ENTITY danbooru-box-switch-tab-tooltip "Switch to Original Tab">
+<!ENTITY danbooru-box-switch-tab-tooltip "Switch to original tab">
+<!ENTITY danbooru-box-artist-search-tooltip "Search for artist tag">

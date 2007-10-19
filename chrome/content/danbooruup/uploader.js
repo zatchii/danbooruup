@@ -228,7 +228,7 @@ danbooruUploader.prototype = {
 				var responseXML = xhr.responseXML;
 				if (responseXML && responseXML.documentElement.namespaceURI != "http://www.mozilla.org/newlayout/xml/parsererror.xml" &&
 					(xhr.status == 200 || xhr.status == 0)) {
-					result = responseXML.evaluate("/posts/post", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+					var result = responseXML.evaluate("/posts/post", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 					if (result.snapshotLength) {
 						var str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
 						var postShowURI = upURI.clone();
@@ -729,8 +729,6 @@ danbooruPoster.prototype = {
 							"chrome://danbooruup/skin/icon.ico",
 							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
 
-					//if (viewurl)
-					//	this.addLinkToBrowserMessage(notification, viewurl);
 					if (this.mUpdateTags)
 						os.notifyObservers(null, "danbooru-update", "");
 				}
@@ -748,10 +746,6 @@ danbooruPoster.prototype = {
 
 				addNotification(this.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
 						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:viewurl});
-
-				//if (viewurl)
-				//	this.addLinkToBrowserMessage(notification, viewurl);
-
 			} else {
 				var str = "";
 				try {
