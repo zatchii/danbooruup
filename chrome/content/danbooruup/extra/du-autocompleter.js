@@ -1,14 +1,17 @@
 // Adds page up/down and tweaks sizing
 // also gets rid of scrollIntoView(true), which doesn't work so hot in Gecko, the only platform we have to worry about
+// vim:set ts=2 sw=2 et:
 Autocompleter.DanbooruUp = Class.create();
 Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
   initialize: function(element, update, array, options) {
     this.baseInitialize(element, update, options);
+    this.index = -1;
     this.options.array = array;
   },
 
   getUpdatedChoices: function() {
     this.updateChoices(this.options.selector(this));
+    this.index = -1;
   },
 
   onKeyPress: function(event) {
@@ -27,7 +30,6 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
         case Event.KEY_RIGHT:
           this.selectEntry();
           this.hide();
-          this.active = false;
           return;
         case Event.KEY_PAGEUP:
           this.markPreviousPage();
@@ -61,9 +63,39 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     this.observer =
       setTimeout(this.onObserverEvent.bind(this), this.options.frequency*1000);
   },
+
+  render: function() {
+    if(this.entryCount > 0) {
+      var lineHeight = this.update.firstChild.childNodes[0].clientHeight;
+      var step = Math.ceil(this.update.clientHeight/lineHeight);
+      var topDisplayed = Math.ceil(this.update.scrollTop / lineHeight);
+      var bottomDisplayed = Math.floor((this.update.scrollTop + this.update.clientHeight) / lineHeight) - 1;
+      var min = topDisplayed - 1;
+      var max = bottomDisplayed + 1;
+      if (min < 0) min = 0;
+      if (max >= this.entryCount) max = this.entryCount - 1;
+      for (var i = min; i < max; i++)
+        this.index==i ?
+          Element.addClassName(this.getEntry(i),"selected") :
+          Element.removeClassName(this.getEntry(i),"selected");
+      if(this.hasFocus) {
+        this.show();
+        this.active = true;
+      }
+    } else {
+      this.active = false;
+      this.hide();
+    }
+  },
+
   markPrevious: function() {
-    if(this.index > 0) this.index--
+    if(this.index >= 0) this.index--
       else this.index = this.entryCount-1;
+    this.getEntry(this.index).scrollIntoView(false);
+  },
+  markNext: function() {
+    if(this.index < this.entryCount-1) this.index++
+      else this.index = -1;
     this.getEntry(this.index).scrollIntoView(false);
   },
   markPreviousPage: function() {
@@ -71,7 +103,8 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     var step = Math.ceil(this.update.clientHeight/lineHeight);
     var topDisplayed = Math.ceil(this.update.scrollTop / lineHeight);
 
-    if(this.index == 0) { this.index = this.entryCount-1; }
+    if(this.index == 0) { this.index = -1; }
+    else if(this.index == -1) { this.index = this.entryCount-1; }
     else {
       if(this.index == topDisplayed) { // at top
         this.index -= step;
@@ -87,7 +120,8 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     var step = Math.ceil(this.update.clientHeight/lineHeight);
     var bottomDisplayed = Math.floor((this.update.scrollTop + this.update.clientHeight) / lineHeight) - 1;
 
-    if(this.index == this.entryCount-1) { this.index = 0; }
+    if(this.index == this.entryCount-1) { this.index = -1; }
+    else if(this.index == -1) { this.index = 0; }
     else {
       if(this.index == bottomDisplayed) { // at bottom
         this.index += step;
@@ -97,6 +131,16 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
       }
     }
     this.getEntry(this.index).scrollIntoView(false);
+  },
+
+  getEntry: function(index) {
+    return this.update.firstChild.childNodes[(index == -1) ? 0 : index];
+  },
+
+  selectEntry: function() {
+    this.active = false;
+    if(this.index != -1)
+      this.updateElement(this.getCurrentEntry());
   },
 
   updateElement: function(selectedElement) {
@@ -158,7 +202,7 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
             // minus the image and post bar, and the header
             // minus the space between the top of the edit div and the bottom of the post_tags input
             var height = $("edit").parentNode.clientHeight -
-              ($("edit").offsetTop - $("edit").parentNode.offsetTop) -	
+              ($("edit").offsetTop - $("edit").parentNode.offsetTop) -
               ($("post_tags").offsetTop - $("edit").offsetTop + $("post_tags").offsetHeight);
             // trim and min/max
             height -= height % lineHeight;
@@ -176,7 +220,7 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
 });
 
 // need this since the XPCSafeJSObjectWrapper prevents creating a new Autocompleter.DanbooruUp from the sandbox
-function createACDU(element, div, options) 
+function createACDU(element, div, options)
 {
 	return new Autocompleter.DanbooruUp(element, div, [], options);
 }

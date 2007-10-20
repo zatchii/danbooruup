@@ -61,6 +61,10 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRe
 	}
 
 	notification = notificationBox.appendNotification(aMessage, "danbooru-up", aIcon, aPriority, aButtons);
+	if (notification.boxObject.height >= 200) {
+		notification.style.overflow = 'scroll';
+		notification.style.height = '200px';
+	}
 	if (aExtra) {
 		if (aExtra.type == 'link')
 			addLinkToNotification(notification, aExtra.link);

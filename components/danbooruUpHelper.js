@@ -172,7 +172,8 @@ this.log(this.browserWindows.length+' after unregistering');
 			break;
 		}
 	},
-	setTooltipCrop: function() {
+	setTooltipCrop: function()
+	{
 		var cropping = this._branch.getCharPref("tooltipcrop");
 		var wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
 		var en = wm.getEnumerator("navigator:browser");
@@ -393,8 +394,8 @@ this.log(this.browserWindows.length+' after unregistering');
 	{
 		if(this.script_src.length) return;
 		try {
-			for(var i=0; i < this.files.length; i++) {
-				var script = ioService.newURI(this.files[i],null,null)
+			for each (let file in this.files) {
+				var script = ioService.newURI(file,null,null)
 				this.script_src.push(this.getContents(script));
 			}
 			this.script_ins = this.getContents(ioService.newURI("chrome://danbooruup/content/extra/ac-insert.js",null,null));
@@ -420,12 +421,10 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		var winUri = ioService.newURI(href, null, null).QueryInterface(Ci.nsIURL);
 
-		var sites = this._branch.getCharPref("postadduri").split("`");
-
 		// determine injection based on URI and elements
-		for (var i = 0; i < sites.length; ++i) {
+		for each (let site in this._branch.getCharPref("postadduri").split("`")) {
 			try {
-				var uri = ioService.newURI(sites[i], null, null);
+				var uri = ioService.newURI(site, null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
 				if (winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html$|$)/) || 
@@ -466,11 +465,11 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		// put useful declarations into style array inside sandbox
 		const TAGTYPE_COUNT = 5;
-		var rx = new RegExp("s*(background(-w+)?|border(-w+)?|color|font(-w+)?|padding(-w+)?|letter-spacing|margin(-w+)?|outline(-w+)?|text(-w+)?)s*:.*;$","gm");
+		var rx = new RegExp("^\\s*(background(-\\w+)?|border(-\\w+)?|color|font(-\\w+)?|padding(-\\w+)?|letter-spacing|margin(-\\w+)?|outline(-\\w+)?|text(-\\w+)?)\\s*:.*;$","gm");
 		var prefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
 
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
-		for(var i=0, rule; i<TAGTYPE_COUNT; i++) {
+		for(let i=0, rule; i<TAGTYPE_COUNT; i++) {
 			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('');
 			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
 			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('');
@@ -480,8 +479,8 @@ this.log(this.browserWindows.length+' after unregistering');
 		try {
 			// load in the source from the content package
 			Components.utils.evalInSandbox("var script_arr = [];", sandbox);
-			for(var i=0; i < this.script_src.length; i++) {
-				sandbox.script_arr.push(this.script_src[i]);
+			for each(let script in this.script_src) {
+				sandbox.script_arr.push(script);
 			}
 
 			// load in the inserter script
@@ -493,11 +492,13 @@ this.log(this.browserWindows.length+' after unregistering');
 		}
 	},
 
-	log: function(msg) {
+	log: function(msg)
+	{
 		Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(msg);
 	},
 
-	getContents: function(aURL, charset) {
+	getContents: function(aURL, charset)
+	{
 		if( !charset ) {
 			charset = "UTF-8"
 		}
