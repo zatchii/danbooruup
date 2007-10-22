@@ -238,7 +238,7 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		var locationURL;
 		try {
-			locationURL = ioService.newURI(this._branch.getCharPref("updateuri"), '', null)
+			locationURL = ioService.newURI(this._branch.getComplexValue("updateuri", Ci.nsISupportsString).data, '', null)
 					.QueryInterface(Ci.nsIURL);
 		} catch (e) {
 			if(aInteractive)
@@ -285,7 +285,7 @@ this.log(this.browserWindows.length+' after unregistering');
 	},
 	cleanup: function(aInteractive,aListener)
 	{
-		var locationURL	= ioService.newURI(this._branch.getCharPref("updateuri"), '', null)
+		var locationURL	= ioService.newURI(this._branch.getComplexValue("updateuri", Ci.nsISupportsString).data, '', null)
 				.QueryInterface(Ci.nsIURL);
 		locationURL.query = "limit=0";
 		try {
@@ -344,7 +344,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
 		outFile.append("danboorurelated.sqlite");
 
-		var channel = ioService.newChannel(this._branch.getCharPref("relatedupdateuri"), null, null)
+		var channel = ioService.newChannel(this._branch.getComplexValue("relatedupdateuri", Ci.nsISupportsString).data, null, null)
 				.QueryInterface(Components.interfaces.nsIHttpChannel);
 		channel.loadFlags = channel.INHIBIT_CACHING | channel.LOAD_BYPASS_CACHE;
 		if (outFile.exists())
@@ -394,8 +394,8 @@ this.log(this.browserWindows.length+' after unregistering');
 	{
 		if(this.script_src.length) return;
 		try {
-			for each (let file in this.files) {
-				var script = ioService.newURI(file,null,null)
+			for (let i=0; i<this.files.length; i++) {
+				var script = ioService.newURI(this.files[i],null,null)
 				this.script_src.push(this.getContents(script));
 			}
 			this.script_ins = this.getContents(ioService.newURI("chrome://danbooruup/content/extra/ac-insert.js",null,null));
@@ -422,9 +422,10 @@ this.log(this.browserWindows.length+' after unregistering');
 		var winUri = ioService.newURI(href, null, null).QueryInterface(Ci.nsIURL);
 
 		// determine injection based on URI and elements
-		for each (let site in this._branch.getCharPref("postadduri").split("`")) {
+		var sites = this._branch.getComplexValue("postadduri", Ci.nsISupportsString).data.split("`")
+		for (let i=0; i<sites.length; i++) {
 			try {
-				var uri = ioService.newURI(site, null, null);
+				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
 				if (winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html$|$)/) || 
@@ -479,8 +480,8 @@ this.log(this.browserWindows.length+' after unregistering');
 		try {
 			// load in the source from the content package
 			Components.utils.evalInSandbox("var script_arr = [];", sandbox);
-			for each(let script in this.script_src) {
-				sandbox.script_arr.push(script);
+			for (let i=0; i<this.script_src.length; i++) {
+				sandbox.script_arr.push(this.script_src[i]);
 			}
 
 			// load in the inserter script

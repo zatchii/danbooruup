@@ -180,8 +180,8 @@ var gDanbooruManager = {
 
     // check whether the danbooru already exists, if not, add it
     var exists = false;
-    for (var i = 0; i < this._danbooru.length; ++i) {
-      if (this._danbooru[i].rawHost == host) {
+    for (let j=0; j<this._danbooru.length; j++) {
+      if (this._danbooru[j].rawHost == host) {
         exists = true;
         break;
       }
@@ -207,7 +207,7 @@ var gDanbooruManager = {
   {
     if (aWhich < 0 || aWhich >= this._danbooru.length) return;
 
-    for (var j = 0; j < this._danbooru.length; ++j) {
+    for (let j = 0; j < this._danbooru.length; ++j) {
       if(j == aWhich) {
         this._danbooru[j].selected = true;
       } else if(this._danbooru[j].selected) {
@@ -218,7 +218,7 @@ var gDanbooruManager = {
 
   getSelectedDanbooru: function ()
   {
-    for (var j = 0; j < this._danbooru.length; ++j) {
+    for (let j = 0; j < this._danbooru.length; ++j) {
       if(this._danbooru[j].selected) {
         return j;
       }
@@ -373,8 +373,8 @@ var gDanbooruManager = {
     // save these for ondialogcancel
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
-    this._oldUpdateURI = prefs.getCharPref("updateuri");
-    this._oldRelatedUpdateURI = prefs.getCharPref("relatedupdateuri");
+    this._oldUpdateURI = prefs.getComplexValue("updateuri", Components.interfaces.nsISupportsString).data;
+    this._oldRelatedUpdateURI = prefs.getComplexValue("relatedupdateuri", Components.interfaces.nsISupportsString).data;
 
     document.getElementById("tagTreeBox").onPopupClick = function()
     {
@@ -415,7 +415,7 @@ var gDanbooruManager = {
   {
     this._loadDanbooru();
     if(aMenuList) {
-      for (var j = 0; j < this._danbooru.length; ++j) {
+      for (let j=0; j<this._danbooru.length; j++) {
         aMenuList.appendItem(this._danbooru[j].rawHost,0);
       }
       aMenuList.selectedIndex = this.getSelectedDanbooru();
@@ -518,7 +518,7 @@ var gDanbooruManager = {
 
   onDanbooruKeyPress: function (aEvent)
   {
-    if (aEvent.keyCode == 46)
+    if (aEvent.keyCode == aEvent.DOM_VK_DELETE)
       this.onDanbooruDeleted();
   },
 
@@ -615,8 +615,8 @@ var gDanbooruManager = {
 			"updateAfterDialog",
 			"updateOnTimer",
 			"updateInterval",];
-    for(var e in elements) {
-      document.getElementById(elements[e]).disabled = !aWhat;
+    for (let i=0; i<elements.length; i++) {
+      document.getElementById(elements[i]).disabled = !aWhat;
     }
     if (aWhat) {
       this.onReadUpdateOnStartup();
@@ -664,7 +664,7 @@ var gDanbooruManager = {
     var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                     .getService(Components.interfaces.nsIIOService);
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-		.getService(Components.interfaces.nsIPrefService);
+                		.getService(Components.interfaces.nsIPrefService);
     var pbi = prefs.getBranch('extensions.danbooruUp.');
     // this pref is a comma-delimited list of hosts
     var pref = 'postadduri';
@@ -673,25 +673,28 @@ var gDanbooruManager = {
     // load danbooru into a table
     var count = 0;
     var selhost = '';
-    try { var hosts = pbi.getCharPref(pref); } catch(ex) { return; }
+    try { var hosts = pbi.getComplexValue(pref, Components.interfaces.nsISupportsString).data; } catch(ex) { return; }
 
     var hostList = hosts.split("`");
-    for (var j = 0; j < hostList.length; ++j) {
+    for (let j=0; j<hostList.length; j++) {
       // trim leading and trailing spaces
       var host = hostList[j].replace(/^\s*/,"").replace(/\s*$/,"");
       try {
         var uri = ioService.newURI(host, null, null);
         this._addDanbooruToList(uri.spec);
-      } catch(ex) {}
+      } catch(ex) {
+        Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).logStringMessage("Could not add host \""+host+"\" to list: "+ex);
+      }
     }
 
     if(this._danbooru.length < 1) {
-      var dbranch = prefs.getDefaultBranch('extensions.danbooruup.');
       var uri = ioService.newURI(host, null, null);
       this._addDanbooruToList(uri.spec);
     }
     if(this._danbooru.length < 1) {
-      this._addDanbooruToList('http://danbooru.donmai.us/post/list');
+      pbi.ockPref(pref);
+      this._addDanbooruToList(pbi.getComplexValue(pref, Components.interfaces.nsISupportsString)).data;
+      pbi.unlockPref(pref);
     }
     if(this._danbooru.length < 1) {
       var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
@@ -717,12 +720,11 @@ var gDanbooruManager = {
     var pbi = Components.classes["@mozilla.org/preferences-service;1"]
 	      .getService(Components.interfaces.nsIPrefBranch);
     var pref = "extensions.danbooruUp.postadduri";
-    var hlist = [];
 
-    for (var j = 0; j < this._danbooru.length; ++j) {
-      hlist.push(this._danbooru[j].rawHost);
-    }
-    pbi.setCharPref(pref, hlist.join("`"));
+    var str = Components.classes["@mozilla.org/supports-string;1"].createInstance(Components.interfaces.nsISupportsString);
+    str.data = [h.rawHost for each(h in this._danbooru)].join("`");
+
+    pbi.setComplexValue(pref, Components.interfaces.nsISupportsString, str);
   },
 
   _addDanbooruToList: function (aDanbooru)

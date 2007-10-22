@@ -277,7 +277,7 @@
 		</groupbox>
 	</prefpane>
 
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
+	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
+	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 </prefwindow>
 

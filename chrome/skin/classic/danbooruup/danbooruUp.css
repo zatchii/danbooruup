@@ -4,10 +4,10 @@
 /* upload dialog */
 
 toolbarbutton#nextSrcBtn {
-	list-style-image: url("chrome://global/skin/arrow/arrow-rit-sharp.gif");
+	list-style-image: url("chrome://danbooruup/skin/arrow-rit-sharp.gif");
 }
 toolbarbutton#prevSrcBtn {
-	list-style-image: url("chrome://global/skin/arrow/arrow-lft-sharp.gif");
+	list-style-image: url("chrome://danbooruup/skin/arrow-lft-sharp.gif");
 }
 
 toolbarbutton#nextSrcBtn[disabled="true"],

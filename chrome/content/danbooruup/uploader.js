@@ -263,7 +263,7 @@ danbooruUploader.prototype = {
 			}];
 
 			addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.checking'),
-					"chrome://global/skin/throbber/Throbber-small.gif",
+					"chrome://danbooruup/skin/Throbber-small.gif",
 					this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, buttons);
 
 			xhr.send(null);
@@ -271,6 +271,7 @@ danbooruUploader.prototype = {
 		} catch (e) { }
 
 		// cookie info
+		/*
 		try {
 			var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
 					.getService(Components.interfaces.nsICookieService);
@@ -287,6 +288,7 @@ danbooruUploader.prototype = {
 		} catch(e) {
 			// can anything even blow up?
 		}
+		*/
 		// Source field
 		postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldSource
 			+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mSource) + "\r\n";
@@ -401,7 +403,7 @@ danbooruUploader.prototype = {
 				try { os.removeObserver(this, "danbooru-down"); } catch(ex) {}
 
 				addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
-						"chrome://global/skin/throbber/Throbber-small.png",
+						"chrome://danbooruup/skin/Throbber-small.png",
 						this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null);
 
 				return true;
@@ -456,7 +458,7 @@ danbooruUploader.prototype = {
 				priority, buttons);
 		*/
 		addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource.spec,
-				"chrome://global/skin/throbber/Throbber-small.gif",
+				"chrome://danbooruup/skin/Throbber-small.gif",
 				this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, buttons);
 	},
 	onStopRequest: function (channel, ctxt, status)
@@ -551,7 +553,7 @@ danbooruPoster.prototype = {
 		addNotification(this.mTab, 
 				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+aImgURI.spec+
 				((size != -1) ?(' ('+kbSize+' KB)') : ''),
-				"chrome://global/skin/throbber/Throbber-small.gif",
+				"chrome://danbooruup/skin/Throbber-small.gif",
 				this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, buttons, {type:'progress'});
 
 		// upload progress callback object

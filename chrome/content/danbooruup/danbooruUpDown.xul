@@ -14,9 +14,8 @@
 	ondialogcancel="return gListener.cancel();"
 	>
 
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
-	<script type="application/x-javascript" src="chrome://danbooruup/content/utils.js"/>
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpDown.js"/>
+	<script type="application/javascript" src="chrome://danbooruup/content/utils.js"/>
+	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpDown.js"/>
 
 	<vbox>
 		<label id="label" value=""/>

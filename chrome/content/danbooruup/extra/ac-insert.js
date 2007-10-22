@@ -147,7 +147,11 @@ else if(document.location.href.match(/\/tag\/rename(\/|$)/))
 // for set_type
 else if(document.location.href.match(/\/tag\/set_type(\/|$)/))
 {
-	createAC("tag", {isSearchField: true});
+	createAC("tag");
+}
+else if(document.location.href.match(/\/tag\/edit(\/|$)/))
+{
+	createAC("tag_name");
 }
 // for mass_edit
 else if(document.location.href.match(/\/tag\/mass_edit(\/|$)/))
@@ -158,24 +162,24 @@ else if(document.location.href.match(/\/tag\/mass_edit(\/|$)/))
 // for alias
 else if(document.location.href.match(/\/tag\/aliases(\/|$)/))
 {
-	createAC("name", {isSearchField: true});
-	createAC("alias", {isSearchField: true});
+	createAC("name");
+	createAC("alias");
 }
 else if(document.location.href.match(/\/tag_alias\/add(\/|$)/))
 {
-	createAC("tag_alias_name", {isSearchField: true});
-	createAC("tag_alias_alias", {isSearchField: true});
+	createAC("tag_alias_name");
+	createAC("tag_alias_alias");
 }
 // for implications
 else if(document.location.href.match(/\/tag\/implications(\/|$)/))
 {
-	createAC("child", {isSearchField: true});
-	createAC("parent", {isSearchField: true});
+	createAC("child");
+	createAC("parent");
 }
 else if(document.location.href.match(/\/tag_implication\/add(\/|$)/))
 {
-	createAC("tag_implication_predicate", {isSearchField: true});
-	createAC("tag_implication_consequent", {isSearchField: true});
+	createAC("tag_implication_predicate");
+	createAC("tag_implication_consequent");
 }
 
 } // doAutocompleteInsertion

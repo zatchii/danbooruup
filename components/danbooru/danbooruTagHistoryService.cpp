@@ -63,7 +63,6 @@
 
 #include "nspr.h"
 
-#include "nsCRT.h"
 #ifdef MOZILLA_1_8_BRANCH
 #define nsString_h___
 #include "nsICaseConversion.h"
@@ -73,11 +72,6 @@
 #include "nsUnicharUtils.h"
 #endif
 
-// GetResolvedURI
-#include "nsIXPConnect.h"
-#include "nsIScriptSecurityManager.h"
-#include "nsIPrincipal.h"
-#include "nsIURL.h"
 // Update/Process
 //#include "nsNetUtil.h"
 #include "nsIDOMEventTarget.h"
@@ -85,10 +79,8 @@
 #include "nsIDOMElement.h"
 #include "nsIDOM3Node.h"
 #include "nsIDOMNodeList.h"
-#include "nsIDOMEventTarget.h"
 
 #include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
 #include "nsIPrefBranch2.h"
 #include "nsVoidArray.h"
 #include "nsCOMArray.h"
@@ -366,57 +358,6 @@ danbooruTagHistoryService::Run()
 
 ////////////////////////////////////////////////////////////////////////
 //// nsIDanbooruTagHistoryService
-
-/* pilfered from nsSchemaLoader */
-static nsresult
-GetResolvedURI(const nsAString& aSchemaURI,
-		const char* aMethod,
-		nsIURI** aURI)
-{
-  nsresult rv;
-  nsCOMPtr<nsIXPCNativeCallContext> cc;
-  nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID(), &rv));
-  if(NS_SUCCEEDED(rv)) {
-    rv = xpc->GetCurrentNativeCallContext(getter_AddRefs(cc));
-  }
-
-  nsCOMPtr<nsIIOService> ioService;
-  ioService = do_GetService(NS_IOSERVICE_CONTRACTID, &rv);
-  if (NS_FAILED(rv)) return rv;
-
-  if (NS_SUCCEEDED(rv) && cc) {
-    JSContext* cx;
-    rv = cc->GetJSContext(&cx);
-    if (NS_FAILED(rv)) return rv;
-
-    nsCOMPtr<nsIScriptSecurityManager> secMan(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv));
-    if (NS_FAILED(rv)) return rv;
-
-    nsCOMPtr<nsIURI> baseURI;
-    nsCOMPtr<nsIPrincipal> principal;
-    rv = secMan->GetSubjectPrincipal(getter_AddRefs(principal));
-    if (NS_SUCCEEDED(rv)) {
-      principal->GetURI(getter_AddRefs(baseURI));
-    }
-
-    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(aSchemaURI), nsnull, baseURI, aURI);
-
-    rv = secMan->CheckLoadURIFromScript(cx, *aURI);
-    if (NS_FAILED(rv))
-    {
-      // Security check failed. The above call set a JS exception. The
-      // following lines ensure that the exception is propagated.
-      cc->SetExceptionWasThrown(PR_TRUE);
-      return rv;
-    }
-  }
-  else {
-    rv = ioService->NewURI(NS_ConvertUTF16toUTF8(aSchemaURI), nsnull, nsnull, aURI);
-    if (NS_FAILED(rv)) return rv;
-  }
-
-  return NS_OK;
-}
 
 #ifndef MOZILLA_1_8_BRANCH
 class danbooruNodeProcessEvent : public nsRunnable
@@ -759,35 +700,14 @@ danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool
 			return NS_ERROR_NOT_AVAILABLE;
 	}
 
-	nsCOMPtr<nsIURI> resolvedURI;
-	nsresult rv = GetResolvedURI(aXmlURI, "load", getter_AddRefs(resolvedURI));
-	if (NS_FAILED(rv)) {
-		return rv;
-	}
-
-	nsCOMPtr<nsIURL> url(do_QueryInterface(resolvedURI, &rv));
-	if (NS_FAILED(rv))
-		return rv;
-
-	mInserting = insert;
-	if(!insert) {
-		url->SetQuery(NS_LITERAL_CSTRING(kApiZeroCount));
-	}
-
-	nsCString spec;
-	url->GetSpec(spec);
-
-#ifdef DANBOORUUP_TESTING
-	PR_fprintf(PR_STDERR,"using %s\n", spec.get());
-#endif
-
+	nsresult rv;
 	mRequest = do_CreateInstance(NS_XMLHTTPREQUEST_CONTRACTID, &rv);
 	if (!mRequest) {
 		return rv;
 	}
 
 	const nsAString& empty = EmptyString();
-	rv = mRequest->OpenRequest(NS_LITERAL_CSTRING("GET"), spec, PR_TRUE, empty, empty);
+	rv = mRequest->OpenRequest(NS_LITERAL_CSTRING("GET"), NS_ConvertUTF16toUTF8(aXmlURI), PR_TRUE, empty, empty);
 	if (NS_FAILED(rv)) {
 		return rv;
 	}

@@ -16,9 +16,9 @@
         ondialogaccept="return doOK();"
         ondialogcancel="return doCancel();">
 
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
-	<script type="application/x-javascript" src="chrome://danbooruup/content/danbooruUpBox.js"/>
+	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
+	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
+	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpBox.js"/>
 
 <!--	<popupset>
 		<panel type="danbooru-autocomplete" id="DanbooruAutocompletePopup" noautofocus="true"/>
@@ -62,7 +62,7 @@
 		</radiogroup>
 		<spacer flex="1"/>
 		<toolbarbutton image="chrome://danbooruup/skin/glass-trimmed.png" id="artistSearch" tooltiptext="&danbooru-box-artist-search-tooltip;" onclick="return doArtistSearch();"/>
-		<toolbarbutton image="chrome://help/skin/Weblink.png" tooltiptext="&danbooru-box-switch-tab-tooltip;" onclick="return doSwitchTab();"/>
+		<toolbarbutton image="chrome://danbooruup/skin/Weblink.png" tooltiptext="&danbooru-box-switch-tab-tooltip;" onclick="return doSwitchTab();"/>
 	</hbox>
 	<menulist id="danbooru" flex="1" crop="end"/>
 </column>
