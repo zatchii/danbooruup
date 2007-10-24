@@ -42,17 +42,29 @@ function init()
 	case 'tagupdate':
 		gListener = new DanbooruDownloadListener();
 		gListener.ownerWindow = window;
-		helperSvc.update(true,true,gListener);
+		try {
+			helperSvc.update(true,true,gListener);
+		} catch(e if e.result == kErrorNotAvailable) {
+			window.close();
+		}
 		break;
 	case 'tagcleanup':
 		gListener = new DanbooruDownloadListener();
 		gListener.ownerWindow = window;
-		helperSvc.cleanup(true,gListener);
+		try {
+			helperSvc.cleanup(true,gListener);
+		} catch(e if e.result == kErrorNotAvailable) {
+			window.close();
+		}
 		break;
 	case 'relatedtagdownload':
 		gListener = new DanbooruDownloadListener();
 		gListener.ownerWindow = window;
-		helperSvc.downloadRelatedTagDB(true,gListener);
+		try {
+			helperSvc.downloadRelatedTagDB(true,gListener);
+		} catch(e if e.result == kErrorNotAvailable) {
+			window.close();
+		}
 		break;
 	default:
 		break;
@@ -75,9 +87,6 @@ function clicked(evt)
 {
 	switch (gListener.statusCode)
 	{
-	case kNS_OK:
-		window.close();
-		break;
 	case kStatusReadFrom_Status:
 	case kStatusWroteTo_Status:
 	case kStatusReceivingFrom_Status:
@@ -90,6 +99,11 @@ function clicked(evt)
 		break;
 	case kErrorFailure:
 		init();
+		break;
+	case kNS_OK:
+	case null:
+	default:
+		window.close();
 		break;
 	}
 }

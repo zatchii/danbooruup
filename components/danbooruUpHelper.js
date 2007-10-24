@@ -288,6 +288,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		var locationURL	= ioService.newURI(this._branch.getComplexValue("updateuri", Ci.nsISupportsString).data, '', null)
 				.QueryInterface(Ci.nsIURL);
 		locationURL.query = "limit=0";
+		dump("using " + locationURL.spec + "\n");
 		try {
 			this.tagService.updateTagListFromURI(locationURL.spec, false, aListener);
 		} catch (e) {
@@ -430,6 +431,7 @@ this.log(this.browserWindows.length+' after unregistering');
 				//this.log(winUri.spec+' matched ' + uri.spec);
 				if (winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html$|$)/) || 
 					winUri.filePath.match(/\/post(\/index(\.html)?|\/|$)/) ||
+					winUri.filePath.match(/\/user(\/edit(\.html)?|\/|$)/) ||
 					winUri.filePath.match(/\/tag(\/mass_edit|\/rename|\/edit|_alias|_implication)(\/|$)/)) {
 					this.inject(href, unsafeWin);
 					return;
@@ -466,14 +468,16 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		// put useful declarations into style array inside sandbox
 		const TAGTYPE_COUNT = 5;
-		var rx = new RegExp("^\\s*(background(-\\w+)?|border(-\\w+)?|color|font(-\\w+)?|padding(-\\w+)?|letter-spacing|margin(-\\w+)?|outline(-\\w+)?|text(-\\w+)?)\\s*:.*;$","gm");
+		var rx = new RegExp("\\s*(background(-\\w+)?|border(-\\w+)?|color|font(-\\w+)?|(-moz-)?padding(-\\w+)?|letter-spacing|margin(-\\w+)?|outline(-\\w+)?|text(-\\w+)?)\\s*:.*;","gm");
 		var prefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
 
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
 		for(let i=0, rule; i<TAGTYPE_COUNT; i++) {
 			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('');
+			rule = rule.replace(/-moz[^;]+;/g, '');
 			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
 			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('');
+			rule = rule.replace(/-moz[^;]+;/g, '');
 			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
 		}
 

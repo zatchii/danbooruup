@@ -16,7 +16,7 @@ for(var i=0; i < script_arr.length; i++)
 			);
 	document.getElementsByTagName("head")[0].appendChild(s);
 }
-}catch(e){GM_log(e);}
+}catch(e){GM_log("danbooruUp: while inserting styles: "+e);}
 
 function doAutocompleteInsertion()
 {
@@ -118,7 +118,9 @@ function createAC(elementID, options)
 		try {
 		div.style.display = 'none';
 		} catch(eex) { GM_log("danbooruUp: while setting style for " + elementID + ":\n"+eex); throw eex;}
+		try {
 		document.body.appendChild(div);
+		} catch(eex) { GM_log("danbooruUp: while appending div for " + elementID + ":\n"+eex); throw eex;}
 
 		// create the autocompleter
 		try {
@@ -181,6 +183,12 @@ else if(document.location.href.match(/\/tag_implication\/add(\/|$)/))
 	createAC("tag_implication_predicate");
 	createAC("tag_implication_consequent");
 }
+// user settings
+else if(document.location.href.match(/\/user\/edit(\/|$)/))
+{
+	createAC("user_tag_blacklist");
+	createAC("user_my_tags");
+}
 
 } // doAutocompleteInsertion
 
@@ -197,7 +205,7 @@ function attemptAutocompleteInsertion()
 			GM_log("danbooruUpHelper: failed to insert code after " + MAX_TRIES + " tries (" + MAX_TRIES*RETRY_INTERVAL + " ms)");
 			return;
 		}
-		GM_log("danbooruUpHelper: retry " + tries);
+		GM_log("danbooruUpHelper: inserting code: retry #" + tries);
 		setTimeout(attemptAutocompleteInsertion, RETRY_INTERVAL);
 	}
 }

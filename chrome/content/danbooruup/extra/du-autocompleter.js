@@ -4,14 +4,49 @@
 Autocompleter.DanbooruUp = Class.create();
 Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
   initialize: function(element, update, array, options) {
+    // tokens array needs prototype stuff added to it
+    var newtokens = new Array;
+    for(var i=0; i<options.tokens.length; i++) {
+      newtokens.push(options.tokens[i]);
+    }
+    options.tokens = newtokens;
     this.baseInitialize(element, update, options);
     this.index = -1;
     this.options.array = array;
   },
 
+  updateChoices: function(choices) {
+    if(!this.changed && this.hasFocus) {
+      this.update.innerHTML = choices;
+      Element.cleanWhitespace(this.update);
+      Element.cleanWhitespace(this.update.down());
+
+      if(this.update.firstChild && this.update.down().childNodes) {
+        this.entryCount =
+          this.update.down().childNodes.length;
+        for (var i = 0; i < this.entryCount; i++) {
+          var entry = this.getEntry(i);
+          entry.autocompleteIndex = i;
+          this.addObservers(entry);
+        }
+      } else {
+        this.entryCount = 0;
+      }
+
+      this.stopIndicator();
+      this.index = -1;
+
+      if(this.entryCount==1 && this.options.autoSelect) {
+        this.selectEntry();
+        this.hide();
+      } else {
+        this.render();
+      }
+    }
+  },
+
   getUpdatedChoices: function() {
     this.updateChoices(this.options.selector(this));
-    this.index = -1;
   },
 
   onKeyPress: function(event) {
@@ -44,17 +79,24 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
         case Event.KEY_UP:
           this.markPrevious();
           this.render();
-          /*if(navigator.appVersion.indexOf('AppleWebKit')>0)*/ Event.stop(event);
+          /*if(Prototype.Browser.WebKit)*/ Event.stop(event);
           return;
         case Event.KEY_DOWN:
           this.markNext();
           this.render();
-          /*if(navigator.appVersion.indexOf('AppleWebKit')>0)*/ Event.stop(event);
+          /*if(Prototype.Browser.WebKit)*/ Event.stop(event);
           return;
       }
     else
       if(event.keyCode==Event.KEY_TAB || event.keyCode==Event.KEY_RETURN ||
-          (navigator.appVersion.indexOf('AppleWebKit') > 0 && event.keyCode == 0)) return;
+          (Prototype.Browser.WebKit > 0 && event.keyCode == 0)) return;
+
+    switch(event.keyCode) {
+      case Event.KEY_ESC:
+      case Event.KEY_LEFT:
+      case Event.KEY_RIGHT:
+        return;
+    }
 
     this.changed = true;
     this.hasFocus = true;
@@ -62,18 +104,37 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     if(this.observer) clearTimeout(this.observer);
     this.observer =
       setTimeout(this.onObserverEvent.bind(this), this.options.frequency*1000);
+
+    switch(event.keyCode) {
+      case Event.KEY_UP:
+      case Event.KEY_DOWN:
+        Event.stop(event);
+        return;
+    }
   },
 
   render: function() {
     if(this.entryCount > 0) {
       var lineHeight = this.update.firstChild.childNodes[0].clientHeight;
+      if (!lineHeight)
+      {
+        try {
+          var anode = document.createElement('a');
+          anode.style.visibility = 'hidden';
+          anode.style.position = 'absolute';
+          anode.innerHTML = 'Test';
+          document.body.appendChild(anode);
+          var lineHeight = anode.offsetHeight;
+        	document.body.removeChild(anode);
+        } catch(e) { lineHeight = 16; }
+      }
       var step = Math.ceil(this.update.clientHeight/lineHeight);
       var topDisplayed = Math.ceil(this.update.scrollTop / lineHeight);
       var bottomDisplayed = Math.floor((this.update.scrollTop + this.update.clientHeight) / lineHeight) - 1;
       var min = topDisplayed - 1;
       var max = bottomDisplayed + 1;
       if (min < 0) min = 0;
-      if (max >= this.entryCount) max = this.entryCount - 1;
+      if (max >= this.entryCount) max = this.entryCount;
       for (var i = min; i < max; i++)
         this.index==i ?
           Element.addClassName(this.getEntry(i),"selected") :
@@ -155,23 +216,57 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     } else
       value = Element.collectTextNodesIgnoreClass(selectedElement, 'informal');
 
-    var lastTokenPos = this.findLastToken();
-    if (lastTokenPos != -1) {
-      // negation
-      if (this.options.isSearchField && this.element.value[lastTokenPos + 1] == '-') lastTokenPos++;
-      var newValue = this.element.value.substr(0, lastTokenPos + 1);
-      var whitespace = this.element.value.substr(lastTokenPos + 1).match(/^\s+/);
-
-      if (whitespace)
-        newValue += whitespace[0];
-      this.element.value = newValue + value;
-    } else {
-      this.element.value = value;
-    }
+    this.replaceCurrentWord(value);
+    this.oldElementValue = this.element.value;
     this.element.focus();
 
     if (this.options.afterUpdateElement)
       this.options.afterUpdateElement(this.element, selectedElement);
+  },
+
+  getToken: function() {
+    var p=this.element.selectionStart;
+    var fr=this.element.value.substr(0,p);
+    var front = -1;
+    for (var i=0; i<this.options.tokens.length; i++) {
+      var thisTokenPos = fr.lastIndexOf(this.options.tokens[i]);
+      if (thisTokenPos > front)
+        front = thisTokenPos;
+    }
+    var ba=this.element.value.substr(p);
+    var back = ba.length;
+    for (var i=0; i<this.options.tokens.length; i++) {
+      var thisTokenPos = ba.indexOf(this.options.tokens[i]);
+      if (thisTokenPos > -1 && thisTokenPos < back)
+        back = thisTokenPos;
+    }
+
+    return this.element.value.substr(1+front,p-front+back-1)
+  },
+  replaceCurrentWord: function(aVal) {
+    var p=this.element.selectionStart;
+    var fr=this.element.value.substr(0,p);
+    var front = -1;
+    for (var i=0; i<this.options.tokens.length; i++) {
+      var thisTokenPos = fr.lastIndexOf(this.options.tokens[i]);
+      if (thisTokenPos > front)
+        front = thisTokenPos;
+    }
+
+    var ba=this.element.value.substr(p);
+    var back=ba.length;
+    for (var i=0; i<this.options.tokens.length; i++) {
+      var thisTokenPos = ba.indexOf(this.options.tokens[i]);
+      if (thisTokenPos > -1 && thisTokenPos < back)
+        back = thisTokenPos;
+    }
+
+    // negations and such
+    if(this.element.value.substr(1+front,1).match(/[-~]/))
+      front++;
+
+    this.element.value = (this.element.value.substr(0,1+front) + aVal + ba.substr(back));
+    this.element.selectionStart = this.element.selectionEnd = (front==-1 ? 0 : front) + aVal.length;
   },
 
   setOptions: function(options) {
