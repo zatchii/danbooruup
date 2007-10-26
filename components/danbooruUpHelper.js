@@ -473,11 +473,13 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
 		for(let i=0, rule; i<TAGTYPE_COUNT; i++) {
-			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('');
-			rule = rule.replace(/-moz[^;]+;/g, '');
+			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
+			rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
+			__log(i+"\n"+rule);
 			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
-			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('');
-			rule = rule.replace(/-moz[^;]+;/g, '');
+			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
+			rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
+			__log(i+".selected\n"+rule);
 			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
 		}
 

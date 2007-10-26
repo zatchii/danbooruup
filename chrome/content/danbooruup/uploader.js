@@ -48,6 +48,7 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRe
 			}
 		} while (notification = notificationBox.getNotificationWithValue("danbooru-up"));
 		// try again a little later
+		/*
 		if (!aRetry) {
 			aTab.linkedBrowser.contentWindow
 				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
@@ -58,6 +59,7 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRe
 					.getInterface(Components.interfaces.nsIDOMWindow)
 				.setTimeout(addNotification, 100, aTab, aMessage, aIcon, aPriority, aButtons, aExtra, true);
 		}
+		*/
 	}
 
 	notification = notificationBox.appendNotification(aMessage, "danbooru-up", aIcon, aPriority, aButtons);

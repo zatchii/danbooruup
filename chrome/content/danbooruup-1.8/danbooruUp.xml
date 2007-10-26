@@ -808,7 +808,8 @@
               uri.path = uri.path.replace(/\/[^/]+\/[^/]+$/, "/post/index");
               uri.query = "tags=" + controller.getValueAt(this.selectedIndex);
 
-              br.top.document.getElementById("content").loadOneTab(uri.spec, null, null, null, false, false);
+	      br.getBrowser().selectedTab = br.getBrowser().addTab(uri.spec);
+	      //br.top.document.getElementById("content").loadOneTab(uri.spec, null, null, null, false, false);
             }
           }
         ]]></body>

@@ -258,17 +258,27 @@ var gDanbooruManager = {
 			    .getService(Components.interfaces.nsIPromptService);
       aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
       promptService.alert(window,
-            this._bundle.GetStringFromName("danbooruUp.opt.updateAlertTitle"),
+            this._bundle.GetStringFromName("danbooruUp.prompt.title"),
             this._bundle.formatStringFromName("danbooruUp.opt.updatedNodes", [aSubject.data], 1));
       break;
-		case "danbooru-cleared-done":
+		case "danbooru-clear-done":
       var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
 			    .getService(Components.interfaces.nsIPromptService);
       promptService.alert(window,
-            this._bundle.GetStringFromName("danbooruUp.opt.updateAlertTitle"),
+            this._bundle.GetStringFromName("danbooruUp.prompt.title"),
             this._bundle.GetStringFromName("danbooruUp.opt.clearedTags"));
       break;
     }
+  },
+
+  clearTagHistory: function ()
+  {
+    var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+			    .getService(Components.interfaces.nsIPromptService);
+    if (promptService.confirm(window,
+          this._bundle.GetStringFromName("danbooruUp.prompt.title"),
+          this._bundle.GetStringFromName("danbooruUp.msg.clearconfirm")))
+      Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).tagService.removeAllEntries();
   },
 
   // opens download progress window

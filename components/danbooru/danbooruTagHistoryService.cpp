@@ -90,6 +90,8 @@
 #define PREF_FORMFILL_BRANCH "extensions.danbooruUp.autocomplete."
 #define PREF_FORMFILL_ENABLE "enabled"
 
+#define DANBOORUPROCESSTAGS_TOPIC "danbooru-process-tags"
+
 static const char *kTagHistoryFileName = "danbooruhistory.sqlite";
 static const char *kRelTagFileName = "danboorurelated.sqlite";
 
@@ -285,6 +287,11 @@ danbooruTagHistoryService::~danbooruTagHistoryService()
 	gTagHistory = nsnull;
 	//NS_IF_RELEASE(gCaseConv);
 	CloseDatabase();
+
+	nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
+	if (service)
+	  service->RemoveObserver(this, DANBOORUPROCESSTAGS_TOPIC);
+
 #ifndef MOZILLA_1_8_BRANCH
 	PR_DestroyLock(mLock);
 #endif
@@ -295,9 +302,9 @@ danbooruTagHistoryService::Init()
 {
 	gTagHistory = this;
 
-	//nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
-	//if (service)
-	//  service->AddObserver(this, NS_FORMSUBMIT_SUBJECT, PR_TRUE);
+	nsCOMPtr<nsIObserverService> service = do_GetService("@mozilla.org/observer-service;1");
+	if (service)
+	  service->AddObserver(this, DANBOORUPROCESSTAGS_TOPIC, PR_TRUE);
 
 	return NS_OK;
 }
@@ -406,6 +413,7 @@ danbooruTagHistoryService::ProcessNodes()
 		childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
 		childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
 		if (!tagname.IsEmpty()) {
+			mTagNodeCount++;
 			mIdArray.AppendString(tagid);
 			mNameArray.AppendString(tagname);
 			mTypeArray.AppendString(tagtype);
@@ -433,26 +441,23 @@ danbooruTagHistoryService::FinishProcessingNodes()
 	mNameArray.Clear();
 	mTypeArray.Clear();
 
-	nsresult rv;
-	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
-	if (NS_FAILED(rv))
-		return;
-
-	nsCOMPtr<nsISupportsPRUint32> nodect = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
-	if (NS_FAILED(rv))
-		return;
-
-	// container node is included, so subtract 1 for the number of processed nodes
-	PRUint32 length;
-	mNodeList->GetLength(&length);
-	rv = nodect->SetData(length - 1);
-	if (NS_FAILED(rv))
-		return;
-
 	mNodeList = nsnull;
 	mRequest = nsnull;
 	mThread->Shutdown();
 	mThread = nsnull;
+
+	nsresult rv;
+	nsCOMPtr<nsISupportsPRUint32> nodect = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
+	if (NS_FAILED(rv))
+		return;
+
+	rv = nodect->SetData(mTagNodeCount);
+	if (NS_FAILED(rv))
+		return;
+
+	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
+	if (NS_FAILED(rv))
+		return;
 
 	service->NotifyObservers(nodect, "danbooru-update-done", nsnull);
 }
@@ -468,19 +473,14 @@ danbooruTagHistoryService::ProcessTagXML()
 
 	PRUint32 index = 0;
 
-	mNodeList->GetLength(&mNodes);
-#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
-{
- 	PR_fprintf(PR_STDERR, "got %d nodes\n", mNodes);
-}
-#endif
-
 	nsCOMPtr<nsIDOMNode> child;
 	nsString tagid, tagname, tagtype;
 
 #ifdef MOZILLA_1_8_BRANCH
+	PRUint32 count = 0;
 	nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1"));
 #else
+	mTagNodeCount = 0;
 	if (mNodes >= 100000) {
 		mStep = 1000;
 	} else {
@@ -526,6 +526,7 @@ danbooruTagHistoryService::ProcessTagXML()
 				mNameArray.StringAt(index, tagname);
 				mTypeArray.StringAt(index, tagtype);
 #endif // defined(MOZILLA_1_8_BRANCH)
+				count++;
 				mInsertStmt->BindStringParameter(0, tagid);
 				mInsertStmt->BindStringParameter(1, tagname);
 				mInsertStmt->BindStringParameter(2, tagtype);
@@ -570,6 +571,7 @@ danbooruTagHistoryService::ProcessTagXML()
 			mTypeArray.StringAt(index, tagtype);
 			for (index = 0; (PRInt32)index < mIdArray.Count(); index++) {
 #endif
+				count++;
 				tempInsertStmt->BindStringParameter(0, tagid);
 				tempInsertStmt->BindStringParameter(1, tagname);
 				tempInsertStmt->BindStringParameter(2, tagtype);
@@ -615,8 +617,7 @@ danbooruTagHistoryService::ProcessTagXML()
 	nsCOMPtr<nsISupportsPRUint32> nodes = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
 	if (NS_FAILED(rv))
 		return rv;
-	// container node is included, so subtract 1 for the number of processed nodes
-	rv = nodes->SetData(mNodes - 1);
+	rv = nodes->SetData(count);
 	if (NS_FAILED(rv))
 		return rv;
 
@@ -673,13 +674,65 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 		return NS_OK;
 	}
 
+	mNodeList->GetLength(&mNodes);
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+ 	PR_fprintf(PR_STDERR, "got %d nodes\n", mNodes);
+#endif
+
+	// check for disparity between node counts
+	if (!mInserting)
+	{
+		PRUint32 rowcount;
+		PRUint32 nodes=0;
+		GetRowCount(&rowcount);
+		// count the number of non-text nodes
+		nsCOMPtr<nsIDOMNode> child;
+		nsString tagid;
+
+		for(PRUint32 i=0; i < mNodes; i++) {
+			mNodeList->Item(i, getter_AddRefs(child));
+			nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
+			if (!childElement) {
+				continue;
+			}
+
+			childElement->GetAttribute(NS_LITERAL_STRING("id"), tagid);
+			if (tagid.IsEmpty()) {
+				continue;
+			}
+			nodes++;
+		}
+
+		// ask user when received tags are smaller by an arbitrary fraction
+		if ((double)nodes/rowcount <= 0.9)
+		{
+			nsCOMPtr<nsIObserverService> service(do_GetService("@mozilla.org/observer-service;1", &rv));
+			NS_ENSURE_SUCCESS(rv,rv);
+
+			if (service)
+			{
+				nsCOMPtr<nsISupportsPRUint32> nodect = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
+				NS_ENSURE_SUCCESS(rv,rv);
+				rv = nodect->SetData(nodes);
+				NS_ENSURE_SUCCESS(rv,rv);
+				service->NotifyObservers(nodect, "danbooru-cleanup-confirm", nsnull);
+			}
+			return NS_OK;
+		}
+	}
+	StartTagProcessing();
+	return NS_OK;
+}
+
+void
+danbooruTagHistoryService::StartTagProcessing()
+{
 #ifdef MOZILLA_1_8_BRANCH
-	rv = ProcessTagXML();
+	ProcessTagXML();
 	mRequest = nsnull;
 #else
 	NS_NewThread(getter_AddRefs(mThread), this);
 #endif
-	return rv;
 }
 
 /* used to be the nsISchema load */
@@ -757,6 +810,7 @@ danbooruTagHistoryService::UpdateTagListFromURI(const nsAString &aXmlURI, PRBool
 		}
 	}
 
+	mInserting = insert;
 	rv = mRequest->Send(nsnull);
 	if (NS_FAILED(rv)) {
 		return rv;
@@ -957,11 +1011,13 @@ danbooruTagHistoryService::IncrementValueForName(const nsAString &aName, PRBool 
 NS_IMETHODIMP
 danbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
 {
-  if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
-    //mPrefBranch->GetBoolPref(PREF_FORMFILL_ENABLE, &gTagHistoryEnabled);
-  }
+	if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
+		//mPrefBranch->GetBoolPref(PREF_FORMFILL_ENABLE, &gTagHistoryEnabled);
+	} else if (!strcmp(aTopic, DANBOORUPROCESSTAGS_TOPIC)){
+		StartTagProcessing();
+	}
 
-  return NS_OK;
+	return NS_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -13,11 +13,13 @@ function onLoad()
 	init();
 	if (gListener)
 	{
+		gListener.mWindow = window;
 		var obsSvc = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		obsSvc.addObserver(gListener, "danbooru-update-done", false);
 		obsSvc.addObserver(gListener, "danbooru-update-failed", false);
 		obsSvc.addObserver(gListener, "danbooru-update-processing-max", false);
 		obsSvc.addObserver(gListener, "danbooru-update-processing-progress", false);
+		obsSvc.addObserver(gListener, "danbooru-cleanup-confirm", false);
 	}
 }
 
@@ -30,6 +32,7 @@ function onUnload()
 		try { obsSvc.removeObserver(gListener, "danbooru-update-failed"); } catch(e) { __log(e); }
 		try { obsSvc.removeObserver(gListener, "danbooru-update-processing-max"); } catch(e) { __log(e); }
 		try { obsSvc.removeObserver(gListener, "danbooru-update-processing-progress"); } catch(e) { __log(e); }
+		try { obsSvc.removeObserver(gListener, "danbooru-cleanup-confirm"); } catch(e) { __log(e); }
 	}
 }
 
@@ -275,9 +278,6 @@ DanbooruDownloadListener.prototype = {
 	{
 		if (!this.mInteractive)
 			return;
-		try { __log("1 "+Components); } catch(e) { }
-		try { __log("2 "+window + "\n" + window.Components); } catch(e) { }
-		try { __log("3 "+this.ownerWindow + "\n" + this.ownerWindow.Components); } catch(e) { }
 		switch (aTopic) {
 		case "danbooru-update-done":
 			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
@@ -294,13 +294,23 @@ DanbooruDownloadListener.prototype = {
 			this.mStatus = kErrorFailure;
 			break;
 		case "danbooru-update-processing-max":
+			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
 			this.mNodes = aSubject.data;
 			$('progress').mode = 'determined';
 			$('progress').setAttribute('value', 0);
 			break;
 		case "danbooru-update-processing-progress":
+			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
 			$('progress').setAttribute('value', aSubject.data/this.mNodes*100);
 			__log(aSubject.data);
+			break;
+		case "danbooru-cleanup-confirm":
+			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
+			var hs = Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService);
+			if(this.confirm(danBundle.GetStringFromName('danbooruUp.prompt.title'), danBundle.formatStringFromName('danbooruUp.msg.cleanupconfirm', [aSubject.data, hs.tagService.rowCount], 2)))
+				obsSvc.notifyObservers(null, 'danbooru-process-tags', null);
+			else
+				this.mWindow.close();
 			break;
 		}
 	},

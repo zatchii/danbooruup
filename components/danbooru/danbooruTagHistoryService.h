@@ -109,6 +109,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mRelSearchStmt;
 
   // XML processing
+  void StartTagProcessing();
   nsresult ProcessTagXML();
 
   static PRBool TagHistoryEnabled();
@@ -129,6 +130,7 @@ protected:
   nsCOMPtr<nsIDOMNodeList> mNodeList;
   PRUint32	mStep;
   PRUint32	mNodes;
+  PRUint32	mTagNodeCount;
 
   PRBool mRelatedTagsAvailable;
 
