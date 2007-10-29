@@ -142,7 +142,9 @@ NS_INTERFACE_MAP_BEGIN(danbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(danbooruITagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
+#ifndef MOZILLA_1_8_BRANCH
   NS_INTERFACE_MAP_ENTRY(nsIRunnable)
+#endif
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, danbooruITagHistoryService)
 NS_INTERFACE_MAP_END_THREADSAFE
