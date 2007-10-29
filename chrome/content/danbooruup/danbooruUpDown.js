@@ -14,6 +14,7 @@ function onLoad()
 	if (gListener)
 	{
 		gListener.mWindow = window;
+		gListener.Components = Components;
 		var obsSvc = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		obsSvc.addObserver(gListener, "danbooru-update-done", false);
 		obsSvc.addObserver(gListener, "danbooru-update-failed", false);
@@ -302,7 +303,6 @@ DanbooruDownloadListener.prototype = {
 		case "danbooru-update-processing-progress":
 			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
 			$('progress').setAttribute('value', aSubject.data/this.mNodes*100);
-			__log(aSubject.data);
 			break;
 		case "danbooru-cleanup-confirm":
 			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);

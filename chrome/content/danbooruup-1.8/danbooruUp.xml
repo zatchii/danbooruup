@@ -536,7 +536,7 @@
     <content>
       <xul:tree anonid="tree" class="danbooru-autocomplete-tree plain" hidecolumnpicker="true" flex="1">
         <xul:treecols anonid="treecols">
-          <xul:treecol id="treecolAutoCompleteValue" class="danbooru-autocomplete-treecol" flex="1" primary="true"/>
+          <xul:treecol id="treecolAutoCompleteValue" class="danbooru-autocomplete-treecol" primary="true" flex="1"/>
         </xul:treecols>
         <xul:treechildren class="danbooru-autocomplete-treebody"/>
       </xul:tree>
@@ -834,7 +834,7 @@
         this.mPopupOpen = true;
       ]]></handler>
 
-      <handler event="popuphiding">
+      <handler event="popuphiding"><![CDATA[
         setTimeout(this.clearOpenProperty, 0, this);
 
         // Reset the maxRows property to the cached "normal" value, and reset
@@ -842,7 +842,7 @@
         // when the popupshowing handler runs.
         this.mInput.maxRows = this._normalMaxRows;
         this._normalMaxRows = -1;
-      </handler>
+      ]]></handler>
     </handlers>
   </binding>
 

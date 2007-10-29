@@ -61,7 +61,7 @@ class danbooruTagHistoryService : public danbooruITagHistoryService,
                       public nsIObserver,
                       public nsIDOMEventListener,
 #ifndef MOZILLA_1_8_BRANCH
-                      public nsRunnable,
+                      public nsIRunnable,
 #endif
                       public nsSupportsWeakReference
 {
@@ -107,9 +107,10 @@ protected:
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
   nsCOMPtr<mozIStorageStatement> mRowCountStmt;
   nsCOMPtr<mozIStorageStatement> mRelSearchStmt;
+  nsCOMPtr<mozIStorageStatement> mTempInsertStmt;
 
   // XML processing
-  void StartTagProcessing();
+  nsresult StartTagProcessing();
   nsresult ProcessTagXML();
 
   static PRBool TagHistoryEnabled();

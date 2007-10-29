@@ -104,7 +104,9 @@ static const char *kTagTableName = "tags";
 #define kCreateTempTagTable "CREATE TEMPORARY TABLE tagselect (id INTEGER, name TEXT, value INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0)"
 #define kCreateTempTagIndex "CREATE INDEX tagselect_idx_id ON tagselect (id)"
 #define kTempTagInsert "INSERT OR REPLACE INTO tagselect (id, name, tag_type) VALUES (?1, ?2, ?3)"
+#define kDropTempTagIndex "DROP INDEX tagselect_idx_id"
 #define kDropTempTagTable "DROP TABLE tagselect"
+#define kTruncateTempTagTable "DELETE FROM tagselect"
 // and the cleanup join
 #define kTagClean "DELETE FROM tags WHERE id IN (SELECT t.id FROM tags t LEFT OUTER JOIN tagselect s ON t.id=s.id WHERE s.id IS NULL)"
 #define kTagInsert "INSERT OR IGNORE INTO tags (id, name, tag_type) VALUES (?1, ?2, ?3)"
@@ -140,6 +142,7 @@ NS_INTERFACE_MAP_BEGIN(danbooruTagHistoryService)
   NS_INTERFACE_MAP_ENTRY(danbooruITagHistoryService)
   NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
+  NS_INTERFACE_MAP_ENTRY(nsIRunnable)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, danbooruITagHistoryService)
 NS_INTERFACE_MAP_END_THREADSAFE
@@ -403,9 +406,11 @@ danbooruTagHistoryService::ProcessNodes()
 	mTypeArray.Clear();
 
 	for(PRUint32 i=0; i < mStep && mNodes; i++, mNodes--) {
-		mNodeList->Item(i, getter_AddRefs(child));
-		nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
+		mNodeList->Item(mNodes, getter_AddRefs(child));
+		if (!child)
+			continue;
 
+		nsCOMPtr<nsIDOMElement> childElement(do_QueryInterface(child));
 		if (!childElement)
 			continue;
 
@@ -447,7 +452,7 @@ danbooruTagHistoryService::FinishProcessingNodes()
 	mThread = nsnull;
 
 	nsresult rv;
-	nsCOMPtr<nsISupportsPRUint32> nodect = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID);
+	nsCOMPtr<nsISupportsPRUint32> nodect = do_CreateInstance(NS_SUPPORTS_PRUINT32_CONTRACTID, &rv);
 	if (NS_FAILED(rv))
 		return;
 
@@ -504,6 +509,7 @@ danbooruTagHistoryService::ProcessTagXML()
 			childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
 			childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
 			if (!tagname.IsEmpty()) {
+				count++;
 #if defined(DANBOORUUP_TESTING)
 {
 	NS_NAMED_LITERAL_STRING(a,"inserting ");
@@ -516,17 +522,19 @@ danbooruTagHistoryService::ProcessTagXML()
 }
 #endif
 #else // !defined(MOZILLA_1_8_BRANCH)
-		nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_PROCESSNODES);
+		nsCOMPtr<nsIRunnable> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_PROCESSNODES);
 		while (mNodes)
 		{
-			NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
+			if(NS_FAILED(NS_DispatchToMainThread(event, NS_DISPATCH_SYNC))) {
+				mDB->RollbackTransaction();
+				return NS_ERROR_FAILURE;
+			}
 			PR_Lock(mLock);
 			for (index = 0; (PRInt32)index < mIdArray.Count(); index++) {
 				mIdArray.StringAt(index, tagid);
 				mNameArray.StringAt(index, tagname);
 				mTypeArray.StringAt(index, tagtype);
 #endif // defined(MOZILLA_1_8_BRANCH)
-				count++;
 				mInsertStmt->BindStringParameter(0, tagid);
 				mInsertStmt->BindStringParameter(1, tagname);
 				mInsertStmt->BindStringParameter(2, tagtype);
@@ -542,12 +550,6 @@ danbooruTagHistoryService::ProcessTagXML()
 		}
 		mDB->CommitTransaction();
 	} else {	// pruning old tags
-		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagTable));
-
-		nsCOMPtr<mozIStorageStatement> tempInsertStmt;
-		rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTempTagInsert), getter_AddRefs(tempInsertStmt));
-		NS_ENSURE_SUCCESS(rv, rv);
-
 		mDB->BeginTransaction();
 #ifdef MOZILLA_1_8_BRANCH
 		while (index < mNodes) {
@@ -561,21 +563,25 @@ danbooruTagHistoryService::ProcessTagXML()
 			childElement->GetAttribute(NS_LITERAL_STRING("name"), tagname);
 			childElement->GetAttribute(NS_LITERAL_STRING("type"), tagtype);
 			if (!tagname.IsEmpty()) {
-#else
-		nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_PROCESSNODES);
-		while (mNodes) {
-			NS_DispatchToMainThread(event, NS_DISPATCH_SYNC);
-			PR_Lock(mLock);
-			mIdArray.StringAt(index, tagid);
-			mNameArray.StringAt(index, tagname);
-			mTypeArray.StringAt(index, tagtype);
-			for (index = 0; (PRInt32)index < mIdArray.Count(); index++) {
-#endif
 				count++;
-				tempInsertStmt->BindStringParameter(0, tagid);
-				tempInsertStmt->BindStringParameter(1, tagname);
-				tempInsertStmt->BindStringParameter(2, tagtype);
-				tempInsertStmt->Execute();
+#else
+		nsCOMPtr<nsIRunnable> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_PROCESSNODES);
+		while (mNodes) {
+			if(NS_FAILED(NS_DispatchToMainThread(event, NS_DISPATCH_SYNC))) {
+				mDB->RollbackTransaction();
+				mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTruncateTempTagTable));
+				return NS_ERROR_FAILURE;
+			}
+			PR_Lock(mLock);
+			for (index = 0; (PRInt32)index < mIdArray.Count(); index++) {
+				mIdArray.StringAt(index, tagid);
+				mNameArray.StringAt(index, tagname);
+				mTypeArray.StringAt(index, tagtype);
+#endif
+				mTempInsertStmt->BindStringParameter(0, tagid);
+				mTempInsertStmt->BindStringParameter(1, tagname);
+				mTempInsertStmt->BindStringParameter(2, tagtype);
+				mTempInsertStmt->Execute();
 			}
 #ifndef MOZILLA_1_8_BRANCH
 			PR_Unlock(mLock);
@@ -585,7 +591,8 @@ danbooruTagHistoryService::ProcessTagXML()
 
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagIndex));
 		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTagClean));
-		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropTempTagTable));
+		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kDropTempTagIndex));
+		mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kTruncateTempTagTable));
 	}
 
 	if (mProgress)
@@ -593,8 +600,8 @@ danbooruTagHistoryService::ProcessTagXML()
 		mProgress = nsnull;
 	}
 #ifndef MOZILLA_1_8_BRANCH
-	nsCOMPtr<danbooruNodeProcessEvent> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_COMPLETE);
-	NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
+	nsCOMPtr<nsIRunnable> event = new danbooruNodeProcessEvent(danbooruNodeProcessEvent::MSG_COMPLETE);
+	NS_DispatchToMainThread(event);
 
 	/*
 	nsCOMPtr<nsIProxyObjectManager> proxyMgr(do_GetService("@mozilla.org/xpcomproxy;1"));
@@ -720,19 +727,20 @@ danbooruTagHistoryService::HandleEvent(nsIDOMEvent* aEvent)
 			return NS_OK;
 		}
 	}
-	StartTagProcessing();
-	return NS_OK;
+	return StartTagProcessing();
 }
 
-void
+nsresult
 danbooruTagHistoryService::StartTagProcessing()
 {
+	nsresult rv;
 #ifdef MOZILLA_1_8_BRANCH
-	ProcessTagXML();
+	rv = ProcessTagXML();
 	mRequest = nsnull;
 #else
-	NS_NewThread(getter_AddRefs(mThread), this);
+	rv = NS_NewThread(getter_AddRefs(mThread), this);
 #endif
+	return rv;
 }
 
 /* used to be the nsISchema load */
@@ -1191,6 +1199,7 @@ danbooruTagHistoryService::OpenDatabase()
 	}
 
 	AttachRelatedTagDatabase();
+	mDB->ExecuteSimpleSQL(NS_LITERAL_CSTRING(kCreateTempTagTable));
 
 	// create statements for regular use
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagInsert), getter_AddRefs(mInsertStmt));
@@ -1210,6 +1219,8 @@ danbooruTagHistoryService::OpenDatabase()
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kMaxID), getter_AddRefs(mMaxIDStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kRowCount), getter_AddRefs(mRowCountStmt));
+	DU_ENSURE_SUCCESS;
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTempTagInsert), getter_AddRefs(mTempInsertStmt));
 	DU_ENSURE_SUCCESS;
 
 	// all clear
@@ -1291,6 +1302,7 @@ danbooruTagHistoryService::CloseDatabase()
 	mMaxIDStmt = nsnull;
 	mRowCountStmt = nsnull;
 	mRelSearchStmt = nsnull;
+	mTempInsertStmt = nsnull;
 
 	mDB = nsnull;
 	return NS_OK;
@@ -1302,6 +1314,8 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
                                   nsIAutoCompleteResult **aResult)
 {
 	if (!TagHistoryEnabled())
+		return NS_OK;
+	if (mNodeList)
 		return NS_OK;
 
 	nsresult rv = OpenDatabase(); // lazily ensure that the database is open

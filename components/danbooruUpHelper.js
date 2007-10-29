@@ -213,7 +213,10 @@ this.log(this.browserWindows.length+' after unregistering');
 			this.mMaxID = this.getMaxID();
 		}
 		this._branch.setIntPref("autocomplete.update.lastupdate", Date.now());
-		this.update(full, false);
+		try { this.update(full, false); }
+		catch(e) {
+			__log("DanbooruUp startup update failed: "+e);
+		}
 	},
 	notify: function(aTimer)
 	{
@@ -263,14 +266,13 @@ this.log(this.browserWindows.length+' after unregistering');
 			{
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
-				return e.result;
+				throw e;
 			}
 			else {
 				this._updating = false;
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
-				else
-					return e.result;
+				throw e;
 			}
 		}
 		this._updating = false;
@@ -289,6 +291,8 @@ this.log(this.browserWindows.length+' after unregistering');
 				.QueryInterface(Ci.nsIURL);
 		locationURL.query = "limit=0";
 		dump("using " + locationURL.spec + "\n");
+		this._updating = true;
+		this._interactive = aInteractive;
 		try {
 			this.tagService.updateTagListFromURI(locationURL.spec, false, aListener);
 		} catch (e) {
@@ -298,9 +302,14 @@ this.log(this.browserWindows.length+' after unregistering');
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
 			}
 			else {
-				promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
+				this._updating = false;
+				if(aInteractive)
+					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
 			}
+			throw e;
 		}
+		this._updating = false;
+		this.mMaxID = this.getMaxID();
 	},
 
 	//
@@ -320,7 +329,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		} else {
 			var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
 				.getService(Components.interfaces.nsICookieService);
-			var cookieStr = cookieJar.getCookieString(aLocation, null);
+			var cookieStr	= cookieJar.getCookieString(aLocation, null);
 
 			imgChannel.QueryInterface(Components.interfaces.nsIHttpChannel);
 			imgChannel.referrer = aLocation;
@@ -347,6 +356,7 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		var channel = ioService.newChannel(this._branch.getComplexValue("relatedupdateuri", Ci.nsISupportsString).data, null, null)
 				.QueryInterface(Components.interfaces.nsIHttpChannel);
+		// will raise a harmless WARNING: NS_ENSURE_TRUE(mCachedResponseHead) failed
 		channel.loadFlags = channel.INHIBIT_CACHING | channel.LOAD_BYPASS_CACHE;
 		if (outFile.exists())
 		{
@@ -475,11 +485,9 @@ this.log(this.browserWindows.length+' after unregistering');
 		for(let i=0, rule; i<TAGTYPE_COUNT; i++) {
 			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
 			rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
-			__log(i+"\n"+rule);
 			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
 			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
 			rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
-			__log(i+".selected\n"+rule);
 			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
 		}
 

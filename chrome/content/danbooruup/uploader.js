@@ -32,7 +32,7 @@ function getSize(url) {
 	return -1;
 }
 
-function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRetry)
+function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra)
 {
 	var notificationBox = aTab.linkedBrowser.parentNode;
 	var notification;
@@ -47,19 +47,6 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRe
 				notificationBox.currentNotification = null;
 			}
 		} while (notification = notificationBox.getNotificationWithValue("danbooru-up"));
-		// try again a little later
-		/*
-		if (!aRetry) {
-			aTab.linkedBrowser.contentWindow
-				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-					.getInterface(Components.interfaces.nsIWebNavigation)
-				.QueryInterface(Components.interfaces.nsIDocShellTreeItem)
-					.rootTreeItem
-				.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-					.getInterface(Components.interfaces.nsIDOMWindow)
-				.setTimeout(addNotification, 100, aTab, aMessage, aIcon, aPriority, aButtons, aExtra, true);
-		}
-		*/
 	}
 
 	notification = notificationBox.appendNotification(aMessage, "danbooru-up", aIcon, aPriority, aButtons);
@@ -72,6 +59,27 @@ function addNotification(aTab, aMessage, aIcon, aPriority, aButtons, aExtra, aRe
 			addLinkToNotification(notification, aExtra.link);
 		else if (aExtra.type == 'progress')
 			addProgressToNotification(notification);
+	}
+	// hide higher priority notifications
+	var self = notification;
+	notification.close = function danNoteClose() {
+		var control = self.control;
+		if (control) {
+			control.removeNotification(self);
+			for (var i=0; i<control.allNotifications.length; i++)
+			{
+				if (control.allNotifications[i].hidden) control.allNotifications[i].hidden = false;
+			}
+		} else {
+			self.hidden = true;
+		}
+	}
+	notificationBox.currentNotification = notification;
+	notificationBox._showNotification(notification, true);
+	for (var i=0; i<notificationBox.allNotifications.length; i++)
+	{
+		if (notificationBox.allNotifications[i] == notification) continue;
+		if (!notificationBox.allNotifications[i].hidden) notificationBox.allNotifications[i].hidden = true;
 	}
 }
 
@@ -572,7 +580,8 @@ danbooruPoster.prototype = {
 					var notification = aTab.linkedBrowser.parentNode.getNotificationWithValue("danbooru-up");
 					this._meter = notification.ownerDocument.getAnonymousElementByAttribute(notification, "anonid", "danbooruprogress");
 				}
-				this._meter.value = aProgress/aProgressMax*100;
+				if (this._meter)
+					this._meter.value = aProgress/aProgressMax*100;
 			}
 		}
 		callback.QueryInterface = function(aIID) {
