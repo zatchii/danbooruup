@@ -120,9 +120,14 @@ danbooruAutoCompleteController::HandleText(PRBool aIgnoreSelection)
 	{
 		nsString newValue;
 		mInput->GetTextValue(newValue);
-		if (newValue.Length() < mSearchString.Length() &&
-			Substring(mSearchString, 0, newValue.Length()).Equals(newValue))
-			ClearRelated();
+#ifdef DEBUG
+	{
+		nsString text;
+		PR_fprintf(PR_STDERR, "handletext new\t%s\n\told %s\n", NS_ConvertUTF16toUTF8(newValue).get(), NS_ConvertUTF16toUTF8(mSearchString).get());
+	}
+#endif
+		// always void the tree arrays
+		ClearRelated();
 		mSearchString = newValue;
 	}
 	return mController->HandleText(aIgnoreSelection);
@@ -1083,6 +1088,11 @@ hashCloseRelatedEnum(nsUint32HashKey::KeyType aKey, danbooruIAutoCompleteArrayRe
 
 void danbooruAutoCompleteController::ClearRelated()
 {
+#ifdef DEBUG
+	{
+		PR_fprintf(PR_STDERR, "clearrelated rows %d hashes %d\n", mRowParents.Length(), mRelatedHash.Count());
+	}
+#endif
 	// rowcount assert suppression
 	if (mTree)
 		mRelatedHash.Enumerate(&hashCloseRelatedEnum, ((nsITreeBoxObject*)mTree));
