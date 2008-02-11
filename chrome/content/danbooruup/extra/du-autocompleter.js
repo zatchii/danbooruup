@@ -1,8 +1,9 @@
+// -*- mode:javascript; javascript-indent-level:2; indent-tabs-mode:nil -*-
 // Adds page up/down and tweaks sizing
 // also gets rid of scrollIntoView(true), which doesn't work so hot in Gecko, the only platform we have to worry about
 // vim:set ts=2 sw=2 et:
-Autocompleter.DanbooruUp = Class.create();
-Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
+
+Autocompleter.DanbooruUp = Class.create(Autocompleter.Base, {
   initialize: function(element, update, array, options) {
     // tokens array needs prototype stuff added to it
     var newtokens = new Array;
@@ -79,12 +80,12 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
         case Event.KEY_UP:
           this.markPrevious();
           this.render();
-          /*if(Prototype.Browser.WebKit)*/ Event.stop(event);
+          Event.stop(event);
           return;
         case Event.KEY_DOWN:
           this.markNext();
           this.render();
-          /*if(Prototype.Browser.WebKit)*/ Event.stop(event);
+          Event.stop(event);
           return;
       }
     else
@@ -211,7 +212,7 @@ Autocompleter.DanbooruUp.prototype = Object.extend(new Autocompleter.Base(), {
     }
     var value = '';
     if (this.options.select) {
-      var nodes = document.getElementsByClassName(this.options.select, selectedElement) || [];
+      var nodes = $(selectedElement).select('.' + this.options.select) || [];
       if(nodes.length>0) value = Element.collectTextNodes(nodes[0], this.options.select);
     } else
       value = Element.collectTextNodesIgnoreClass(selectedElement, 'informal');

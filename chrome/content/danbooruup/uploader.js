@@ -1,5 +1,6 @@
+// -*- Mode: javascript; tab-width: 4; indent-tabs-mode: t; -*-
 // uploading code, loaded into helper service scope
-// in content/ (until 1.9 comes in with C.u.load) because you can't get at compoent/ through chrome URIs
+// in content/ (until 1.9 comes in with C.u.load) because you can't get at component/ through chrome URIs
 // vim:set ts=4 sw=4 noet:
 var StrBundleSvc	= Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService);
 var danbooruUpMsg	= StrBundleSvc.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
@@ -163,8 +164,7 @@ danbooruUploader.prototype = {
 		//var fieldFile	="post[file]";
 		//var fieldSource	="post[source_url]";
 		//var fieldTags	="post[tags]";
-
-		var upURI = ioService.newURI(this.mDest, null, null);
+		var upURI = ioService.newURI(this.mDest, 'UTF-8', null);
 		var fieldPrefix = "";
 		var fieldSuffix = "";
 
@@ -213,15 +213,7 @@ danbooruUploader.prototype = {
 		hasher.init(hasher.MD5);
 		hasher.updateFromStream(hashInStr, 0xFFFFFFFF); /* PR_UINT32_MAX */
 		var outMD5 = hasher.finish(false);
-		var outMD5Hex = '';
-		var n;
-
-		var alpha = "0123456789abcdef";
-		for(var qx=0; qx<outMD5.length; qx++)
-		{
-			n = outMD5.charCodeAt(qx);
-			outMD5Hex += alpha.charAt(n>>4) + alpha.charAt(n & 0xF);
-		}
+		var outMD5Hex = [ ('0'+outMD5.charCodeAt(c).toString(16)).slice(-2) for(c in outMD5) ].join('');
 
 		try {
 		var prefBranch = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
@@ -236,28 +228,62 @@ danbooruUploader.prototype = {
 			xhr.overrideMimeType("text/xml");
 			xhr.QueryInterface(Components.interfaces.nsIJSXMLHttpRequest);
 			this.mDuplicate = null;
+			this.mDuplicateID = null;
 
 			var self = this;
+			function notifyDuplicate() {
+				var str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
+				var postShowURI = upURI.clone();
+				postShowURI.path = postShowURI.path.replace(/\/create\.xml$/, '/show/'+self.mDuplicateID);
+				postShowURI.QueryInterface(Components.interfaces.nsIURL);
+				postShowURI.query = '';
+				addNotification(self.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
+								self.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:postShowURI.spec});
+				self.mDuplicate = true;
+				self.mQueryRequest = null;
+			}
+			function changeLoad(event) {
+				// changing tags on duplicate can fail silently since I am lazy
+				notifyDuplicate();
+			}
+			function queryError(event) {
+				self.mDuplicate = false;
+				self.mQueryRequest = null;
+			}
 			function queryLoad(event) {
 				var responseXML = xhr.responseXML;
 				if (responseXML && responseXML.documentElement.namespaceURI != "http://www.mozilla.org/newlayout/xml/parsererror.xml" &&
 					(xhr.status == 200 || xhr.status == 0)) {
 					var result = responseXML.evaluate("/posts/post", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 					if (result.snapshotLength) {
-						var str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
-						var postShowURI = upURI.clone();
-						postShowURI.path = postShowURI.path.replace(/\/create\.xml$/, '/show/'+result.snapshotItem(0).getAttribute('id'));
-						addNotification(self.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
-								self.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:postShowURI.spec});
-						self.mDuplicate = true;
-						self.mQueryRequest = null;
+						// got a response post
+						self.mDuplicateID = result.snapshotItem(0).getAttribute('id');
+
+						if (prefBranch.getBoolPref("extensions.danbooruUp.updateTagsOnDuplicate")) {
+							var param = 'id=' + result.snapshotItem(0).getAttribute('id') + '&post[tags]=' + encodeURIComponent(result.snapshotItem(0).getAttribute("tags") + ' ' + self.mTags);
+							var postUpdateURI = upURI.clone();
+							postUpdateURI.path = postUpdateURI.path.replace(/\/create\.xml$/, '/update.xml');
+							postUpdateURI.QueryInterface(Components.interfaces.nsIURL);
+							postUpdateURI.query = '';
+							var uxhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Components.interfaces.nsIXMLHttpRequest);
+							this.mQueryRequest = uxhr;
+							uxhr.open("POST", postUpdateURI.spec, true);
+							uxhr.overrideMimeType("text/xml");
+							uxhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+							uxhr.setRequestHeader("Content-Length", param.length);
+							uxhr.setRequestHeader("Connection", "close");
+
+							uxhr.QueryInterface(Components.interfaces.nsIJSXMLHttpRequest);
+							uxhr.onload = changeLoad;
+							uxhr.onerror = queryError;
+
+							uxhr.send(param);
+						} else {
+							notifyDuplicate();
+						}
 						return;
 					}
 				}
-				self.mDuplicate = false;
-				self.mQueryRequest = null;
-			}
-			function queryError(event) {
 				self.mDuplicate = false;
 				self.mQueryRequest = null;
 			}
@@ -560,7 +586,7 @@ danbooruPoster.prototype = {
 			popup: null,
 			callback: danbooruUpHitch(this, "cancel")
 		}];
-		addNotification(this.mTab, 
+		addNotification(this.mTab,
 				danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploading')+' '+aImgURI.spec+
 				((size != -1) ?(' ('+kbSize+' KB)') : ''),
 				"chrome://danbooruup/skin/Throbber-small.gif",
@@ -625,7 +651,7 @@ danbooruPoster.prototype = {
 					 popup: null,
 					 callback: danbooruUpHitch(this, "retry")
 			}];
-			addNotification(this.mTab, 
+			addNotification(this.mTab,
 					danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploadcancel'),
 					"chrome://danbooruup/skin/icon.ico",
 					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, buttons);
@@ -707,7 +733,7 @@ danbooruPoster.prototype = {
 				}
 
 				if(success) {
-					addNotification(this.mTab, 
+					addNotification(this.mTab,
 							danbooruUpMsg.GetStringFromName("danbooruUp.msg.uploaded"),
 							"chrome://danbooruup/skin/icon.ico",
 							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
@@ -736,12 +762,12 @@ danbooruPoster.prototype = {
 				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
 
 				if (errs) {
-					addNotification(this.mTab, 
+					addNotification(this.mTab,
 							danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
 							"chrome://danbooruup/skin/danbooru-attention.gif",
 							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null);
 				} else {
-					addNotification(this.mTab, 
+					addNotification(this.mTab,
 							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
 							"chrome://danbooruup/skin/icon.ico",
 							this.mTab.linkedBrowser.parentNode.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
@@ -788,7 +814,7 @@ danbooruPoster.prototype = {
 				}
 
 				// FIXME: newlines do not work in any fashion
-				addNotification(this.mTab, 
+				addNotification(this.mTab,
 						str, "chrome://danbooruup/skin/danbooru-attention.gif",
 						this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, buttons);
 
@@ -806,7 +832,7 @@ danbooruPoster.prototype = {
 			else if (status == kConnectionRefused || status == kNetReset)
 				str = errmsg.formatStringFromName('connectionFailure', [channel.URI.spec], 1)
 
-			addNotification(this.mTab, 
+			addNotification(this.mTab,
 					danbooruUpMsg.GetStringFromName('danbooruUp.err.neterr') + ' ' + str,
 					"chrome://danbooruup/skin/danbooru-attention.gif",
 					this.mTab.linkedBrowser.parentNode.PRIORITY_WARNING_MEDIUM, buttons);
@@ -826,4 +852,3 @@ danbooruPoster.prototype = {
 		}
 	}
 };
-

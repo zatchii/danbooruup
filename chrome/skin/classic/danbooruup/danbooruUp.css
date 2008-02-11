@@ -60,7 +60,7 @@ toolbarbutton#artistSearch > .toolbarbutton-icon {
 #danbooruUpOptions {
 	padding: 1px;
 	width: 40em !important;
-	height: 44em !important;
+	height: 48em !important;
 }
 
 #danbooruUpOptions > prefpane {
@@ -73,7 +73,7 @@ toolbarbutton#artistSearch > .toolbarbutton-icon {
 #danbooruTree {
 	min-height: 15em;
 }
-#updateInterval {
+#updateInterval,#resultLimit {
 	width: 5em;
 }
 

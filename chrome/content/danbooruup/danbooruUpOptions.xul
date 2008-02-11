@@ -7,7 +7,7 @@
 
 <!DOCTYPE prefwindow [
 <!ENTITY % danbooruUpOptionsDTD SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
-%danbooruUpOptionsDTD; 
+%danbooruUpOptionsDTD;
 ]>
 
 <prefwindow id="danbooruUpOptions" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
@@ -168,6 +168,10 @@
 			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.site.enabled"
 			name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.altsearch"
+			name="extensions.danbooruUp.autocomplete.altsearch"		type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.limit"
+			name="extensions.danbooruUp.autocomplete.limit"			type="int"/>
 		<preference id="pref.extensions.danbooruUp.updateuri"			instantApply="true"
 			name="extensions.danbooruUp.updateuri"				type="string"/>
 		<preference id="pref.extensions.danbooruUp.relatedupdateuri"		instantApply="true"
@@ -201,6 +205,17 @@
 				tooltiptext="&danbooruUpOptions.enableAC.site.tooltip;"
 				class="indent"/>
 		</hbox>
+		<groupbox>
+			<checkbox id="altSearch" label="&danbooruUpOptions.altSearch.label;" accesskey="&danbooruUpOptions.altSearch.accesskey;" preference="pref.extensions.danbooruUp.autocomplete.altsearch" />
+			<hbox align="center" flex="1">
+				<label control="resultLimit"
+					value="&danbooruUpOptions.resultLimit.label;"
+					accesskey="&danbooruUpOptions.resultLimit.accesskey;" align="bottom"/>
+				<textbox id="resultLimit"
+					preference="pref.extensions.danbooruUp.autocomplete.limit" />
+				<label value="&danbooruUpOptions.matches.label;" />
+			</hbox>
+		</groupbox>
 		<groupbox>
 			<caption label="&danbooruUpOptions.urlgroup.label;"/>
 			<hbox align="center" flex="1">

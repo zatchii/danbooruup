@@ -1,4 +1,4 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: t; c-basic-offset: 2 -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -87,8 +87,10 @@
 #include "mozIStorageService.h"
 #include "mozStorageCID.h"
 
-#define PREF_FORMFILL_BRANCH "extensions.danbooruUp.autocomplete."
-#define PREF_FORMFILL_ENABLE "enabled"
+#define PREF_DANBOORUUP_AC_BRANCH "extensions.danbooruUp.autocomplete."
+#define PREF_DANBOORUUP_AC_ENABLE "enabled"
+#define PREF_DANBOORUUP_AC_LIMIT "limit"
+#define PREF_DANBOORUUP_AC_ALTSEARCH "altsearch"
 
 #define DANBOORUPROCESSTAGS_TOPIC "danbooru-process-tags"
 
@@ -113,6 +115,7 @@ static const char *kTagTableName = "tags";
 #define kTagUpdateType "UPDATE tags SET tag_type=?1 WHERE id=?2"
 #define kTagIncrement "UPDATE tags SET value=value+1 WHERE name=?1"
 #define kTagSearch "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ESCAPE '\\' ORDER BY value DESC, name ASC LIMIT ?2"
+#define kTagSearchAlt "SELECT name, tag_type FROM tags WHERE name LIKE ?1 ESCAPE '\\' ORDER BY value DESC, LENGTH(name) ASC, name ASC LIMIT ?2"
 #define kTagExists "SELECT NULL FROM tags WHERE name=?1"
 #define kTagRemoveByID "DELETE FROM tags WHERE id=?1"
 #define kTagIDForName "SELECT id FROM tags WHERE name=?1"
@@ -159,6 +162,8 @@ PRBool danbooruTagHistoryService::gPrefsInitialized = PR_TRUE;
 PRBool danbooruTagHistoryService::gTagHistoryEnabled = PR_FALSE;
 PRBool danbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #endif
+PRInt32 danbooruTagHistoryService::gSearchLimit = 0;
+PRBool danbooruTagHistoryService::gAltSearch = PR_FALSE;
 
 #ifdef MOZILLA_1_8_BRANCH
 // this crap doesn't exist in 1.8 branch glue
@@ -341,14 +346,18 @@ danbooruTagHistoryService::TagHistoryEnabled()
   if (!gPrefsInitialized) {
     nsCOMPtr<nsIPrefService> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
 
-    prefService->GetBranch(PREF_FORMFILL_BRANCH,
+    prefService->GetBranch(PREF_DANBOORUUP_AC_BRANCH,
                            getter_AddRefs(gTagHistory->mPrefBranch));
-    gTagHistory->mPrefBranch->GetBoolPref(PREF_FORMFILL_ENABLE,
+    gTagHistory->mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ENABLE,
                                            &gTagHistoryEnabled);
+		gTagHistory->mPrefBranch->GetIntPref(PREF_DANBOORUUP_AC_LIMIT, &gSearchLimit);
+		gTagHistory->mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ALTSEARCH, &gAltSearch);
 
     nsCOMPtr<nsIPrefBranch2> branchInternal =
       do_QueryInterface(gTagHistory->mPrefBranch);
-    branchInternal->AddObserver(PREF_FORMFILL_ENABLE, gTagHistory, PR_TRUE);
+    branchInternal->AddObserver(PREF_DANBOORUUP_AC_ENABLE, gTagHistory, PR_TRUE);
+    branchInternal->AddObserver(PREF_DANBOORUUP_AC_LIMIT, gTagHistory, PR_TRUE);
+    branchInternal->AddObserver(PREF_DANBOORUUP_AC_ALTSEARCH, gTagHistory, PR_TRUE);
 
     gPrefsInitialized = PR_TRUE;
   }
@@ -1022,7 +1031,8 @@ NS_IMETHODIMP
 danbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
 {
 	if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
-		//mPrefBranch->GetBoolPref(PREF_FORMFILL_ENABLE, &gTagHistoryEnabled);
+		mPrefBranch->GetIntPref(PREF_DANBOORUUP_AC_LIMIT, &gSearchLimit);
+		mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ALTSEARCH, &gAltSearch);
 	} else if (!strcmp(aTopic, DANBOORUPROCESSTAGS_TOPIC)){
 		StartTagProcessing();
 	}
@@ -1214,6 +1224,8 @@ danbooruTagHistoryService::OpenDatabase()
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearch), getter_AddRefs(mSearchStmt));
 	DU_ENSURE_SUCCESS;
+	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagSearchAlt), getter_AddRefs(mSearchAltStmt));
+	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagExists), getter_AddRefs(mExistsStmt));
 	DU_ENSURE_SUCCESS;
 	rv = mDB->CreateStatement(NS_LITERAL_CSTRING(kTagIDForName), getter_AddRefs(mIDForNameStmt));
@@ -1299,6 +1311,7 @@ danbooruTagHistoryService::CloseDatabase()
 	mRemoveByIDStmt = nsnull;
 	mIncrementStmt = nsnull;
 	mSearchStmt = nsnull;
+	mSearchAltStmt = nsnull;
 	mExistsStmt = nsnull;
 	mIDForNameStmt = nsnull;
 	mMaxIDStmt = nsnull;
@@ -1325,7 +1338,7 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 
 	nsCOMPtr<danbooruIAutoCompleteArrayResult> result;
 	// not so great performance-wise to re-search every time a wildcard is present, but the alternative is too much trouble
-	if (aPrevResult && (FindChar(aInputName, '*') == -1)) {
+	if (aPrevResult && (FindChar(aInputName, '*') == -1) && !gAltSearch) {
 		result = aPrevResult;
 
 		PRUint32 rowCount;
@@ -1361,10 +1374,22 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 
 		result->SetSearchString(aInputName);
 
+		nsCOMPtr<mozIStorageStatement> searchStmt = mSearchStmt;
 		PRBool row;
 		nsString name, likeInputName;
 		PRUint32 type;
 		NS_StringCopy(likeInputName, aInputName);
+		// insert wildcards for alternate search first
+		if(gAltSearch) {
+			PRUint32 length = aInputName.Length();
+			searchStmt = mSearchAltStmt;
+			for (PRInt32 i = length; i>=0; i--) {
+				likeInputName.Insert(NS_LITERAL_STRING("*"),i);
+			}
+#ifdef DEBUG
+			PR_fprintf(PR_STDERR, "alt %s\n", NS_ConvertUTF16toUTF8(likeInputName).get());
+#endif
+		}
 		// escape SQL wildcards first, and change * wildcard to SQL % wildcard
 		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("\\"), NS_LITERAL_STRING("\\\\"));
 		ReplaceSubstring(likeInputName, NS_LITERAL_STRING("%"), NS_LITERAL_STRING("\\%"));
@@ -1374,17 +1399,17 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 			likeInputName.Append(NS_LITERAL_STRING("%"));
 		}
 
-		mSearchStmt->BindStringParameter(0, likeInputName);
-		mSearchStmt->BindInt32Parameter(1, -1);
-		mSearchStmt->ExecuteStep(&row);
+		searchStmt->BindStringParameter(0, likeInputName);
+		searchStmt->BindInt32Parameter(1, gSearchLimit);
+		searchStmt->ExecuteStep(&row);
 		while (row)
 		{
-			name = mSearchStmt->AsSharedWString(0, nsnull);
-			type = (PRUint32)mSearchStmt->AsInt32(1);
+			name = searchStmt->AsSharedWString(0, nsnull);
+			type = (PRUint32)searchStmt->AsInt32(1);
 			result->AddRow(name, type);
-			mSearchStmt->ExecuteStep(&row);
+			searchStmt->ExecuteStep(&row);
 		}
-		mSearchStmt->Reset();
+		searchStmt->Reset();
 
 		PRUint32 matchCount;
 		result->GetMatchCount(&matchCount);
@@ -1416,22 +1441,29 @@ danbooruTagHistoryService::SearchTags(const nsAString &aInputName,
 	PRBool row;
 
 	danbooruIAutoCompleteArrayResult *result = new danbooruAutoCompleteArrayResult;
+	nsCOMPtr<mozIStorageStatement> searchStmt;
 
-	mSearchStmt->BindStringParameter(0, aInputName);
-	mSearchStmt->BindInt32Parameter(1, aLimit);
-	mSearchStmt->ExecuteStep(&row);
+	if (gAltSearch) {
+		searchStmt = mSearchAltStmt;
+	} else {
+		searchStmt = mSearchStmt;
+	}
+
+	searchStmt->BindStringParameter(0, aInputName);
+	searchStmt->BindInt32Parameter(1, aLimit);
+	searchStmt->ExecuteStep(&row);
 
 	nsString name;
 	PRUint32 type;
 	while (row)
 	{
-		name = mSearchStmt->AsSharedWString(0, nsnull);
-		type = (PRUint32)mSearchStmt->AsInt32(1);
+		name = searchStmt->AsSharedWString(0, nsnull);
+		type = (PRUint32)searchStmt->AsInt32(1);
 
 		result->AddRow(name, type);
-		mSearchStmt->ExecuteStep(&row);
+		searchStmt->ExecuteStep(&row);
 	}
-	mSearchStmt->Reset();
+	searchStmt->Reset();
 
 	PRUint32 matchCount;
 	result->GetMatchCount(&matchCount);

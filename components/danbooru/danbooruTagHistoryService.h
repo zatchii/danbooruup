@@ -102,6 +102,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mRemoveByIDStmt;
   nsCOMPtr<mozIStorageStatement> mIncrementStmt;
   nsCOMPtr<mozIStorageStatement> mSearchStmt;
+  nsCOMPtr<mozIStorageStatement> mSearchAltStmt;
   nsCOMPtr<mozIStorageStatement> mExistsStmt;
   nsCOMPtr<mozIStorageStatement> mIDForNameStmt;
   nsCOMPtr<mozIStorageStatement> mMaxIDStmt;
@@ -118,6 +119,8 @@ protected:
   static danbooruTagHistoryService *gTagHistory;
 
   static PRBool gTagHistoryEnabled;
+  static PRInt32 gSearchLimit;
+  static PRBool gAltSearch;
   static PRBool gPrefsInitialized;
 
   nsCOMPtr<nsIPrefBranch> mPrefBranch;

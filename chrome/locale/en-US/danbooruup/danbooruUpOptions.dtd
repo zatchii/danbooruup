@@ -50,6 +50,11 @@
 <!ENTITY danbooruUpOptions.enableAC.site.label		"Enable Tag Autocomplete for danbooru Sites">
 <!ENTITY danbooruUpOptions.enableAC.site.accesskey	"S">
 <!ENTITY danbooruUpOptions.enableAC.site.tooltip	"Adds autocomplete to text fields on danbooru site pages.">
+<!ENTITY danbooruUpOptions.altSearch.label		"Alternate searching (abc -> *a*b*c*)">
+<!ENTITY danbooruUpOptions.altSearch.accesskey		"A">
+<!ENTITY danbooruUpOptions.resultLimit.label		"Limit search results to">
+<!ENTITY danbooruUpOptions.resultLimit.accesskey	"L">
+<!ENTITY danbooruUpOptions.matches.label		"matches">
 <!ENTITY danbooruUpOptions.updateURL.label		"Update URL:">
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
 <!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
@@ -66,7 +71,7 @@
 <!ENTITY danbooruUpOptions.fastUpdate.accesskey		"F">
 <!ENTITY danbooruUpOptions.fastUpdate.tooltip		"This option speeds up startup by only retrieving fron the server tags that are new instead of the entire list.">
 <!ENTITY danbooruUpOptions.updateOnUpload.label		"Update on upload">
-<!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"l">
+<!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"d">
 <!ENTITY danbooruUpOptions.updateOnUpload.before.label	"Update before update dialog appears">
 <!ENTITY danbooruUpOptions.updateOnUpload.after.label	"Update after confirming upload">
 <!ENTITY danbooruUpOptions.updateOnUpload.after.tooltip	"If this box is unchecked, tags that are not already in the local database will not be remembered.">
