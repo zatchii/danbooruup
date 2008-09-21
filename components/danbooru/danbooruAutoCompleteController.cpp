@@ -1,3 +1,4 @@
+// -*- c-basic-offset: 8 -*-
 #include "danbooruAutoCompleteController.h"
 #include "danbooruIAutoCompletePopup.h"
 #include "danbooruITagHistoryService.h"
@@ -41,10 +42,9 @@ NS_IMPL_ISUPPORTS7(danbooruAutoCompleteController, danbooruIAutoCompleteControll
 						   nsITimerCallback,
 						   nsITreeView)
 #else
-NS_IMPL_ISUPPORTS6(danbooruAutoCompleteController, danbooruIAutoCompleteController,
+NS_IMPL_ISUPPORTS5(danbooruAutoCompleteController, danbooruIAutoCompleteController,
                                                    nsIAutoCompleteController,
 						   nsIAutoCompleteObserver,
-						   nsIRollupListener,
 						   nsITimerCallback,
 						   nsITreeView)
 #endif
@@ -52,7 +52,9 @@ NS_IMPL_ISUPPORTS6(danbooruAutoCompleteController, danbooruIAutoCompleteControll
 danbooruAutoCompleteController::danbooruAutoCompleteController()
 {
 	mController = do_CreateInstance(NS_AUTOCOMPLETECONTROLLER_CONTRACTID);
+#ifdef MOZILLA_1_8_BRANCH
 	mRollup = do_QueryInterface(mController);
+#endif
 	mTimer = do_QueryInterface(mController);
 	mTreeView = do_QueryInterface(mController);
 	mRelatedHash.Init();
@@ -134,7 +136,7 @@ danbooruAutoCompleteController::HandleText(PRBool aIgnoreSelection)
 }
 
 NS_IMETHODIMP
-danbooruAutoCompleteController::HandleEnter(PRBool *_retval)
+danbooruAutoCompleteController::HandleEnter(PRBool aIsPopupSelection, PRBool *_retval)
 {
 	*_retval = PR_FALSE;
 	if (!mInput)
@@ -142,25 +144,23 @@ danbooruAutoCompleteController::HandleEnter(PRBool *_retval)
 
 	// allow the event through unless there is something selected in the popup
 	mInput->GetPopupOpen(_retval);
-
 	nsCOMPtr<nsIAutoCompletePopup> popup;
 	mInput->GetPopup(getter_AddRefs(popup));
 
 	if (*_retval) {
-
 		if (popup) {
 			PRInt32 selectedIndex;
 			popup->GetSelectedIndex(&selectedIndex);
 			*_retval = selectedIndex >= 0;
 			if (FirstLevelRowIndex(selectedIndex) != selectedIndex) {
 #ifdef DEBUG
-	{
-		nsString text;
-		GetValueAt(selectedIndex, text);
-		PR_fprintf(PR_STDERR, "handleenter sub\t%d %s\n", selectedIndex, NS_ConvertUTF16toUTF8(text).get());
-	}
+			{
+				nsString text;
+				GetValueAt(selectedIndex, text);
+				PR_fprintf(PR_STDERR, "handleenter sub\t%d %s\n", selectedIndex, NS_ConvertUTF16toUTF8(text).get());
+			}
 #endif
-				EnterMatch();
+				EnterMatch(aIsPopupSelection);
 				return NS_OK;
 			}
 		}
@@ -178,7 +178,7 @@ danbooruAutoCompleteController::HandleEnter(PRBool *_retval)
 
 	nsCOMPtr<danbooruIAutoCompletePopup> dpopup( do_QueryInterface(popup) );
 	dpopup->SetIndexHack(PR_TRUE);
-	mController->HandleEnter(_retval);
+	mController->HandleEnter(aIsPopupSelection, _retval);
 	dpopup->SetIndexHack(PR_FALSE);
 
 	return NS_OK;
@@ -263,7 +263,7 @@ danbooruAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retv
 				}
 			}
 			// Close the pop-up even if nothing was selected
-			Rollup();
+			ClosePopup();
 		}
 		// Update last-searched string to the current input, since the input may
 		// have changed.  Without this, subsequent backspaces look like text
@@ -365,6 +365,12 @@ danbooruAutoCompleteController::SetSearchString(const nsAString &aSearchString)
 	return mController->SetSearchString(aSearchString);
 }
 
+NS_IMETHODIMP
+danbooruAutoCompleteController::GetSearchString(nsAString &aSearchString)
+{
+	return mController->GetSearchString(aSearchString);
+}
+
 #ifdef MOZILLA_1_8_BRANCH
 // nsIAutoCompleteController_MOZILLA_1_8_BRANCH
 NS_IMETHODIMP
@@ -412,7 +418,7 @@ danbooruAutoCompleteController::GetImageAt(PRInt32 aIndex, nsAString & _retval)
 	{
 		nsString text;
 		GetValueAt(aIndex, text);
-		PR_fprintf(PR_STDERR, "styleat sub\t%d %s\t%s\n", aIndex, NS_ConvertUTF16toUTF8(text).get(), NS_ConvertUTF16toUTF8(_retval).get());
+		PR_fprintf(PR_STDERR, "imageat sub\t%d %s\t%s\n", aIndex, NS_ConvertUTF16toUTF8(text).get(), NS_ConvertUTF16toUTF8(_retval).get());
 	}
 #endif
 	return NS_OK;
@@ -428,6 +434,7 @@ danbooruAutoCompleteController::OnSearchResult(nsIAutoCompleteSearch *aSearch, n
 	return mObserver->OnSearchResult(aSearch, aResult);
 }
 
+#ifdef MOZILLA_1_8_BRANCH
 ////////////////////////////////////////////////////////////////////////
 //// nsIRollupListener
 
@@ -449,6 +456,7 @@ danbooruAutoCompleteController::ShouldRollupOnMouseActivate(PRBool *aShouldRollu
 {
 	return mRollup->ShouldRollupOnMouseActivate(aShouldRollup);
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //// nsITimerCallback
@@ -1138,7 +1146,43 @@ danbooruAutoCompleteController::FirstLevelRowIndex(PRInt32 index)
 
 // unfortunately no way to avoid copying protected functions from nsAutoCompleteController since we can't inherit the real class
 nsresult
-danbooruAutoCompleteController::EnterMatch()
+danbooruAutoCompleteController::OpenPopup()
+{
+	PRUint32 minResults;
+	PRInt32 rowCount;
+	mInput->GetMinResultsForPopup(&minResults);
+
+	GetRowCount(&rowCount);
+	if (rowCount >= minResults) {
+		//mIsOpen = PR_TRUE;
+		return mInput->SetPopupOpen(PR_TRUE);
+	}
+
+	return NS_OK;
+}
+
+nsresult
+danbooruAutoCompleteController::ClosePopup()
+{
+	if (!mInput) {
+		return NS_OK;
+	}
+
+	PRBool isOpen;
+	mInput->GetPopupOpen(&isOpen);
+	if (!isOpen)
+		return NS_OK;
+
+	nsCOMPtr<nsIAutoCompletePopup> popup;
+	mInput->GetPopup(getter_AddRefs(popup));
+	NS_ENSURE_TRUE(popup != nsnull, NS_ERROR_FAILURE);
+	popup->SetSelectedIndex(-1);
+	//mIsOpen = PR_FALSE;
+	return mInput->SetPopupOpen(PR_FALSE);
+}
+
+nsresult
+danbooruAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
 {
 	nsCOMPtr<nsIAutoCompletePopup> popup;
 	mInput->GetPopup(getter_AddRefs(popup));
@@ -1154,7 +1198,7 @@ danbooruAutoCompleteController::EnterMatch()
 		// If a row is selected in the popup, enter it into the textbox
 		PRInt32 selectedIndex;
 		popup->GetSelectedIndex(&selectedIndex);
-		if (selectedIndex >= 0)
+		if (selectedIndex >= 0 || aIsPopupSelection)
 			GetValueAt(selectedIndex, value);
 		// this can't happen since a related tag would have to be selected for us to be in this function at all
 		// if (forceComplete && value.IsEmpty()) {}
@@ -1180,8 +1224,11 @@ danbooruAutoCompleteController::EnterMatch()
 	}
 
 	obsSvc->NotifyObservers(mInput, "autocomplete-did-enter-text", nsnull);
-	//ClosePopup();
+#ifdef MOZILLA_1_8_BRANCH
 	Rollup();
+#else
+	ClosePopup();
+#endif
 
 	PRBool cancel;
 	mInput->OnTextEntered(&cancel);

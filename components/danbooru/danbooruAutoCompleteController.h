@@ -54,11 +54,11 @@
 class danbooruAutoCompleteController : public danbooruIAutoCompleteController,
 #ifdef MOZILLA_1_8_BRANCH
                                        public nsIAutoCompleteController_MOZILLA_1_8_BRANCH,
+                                       public nsIRollupListener,
 #else
                                        public nsIAutoCompleteController,
 #endif
                                        public nsIAutoCompleteObserver,
-                                       public nsIRollupListener,
                                        public nsITimerCallback,
                                        public nsITreeView
 {
@@ -71,20 +71,20 @@ public:
 	NS_DECL_NSIAUTOCOMPLETECONTROLLER
 #ifdef MOZILLA_1_8_BRANCH
 	NS_DECL_NSIAUTOCOMPLETECONTROLLER_MOZILLA_1_8_BRANCH
+	NS_DECL_NSIROLLUPLISTENER
 #endif
 	NS_DECL_NSIAUTOCOMPLETEOBSERVER
-	NS_DECL_NSIROLLUPLISTENER
 	NS_DECL_NSITREEVIEW
 	NS_DECL_NSITIMERCALLBACK
 
 protected:
 #ifdef MOZILLA_1_8_BRANCH
 	nsCOMPtr<nsIAutoCompleteController_MOZILLA_1_8_BRANCH> mController;
+	nsCOMPtr<nsIRollupListener> mRollup;
 #else
 	nsCOMPtr<nsIAutoCompleteController> mController;
 #endif
 	nsCOMPtr<nsIAutoCompleteObserver> mObserver;
-	nsCOMPtr<nsIRollupListener> mRollup;
 	nsCOMPtr<nsITimerCallback> mTimer;
 	nsCOMPtr<nsITreeView> mTreeView;
 
@@ -105,6 +105,10 @@ protected:
 	void InitRowParents();
 	void UpdateRowParents(PRInt32 parentIndex);
 	PRInt32 FirstLevelRowIndex(PRInt32 index);
-	nsresult EnterMatch();
+
+    // protected nsAutoCompleteController functions
+    nsresult OpenPopup();
+    nsresult ClosePopup();
+    nsresult EnterMatch(PRBool aIsPopupSelection);
 };
 

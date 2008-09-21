@@ -3,20 +3,23 @@
 const RETRY_INTERVAL = 100;
 const MAX_TRIES = 5;
 
-try {
-for(var i=0; i < script_arr.length; i++)
+if (unsafeWindow.Prototype.Version < prototype_ver)
 {
-	var s = document.createElement("script");
-	s.setAttribute("type","text/javascript");
-	s.appendChild(document.createTextNode(
+	try {
+	for(var i=0; i < script_arr.length; i++)
+	{
+		var s = document.createElement("script");
+		s.setAttribute("type","text/javascript");
+		s.appendChild(document.createTextNode(
 				"//<![CDATA[\n" +
 				script_arr[i]
 				+ "\n//]]>"
 				)
 			);
-	document.getElementsByTagName("head")[0].appendChild(s);
+		document.getElementsByTagName("head")[0].appendChild(s);
+	}
+	}catch(e){GM_log("danbooruUp: while inserting styles: "+e);}
 }
-}catch(e){GM_log("danbooruUp: while inserting styles: "+e);}
 
 function doAutocompleteInsertion()
 {
@@ -104,7 +107,7 @@ function createAC(elementID, options)
 	} catch(ee) { GM_log("danbooruUp: HOW " + elementID + ":\n"+ee); }
 
 	try {
-	if(document.getElementById(elementID))
+	if(!!document.getElementById(elementID))
 	{
 		// create the div
 		var div = document.createElement("div");

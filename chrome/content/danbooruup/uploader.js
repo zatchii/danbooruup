@@ -12,6 +12,12 @@ var httpCacheSession = cacheService.createSession("HTTP", 0, true);
 httpCacheSession.doomEntriesIfExpired = false;
 var ftpCacheSession = cacheService.createSession("FTP", 0, true);
 ftpCacheSession.doomEntriesIfExpired = false;
+var encoder			= Components.classes['@mozilla.org/intl/saveascharset;1'].createInstance(Components.interfaces.nsISaveAsCharset);
+
+encoder.Init('UTF-8',
+			 Components.interfaces.nsISaveAsCharset.attr_EntityAfterCharsetConv
+			 + Components.interfaces.nsISaveAsCharset.attr_FallbackDecimalNCR,
+			 Components.interfaces.nsIEntityConverter.entityNone);
 
 const XPathResult = Components.interfaces.nsIDOMXPathResult;
 
@@ -145,7 +151,7 @@ function danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aTab, aLo
 }
 
 danbooruUploader.prototype = {
-	mSource:"",
+	mSource:null,
 	mTags:"",
 	mTitle:"",
 	mRating:"Questionable",
@@ -187,6 +193,7 @@ danbooruUploader.prototype = {
 				.QueryInterface(Components.interfaces.nsIInputStream);
 		var postChunk	= "";
 		var endPostChunk	= "";
+		// see content/html/content/src/nsFormSubmission.cpp, nsFSMultipartFormData::Init()
 		var boundary	= "---------------------------" + Math.floor(Math.random()*0xFFFFFFFF)
 				+ Math.floor(Math.random()*0xFFFFFFFF) + Math.floor(Math.random()*0xFFFFFFFF);
 
@@ -269,7 +276,7 @@ danbooruUploader.prototype = {
 							this.mQueryRequest = uxhr;
 							uxhr.open("POST", postUpdateURI.spec, true);
 							uxhr.overrideMimeType("text/xml");
-							uxhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+							uxhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
 							uxhr.setRequestHeader("Content-Length", param.length);
 							uxhr.setRequestHeader("Connection", "close");
 
@@ -326,18 +333,8 @@ danbooruUploader.prototype = {
 		}
 		*/
 		// Source field
-		postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldSource
-			+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mSource) + "\r\n";
-
-		// thanks to http://aaiddennium.online.lt/tools/js-tool-symbols-entities-symbols.html for
-		// pointing out what turned out to be obvious
-		var toEnts = function(sText) {
-			var sNewText = ""; var iLen = sText.length;
-			for (i=0; i<iLen; i++) {
-				iCode = sText.charCodeAt(i); sNewText += (iCode > 255 ? "&#" + iCode + ";": sText.charAt(i));
-			}
-			return sNewText;
-		}
+		postChunk += "--" + boundary + "\r\nContent-Transfer-Encoding: 8bit\r\nContent-Disposition: form-data; name=\"" + fieldSource
+			+ "\"\r\n\r\n" + (this.mSource ? encoder.Convert(this.mSource) : '') + "\r\n";
 
 		postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldRating
 			+ "\"\r\n\r\n" + this.mRating + "\r\n";
@@ -365,8 +362,8 @@ danbooruUploader.prototype = {
 					.createInstance(Components.interfaces.nsIStringInputStream);
 
 		// required Tags field goes at the end
-		endPostChunk = "\r\n--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldTags
-			+ "\"\r\n\r\n" + /*encodeURIComponent*/(this.mTags) + "\r\n";
+		endPostChunk = "\r\n--" + boundary + "\r\nContent-Transfer-Encoding: 8bit\r\nContent-Disposition: form-data; name=\"" + fieldTags
+			+ "\"\r\n\r\n" + (this.mTags ? encoder.Convert(this.mTags) : '') + "\r\n";
 
 		endPostChunk += "\r\n--" + boundary + "--\r\n";
 
@@ -376,7 +373,7 @@ danbooruUploader.prototype = {
 		// turn it into a MIME stream
 		this.mMimeIS = Components.classes["@mozilla.org/network/mime-input-stream;1"]
 					.createInstance(Components.interfaces.nsIMIMEInputStream);
-		this.mMimeIS.addHeader("Content-Type", "multipart/form-data; boundary="+ boundary, false);
+		this.mMimeIS.addHeader("Content-Type", "multipart/form-data;charset=UTF-8;boundary="+ boundary, false);
 		//mimeIS.addHeader("Cookie", cookieStr, false);
 
 		this.mMimeIS.addContentLength = true;
@@ -570,6 +567,7 @@ danbooruPoster.prototype = {
 						.QueryInterface(Components.interfaces.nsIRequest)
 						.QueryInterface(Components.interfaces.nsIHttpChannel)
 						.QueryInterface(Components.interfaces.nsIUploadChannel);
+		this.mChannel.contentCharset = "UTF-8";
 		this.mChannel.setUploadStream(aDatastream, null, -1);
 		this.mChannel.requestMethod = "POST";
 		this.mChannel.setRequestHeader("X-Danbooru", "no-redirect", false);

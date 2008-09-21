@@ -4,13 +4,15 @@ textbox[type="danbooruac"] {
 	padding: 3px 4px 2px 2px;
 }
 
+/*
 popup[type="danbooru-autocomplete"] {
   -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-result-popup");
   display: -moz-popup !important;
 }
+*/
 
 panel[type="danbooru-autocomplete"] {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-result-popup");
+  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-rich-result-popup");
 }
 
 /* copied from xul.css as a result */
@@ -18,7 +20,7 @@ popup[type="danbooru-autocomplete"][hidden="true"] {
   visibility: hidden;
 }
 
-/* copied from autocomplete.css as a result */
+/* copied from autocomplete.css as a result
 popup[type="danbooru-autocomplete"] {
   border-width: 1px;
   -moz-border-top-colors: ThreeDDarkShadow;
@@ -28,6 +30,7 @@ popup[type="danbooru-autocomplete"] {
   padding: 0;
   background-color: -moz-Field !important;
 }
+*/
 
 panel[type="danbooru-autocomplete"] {
   -moz-appearance: none;
@@ -50,6 +53,22 @@ panel[type="danbooru-autocomplete"] {
 
 .danbooru-autocomplete-treerows {
   -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-treerows");
+}
+
+.danbooru-autocomplete-richlistbox {
+  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-richlistbox");
+  -moz-user-focus: ignore;
+  -moz-appearance: none;
+}
+
+.danbooru-autocomplete-richlistbox > scrollbox {
+  overflow-x: hidden !important;
+}
+
+.danbooru-autocomplete-richlistitem {
+  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-richlistitem");
+  -moz-box-orient: vertical;
+  overflow: -moz-hidden-unscrollable;
 }
 
 .danbooru-autocomplete-tree {

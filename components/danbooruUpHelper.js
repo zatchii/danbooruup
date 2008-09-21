@@ -1,3 +1,4 @@
+// -*- Mode: javascript; tab-width: 8; indent-tabs-mode: t; javascript-indent-level: 8; -*-
 const DANBOORUUPHELPER_CLASSNAME = "danbooruHelperService";
 const DANBOORUUPHELPER_CONTRACTID = "@unbuffered.info/danbooru/helper-service;1";
 const DANBOORUUPHELPER_CID = Components.ID("{d989b279-ba03-4b12-adac-925c7f0c4b9d}");
@@ -392,9 +393,10 @@ this.log(this.browserWindows.length+' after unregistering');
 	//
 	// danbooruSiteAutocompleter
 	//
+	prototype_ver:'',
 	script_src:[],
 	script_ins:'',
-	files: ["chrome://danbooruup/content/extra/prototype.js",
+	files: ["chrome://danbooruup/content/extra/prototype.js", // needs to be first for below
 		"chrome://danbooruup/content/extra/effects.js",
 		"chrome://danbooruup/content/extra/controls.js",
 		"chrome://danbooruup/content/extra/du-autocompleter.js"
@@ -411,6 +413,19 @@ this.log(this.browserWindows.length+' after unregistering');
 			}
 			this.script_ins = this.getContents(ioService.newURI("chrome://danbooruup/content/extra/ac-insert.js",null,null));
 		} catch(x) { Components.utils.reportError(x); }
+
+		var sandbox = new Components.utils.Sandbox('about:blank');
+		// fill sandbox with just enough fake values to get the version from the Prototype object
+		sandbox.window = {};
+		sandbox.document = {
+			evaluate:true,
+			HTMLElement:true,
+			createElement:function (x) new sandbox.Object
+		};
+		sandbox.navigator = {userAgent:'Gecko'};
+		// suppress inevitable error from not being an actual document scope
+		try { Components.utils.evalInSandbox(this.script_src[0], sandbox); } catch(ex) {}
+		this.prototype_ver = sandbox.Prototype.Version;
 	},
 
 	contentLoaded: function (win)
@@ -439,7 +454,7 @@ this.log(this.browserWindows.length+' after unregistering');
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
-				if (winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html$|$)/) || 
+				if (winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html(\?|$)|\?|$)/) ||
 					winUri.filePath.match(/\/post(\/index(\.html)?|\/|$)/) ||
 					winUri.filePath.match(/\/user(\/edit(\.html)?|\/|$)/) ||
 					winUri.filePath.match(/\/tag(\/mass_edit|\/rename|\/edit|_alias|_implication)(\/|$)/)) {
@@ -474,6 +489,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		sandbox.unsafeWindow = unsafeContentWin;
 		sandbox.GM_log = danbooruUpHitch(this, "log");
 		sandbox.danbooruUpSearchTags = danbooruUpHitch(this, "searchTags");
+		sandbox.prototype_ver = this.prototype_ver;
 		sandbox.__proto__ = safeWin;
 
 		// put useful declarations into style array inside sandbox
@@ -544,7 +560,7 @@ this.log(this.browserWindows.length+' after unregistering');
 		    !iid.equals(Ci.danbooruIHelperService) &&
 		    !iid.equals(Ci.nsISupports) &&
 		    !iid.equals(Ci.nsISupportsWeakReference) &&
-    		    !iid.equals(Ci.nsIClassInfo))
+		    !iid.equals(Ci.nsIClassInfo))
 			throw Components.results.NS_ERROR_NO_INTERFACE;
 		return this;
 	},
@@ -678,4 +694,3 @@ function NSGetModule(compMgr, fileSpec)
 {
 	return HelperModule;
 }
-

@@ -36,77 +36,62 @@
 			name="extensions.danbooruUp.suppressComponentAlert"		type="bool"/>
 	</preferences>
 
-	<!--<vbox>
-		<label control="text_postadduri" accesskey="&danbooruUpOptions.posturi.accesskey;"
-			value="&danbooruUpOptions.posturi.label;"/>
-		<textbox id="text_postadduri" preference="postadduri" width="400px"/>
-	</vbox>-->
-
-		<groupbox align="start">
-			<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="pref.extensions.danbooruUp.fileurlsource" />
-			<checkbox id="checkMD5BeforeUpload" label="&danbooruUpOptions.checkMD5BeforeUpload.label;" accesskey="&danbooruUpOptions.checkMD5BeforeUpload.accesskey;" preference="pref.extensions.danbooruUp.checkMD5BeforeUpload" />
-		</groupbox>
-		<groupbox align="start">
-			<caption label="&danbooruUpOptions.toolTipCrop.label;"/>
-			<radiogroup id="cropGroup"
-				onsynctopreference="return gDanbooruManager.changeTooltipCrop();"
-				preference="pref.extensions.danbooruUp.tooltipcrop">
+	<groupbox align="start">
+		<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="pref.extensions.danbooruUp.fileurlsource" />
+		<checkbox id="checkMD5BeforeUpload" label="&danbooruUpOptions.checkMD5BeforeUpload.label;" accesskey="&danbooruUpOptions.checkMD5BeforeUpload.accesskey;" preference="pref.extensions.danbooruUp.checkMD5BeforeUpload" />
+	</groupbox>
+	<groupbox align="start">
+		<caption label="&danbooruUpOptions.toolTipCrop.label;"/>
+		<radiogroup id="cropGroup"
+			    onsynctopreference="return gDanbooruManager.changeTooltipCrop();"
+			    preference="pref.extensions.danbooruUp.tooltipcrop">
 			<radio id="cropStart" value="start"
-				accesskey="&danbooruUpOptions.toolTipCrop.start.accesskey;"
-				label="&danbooruUpOptions.toolTipCrop.start.label;"/>
+			       accesskey="&danbooruUpOptions.toolTipCrop.start.accesskey;"
+			       label="&danbooruUpOptions.toolTipCrop.start.label;"/>
 			<radio id="cropEnd" value="end"
-				accesskey="&danbooruUpOptions.toolTipCrop.end.accesskey;"
-				label="&danbooruUpOptions.toolTipCrop.end.label;"/>
+			       accesskey="&danbooruUpOptions.toolTipCrop.end.accesskey;"
+			       label="&danbooruUpOptions.toolTipCrop.end.label;"/>
 			<radio id="cropCenter" value="center"
-				accesskey="&danbooruUpOptions.toolTipCrop.center.accesskey;"
-				label="&danbooruUpOptions.toolTipCrop.center.label;"/>
+			       accesskey="&danbooruUpOptions.toolTipCrop.center.accesskey;"
+			       label="&danbooruUpOptions.toolTipCrop.center.label;"/>
 			<radio id="cropNone" value="none"
-				accesskey="&danbooruUpOptions.toolTipCrop.none.accesskey;"
-				label="&danbooruUpOptions.toolTipCrop.none.label;"/>
+			       accesskey="&danbooruUpOptions.toolTipCrop.none.accesskey;"
+			       label="&danbooruUpOptions.toolTipCrop.none.label;"/>
 			<radio id="cropNone" value="default"
-				accesskey="&danbooruUpOptions.toolTipCrop.default.accesskey;"
-				label="&danbooruUpOptions.toolTipCrop.default.label;"/>
-			</radiogroup>
-		</groupbox>
-		<groupbox align="start">
-			<caption label="&danbooruUpOptions.hashing.label;"/>
-			<checkbox id="checkMD5"
-				preference="pref.extensions.danbooruUp.hashing.md5"
-				label="&danbooruUpOptions.hashingMD5.label;"/>
-			<checkbox id="checkSHA1"
-				preference="pref.extensions.danbooruUp.hashing.sha1"
-				label="&danbooruUpOptions.hashingSHA1.label;"/>
-		</groupbox>
-		<groupbox align="start">
-			<caption label="&danbooruUpOptions.notifications.label;"/>
-			<checkbox id="checkSuppressComponentAlert"
-				preference="pref.extensions.danbooruUp.suppressComponentAlert"
-				label="&danbooruUpOptions.suppressComponentAlert.label;"/>
-		</groupbox>
+			       accesskey="&danbooruUpOptions.toolTipCrop.default.accesskey;"
+			       label="&danbooruUpOptions.toolTipCrop.default.label;"/>
+		</radiogroup>
+	</groupbox>
+	<groupbox align="start">
+		<caption label="&danbooruUpOptions.hashing.label;"/>
+		<checkbox id="checkMD5"
+			  preference="pref.extensions.danbooruUp.hashing.md5"
+			  label="&danbooruUpOptions.hashingMD5.label;"/>
+		<checkbox id="checkSHA1"
+			  preference="pref.extensions.danbooruUp.hashing.sha1"
+			  label="&danbooruUpOptions.hashingSHA1.label;"/>
+	</groupbox>
+	<groupbox align="start">
+		<caption label="&danbooruUpOptions.notifications.label;"/>
+		<checkbox id="checkSuppressComponentAlert"
+			  preference="pref.extensions.danbooruUp.suppressComponentAlert"
+			  label="&danbooruUpOptions.suppressComponentAlert.label;"/>
+	</groupbox>
 	</prefpane>
 
 	<prefpane id="danbooruUpStylePane" flex="1" label="&danbooruUpOptions.styleTab.label;">
-		<preferences>
-		</preferences>
-		<box>
+	<preferences>
+	</preferences>
+	<box>
 		<hbox flex="1">
 			<vbox id="tagTreeBox" flex="1">
 				<tree anonid="tree" class="danbooru-autocomplete-tree plain"
-						hidecolumnpicker="true" id="tagTree" flex="1" width="300">
+				      hidecolumnpicker="true" id="tagTree" flex="1" width="300">
 					<treecols anonid="treecols">
 						<treecol id="tagTree-type" class="danbooru-autocomplete-treecol" flex="1"/>
 					</treecols>
 					<treechildren id="tagTreeBody" class="danbooru-autocomplete-treebody"/>
 				</tree>
-
-			<!--
-				<tree anonid="tree" class="plain" hidecolumnpicker="true" id="tagTree" flex="1" width="300">
-					<treecols anonid="treecols">
-						<treecol id="tagTree-type" flex="1"/>
-					</treecols>
-					<treechildren id="tagTreeBody" />
-				</tree>
-				-->
 			</vbox>
 			<vbox flex="3">
 				<description>&danbooruUpOptions.style.description;</description>
@@ -121,178 +106,177 @@
 				</hbox>
 			</vbox>
 		</hbox>
-		</box>
+	</box>
 	</prefpane>
 
 	<prefpane id="danbooruUpDanbooruPane" flex="1" label="&danbooruUpOptions.danbooruTab.label;">
-		<preferences>
-		</preferences>
-		<vbox class="contentPane" flex="1">
-			<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>
-			<separator class="thin"/>
-			<label control="url" value="&danbooruUpOptions.posturi.label;"/>
-			<hbox align="start">
-				<textbox id="url" flex="1"
-					accesskey="&danbooruUpOptions.posturi.accesskey;"
-					oninput="gDanbooruManager.onHostInput(event.target);"
-					onkeypress="return gDanbooruManager.onHostKeyPress(event);"/>
-			</hbox>
-			<hbox pack="end">
-				<button id="btnAdd" disabled="true" label="&danbooruUpOptions.add.label;" default="true"
-					oncommand="gDanbooruManager.addDanbooru();"/>
-			</hbox>
-			<separator class="thin"/>
-			<tree id="danbooruTree" flex="1"
-				hidecolumnpicker="true"
-				onkeypress="gDanbooruManager.onDanbooruKeyPress(event);"
-				onselect="gDanbooruManager.onDanbooruSelected();">
-				<treecols>
-					<treecol id="siteCol" label="&danbooruUpOptions.treehead.sitename.label;" flex="3"
-						onclick="gDanbooruManager.onDanbooruSort('rawHost');"/>
-				</treecols>
-				<treechildren/>
-			</tree>
-			<separator class="thin"/>
-			<hbox class="actionButtons" flex="1" align="end">
-				<button id="btnRemoveHost" disabled="true"
-					label="&danbooruUpOptions.removedanbooru.label;"
-					oncommand="gDanbooruManager.onDanbooruDeleted();"/>
-				<spacer flex="1"/>
-			</hbox>
-		</vbox>
-		<spacer flex="1"/>
+	<preferences>
+	</preferences>
+	<vbox class="contentPane" flex="1">
+		<description id="danbooruText">&danbooruUpOptions.danbooruText;</description>
+		<separator class="thin"/>
+		<label control="url" value="&danbooruUpOptions.posturi.label;"/>
+		<hbox align="start">
+			<textbox id="url" flex="1"
+				 accesskey="&danbooruUpOptions.posturi.accesskey;"
+				 oninput="gDanbooruManager.onHostInput(event.target);"
+				 onkeypress="return gDanbooruManager.onHostKeyPress(event);"/>
+		</hbox>
+		<hbox pack="end">
+			<button id="btnAdd" disabled="true" label="&danbooruUpOptions.add.label;" default="true"
+				oncommand="gDanbooruManager.addDanbooru();"/>
+		</hbox>
+		<separator class="thin"/>
+		<tree id="danbooruTree" flex="1"
+		      hidecolumnpicker="true"
+		      onkeypress="gDanbooruManager.onDanbooruKeyPress(event);"
+		      onselect="gDanbooruManager.onDanbooruSelected();">
+			<treecols>
+				<treecol id="siteCol" label="&danbooruUpOptions.treehead.sitename.label;" flex="3"
+					 onclick="gDanbooruManager.onDanbooruSort('rawHost');"/>
+			</treecols>
+			<treechildren/>
+		</tree>
+		<separator class="thin"/>
+		<hbox class="actionButtons" flex="1" align="end">
+			<button id="btnRemoveHost" disabled="true"
+				label="&danbooruUpOptions.removedanbooru.label;"
+				oncommand="gDanbooruManager.onDanbooruDeleted();"/>
+			<spacer flex="1"/>
+		</hbox>
+	</vbox>
+	<spacer flex="1"/>
 	</prefpane>
+
 	<prefpane id="danbooruUpAutocompletePane" flex="1" label="&danbooruUpOptions.autocompleteTab.label;">
-		<preferences>
+	<preferences>
 		<preference id="pref.extensions.danbooruUp.autocomplete.enabled"
-			name="extensions.danbooruUp.autocomplete.enabled"		type="bool" />
+			    name="extensions.danbooruUp.autocomplete.enabled"			type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.site.enabled"
-			name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
+			    name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.altsearch"
-			name="extensions.danbooruUp.autocomplete.altsearch"		type="bool" />
+			    name="extensions.danbooruUp.autocomplete.altsearch"			type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.limit"
-			name="extensions.danbooruUp.autocomplete.limit"			type="int"/>
-		<preference id="pref.extensions.danbooruUp.updateuri"			instantApply="true"
-			name="extensions.danbooruUp.updateuri"				type="string"/>
-		<preference id="pref.extensions.danbooruUp.relatedupdateuri"		instantApply="true"
-			name="extensions.danbooruUp.relatedupdateuri"			type="string"/>
+			    name="extensions.danbooruUp.autocomplete.limit"			type="int"/>
+		<preference id="pref.extensions.danbooruUp.updateuri"				instantApply="true"
+			    name="extensions.danbooruUp.updateuri"				type="string"/>
+		<preference id="pref.extensions.danbooruUp.relatedupdateuri"			instantApply="true"
+			    name="extensions.danbooruUp.relatedupdateuri"			type="string"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.onstartup"
-			name="extensions.danbooruUp.autocomplete.update.onstartup"	type="bool"/>
+			    name="extensions.danbooruUp.autocomplete.update.onstartup"		type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.faststartup"
-			name="extensions.danbooruUp.autocomplete.update.faststartup"	type="bool"/>
+			    name="extensions.danbooruUp.autocomplete.update.faststartup"	type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
-			name="extensions.danbooruUp.autocomplete.update.beforedialog"	type="bool"/>
+			    name="extensions.danbooruUp.autocomplete.update.beforedialog"	type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
-			name="extensions.danbooruUp.autocomplete.update.afterdialog"	type="bool"/>
+			    name="extensions.danbooruUp.autocomplete.update.afterdialog"	type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.ontimer"
-			name="extensions.danbooruUp.autocomplete.update.ontimer"	type="bool"/>
+			    name="extensions.danbooruUp.autocomplete.update.ontimer"		type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.interval"
-			name="extensions.danbooruUp.autocomplete.update.interval"	type="int"/>
-		</preferences>
-		<hbox>
-			<checkbox id="enableAC"
-				label="&danbooruUpOptions.enableAC.label;"
-				accesskey="&danbooruUpOptions.enableAC.accesskey;"
-				preference="pref.extensions.danbooruUp.autocomplete.enabled"
-				onsyncfrompreference="gDanbooruManager.onReadEnableAC();"
-				onsynctopreference="gDanbooruManager.onWriteEnableAC();"/>
+			    name="extensions.danbooruUp.autocomplete.update.interval"		type="int"/>
+	</preferences>
+	<hbox>
+		<checkbox id="enableAC"
+			  label="&danbooruUpOptions.enableAC.label;"
+			  accesskey="&danbooruUpOptions.enableAC.accesskey;"
+			  preference="pref.extensions.danbooruUp.autocomplete.enabled"
+			  onsyncfrompreference="gDanbooruManager.onReadEnableAC();"
+			  onsynctopreference="gDanbooruManager.onWriteEnableAC();"/>
+	</hbox>
+	<hbox>
+		<checkbox id="enableSiteAC"
+			  preference="pref.extensions.danbooruUp.autocomplete.site.enabled"
+			  label="&danbooruUpOptions.enableAC.site.label;"
+			  accesskey="&danbooruUpOptions.enableAC.site.accesskey;"
+			  tooltiptext="&danbooruUpOptions.enableAC.site.tooltip;"
+			  class="indent"/>
+	</hbox>
+	<groupbox>
+		<checkbox id="altSearch" label="&danbooruUpOptions.altSearch.label;" accesskey="&danbooruUpOptions.altSearch.accesskey;" preference="pref.extensions.danbooruUp.autocomplete.altsearch" />
+		<hbox align="center" flex="1">
+			<label control="resultLimit"
+			       value="&danbooruUpOptions.resultLimit.label;"
+			       accesskey="&danbooruUpOptions.resultLimit.accesskey;" align="bottom"/>
+			<textbox id="resultLimit"
+				 preference="pref.extensions.danbooruUp.autocomplete.limit" />
+			<label value="&danbooruUpOptions.matches.label;" />
 		</hbox>
-		<hbox>
-			<checkbox id="enableSiteAC"
-				preference="pref.extensions.danbooruUp.autocomplete.site.enabled"
-				label="&danbooruUpOptions.enableAC.site.label;"
-				accesskey="&danbooruUpOptions.enableAC.site.accesskey;"
-				tooltiptext="&danbooruUpOptions.enableAC.site.tooltip;"
-				class="indent"/>
+	</groupbox>
+	<groupbox>
+		<caption label="&danbooruUpOptions.urlgroup.label;"/>
+		<hbox align="center" flex="1">
+			<label control="updateURL"
+			       value="&danbooruUpOptions.updateURL.label;"
+			       accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
+			<textbox id="updateURL" flex="1"
+				 preference="pref.extensions.danbooruUp.updateuri" />
 		</hbox>
+		<hbox align="center" pack="end">
+			<button id="clearTagHistory"
+				label="&danbooruUpOptions.clearTagHistory.label;"
+				oncommand="gDanbooruManager.clearTagHistory();"/>
+			<button id="updateNow"
+				label="&danbooruUpOptions.updateNow.label;"
+				accesskey="&danbooruUpOptions.updateNow.accesskey;"
+				oncommand="gDanbooruManager.openDownloader('tagupdate')"/>
+			<button id="cleanup"
+				label="&danbooruUpOptions.cleanup.label;"
+				accesskey="&danbooruUpOptions.cleanup.accesskey;"
+				oncommand="gDanbooruManager.openDownloader('tagcleanup')"/>
+		</hbox>
+		<hbox align="center" flex="1">
+			<label control="relatedUpdateURL"
+			       value="&danbooruUpOptions.relatedUpdateURL.label;"
+			       accesskey="&danbooruUpOptions.relatedUpdateURL.accesskey;" align="bottom"/>
+			<textbox id="relatedUpdateURL" flex="1"
+				 preference="pref.extensions.danbooruUp.relatedupdateuri" />
+		</hbox>
+		<hbox align="center" pack="end">
+			<button id="relatedUpdateNow"
+				label="&danbooruUpOptions.relatedUpdateNow.label;"
+				accesskey="&danbooruUpOptions.relatedUpdateNow.accesskey;"
+				oncommand="gDanbooruManager.openDownloader('relatedtagdownload')"/>
+		</hbox>
+	</groupbox>
+	<groupbox align="start">
+		<caption label="&danbooruUpOptions.updategroup.label;"/>
+		<checkbox id="updateOnStartup"
+			  preference="pref.extensions.danbooruUp.autocomplete.update.onstartup"
+			  label="&danbooruUpOptions.updateOnStartup.label;"
+			  accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"
+			  onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();"
+			  onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
+		<checkbox id="fastUpdate"
+			  preference="pref.extensions.danbooruUp.autocomplete.update.faststartup"
+			  label="&danbooruUpOptions.fastUpdate.label;"
+			  accesskey="&danbooruUpOptions.fastUpdate.accesskey;"
+			  tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;"
+			  class="indent"/>
 		<groupbox>
-			<checkbox id="altSearch" label="&danbooruUpOptions.altSearch.label;" accesskey="&danbooruUpOptions.altSearch.accesskey;" preference="pref.extensions.danbooruUp.autocomplete.altsearch" />
-			<hbox align="center" flex="1">
-				<label control="resultLimit"
-					value="&danbooruUpOptions.resultLimit.label;"
-					accesskey="&danbooruUpOptions.resultLimit.accesskey;" align="bottom"/>
-				<textbox id="resultLimit"
-					preference="pref.extensions.danbooruUp.autocomplete.limit" />
-				<label value="&danbooruUpOptions.matches.label;" />
-			</hbox>
+			<caption label="&danbooruUpOptions.updateOnUpload.label;" />
+			<checkbox id="updateBeforeDialog"
+				  preference="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
+				  label="&danbooruUpOptions.updateOnUpload.before.label;"/>
+			<checkbox id="updateAfterDialog"
+				  preference="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
+				  label="&danbooruUpOptions.updateOnUpload.after.label;"
+				  tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
 		</groupbox>
-		<groupbox>
-			<caption label="&danbooruUpOptions.urlgroup.label;"/>
-			<hbox align="center" flex="1">
-				<label control="updateURL"
-					value="&danbooruUpOptions.updateURL.label;"
-					accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
-				<textbox id="updateURL" flex="1"
-					preference="pref.extensions.danbooruUp.updateuri" />
-			</hbox>
-			<hbox align="center" pack="end">
-				<button id="clearTagHistory"
-					label="&danbooruUpOptions.clearTagHistory.label;"
-					oncommand="gDanbooruManager.clearTagHistory();"/>
-				<button id="updateNow"
-					label="&danbooruUpOptions.updateNow.label;"
-					accesskey="&danbooruUpOptions.updateNow.accesskey;"
-					oncommand="gDanbooruManager.openDownloader('tagupdate')"/>
-				<button id="cleanup"
-					label="&danbooruUpOptions.cleanup.label;"
-					accesskey="&danbooruUpOptions.cleanup.accesskey;"
-					oncommand="gDanbooruManager.openDownloader('tagcleanup')"/>
-			</hbox>
-			<hbox align="center" flex="1">
-				<label control="relatedUpdateURL"
-					value="&danbooruUpOptions.relatedUpdateURL.label;"
-					accesskey="&danbooruUpOptions.relatedUpdateURL.accesskey;" align="bottom"/>
-				<textbox id="relatedUpdateURL" flex="1"
-					preference="pref.extensions.danbooruUp.relatedupdateuri" />
-			</hbox>
-			<hbox align="center" pack="end">
-				<button id="relatedUpdateNow"
-					label="&danbooruUpOptions.relatedUpdateNow.label;"
-					accesskey="&danbooruUpOptions.relatedUpdateNow.accesskey;"
-					oncommand="gDanbooruManager.openDownloader('relatedtagdownload')"/>
-			</hbox>
-		</groupbox>
-		<groupbox align="start">
-			<caption label="&danbooruUpOptions.updategroup.label;"/>
-			<checkbox id="updateOnStartup"
-				preference="pref.extensions.danbooruUp.autocomplete.update.onstartup"
-				label="&danbooruUpOptions.updateOnStartup.label;"
-				accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"
-				onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();"
-				onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
-			<checkbox id="fastUpdate"
-				preference="pref.extensions.danbooruUp.autocomplete.update.faststartup"
-				label="&danbooruUpOptions.fastUpdate.label;"
-				accesskey="&danbooruUpOptions.fastUpdate.accesskey;"
-				tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;"
-				class="indent"/>
-			<groupbox>
-				<caption label="&danbooruUpOptions.updateOnUpload.label;" />
-				<checkbox id="updateBeforeDialog"
-					preference="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
-					label="&danbooruUpOptions.updateOnUpload.before.label;"/>
-				<checkbox id="updateAfterDialog"
-					preference="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
-					label="&danbooruUpOptions.updateOnUpload.after.label;"
-					tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
-			</groupbox>
-			<hbox align="center" pack="start">
-				<checkbox id="updateOnTimer"
-					preference="pref.extensions.danbooruUp.autocomplete.update.ontimer"
-					label="&danbooruUpOptions.updateOnTimer.label;"
-					accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"
-					onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();"
-					onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
-				<textbox id="updateInterval"
-					preference="pref.extensions.danbooruUp.autocomplete.update.interval"
-					/>
-				<label value="&danbooruUpOptions.min.label;" />
-			</hbox>
-			<separator class="thick"/>
-		</groupbox>
+		<hbox align="center" pack="start">
+			<checkbox id="updateOnTimer"
+				  preference="pref.extensions.danbooruUp.autocomplete.update.ontimer"
+				  label="&danbooruUpOptions.updateOnTimer.label;"
+				  accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"
+				  onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();"
+				  onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
+			<textbox id="updateInterval"
+				 preference="pref.extensions.danbooruUp.autocomplete.update.interval"/>
+			<label value="&danbooruUpOptions.min.label;" />
+		</hbox>
+		<separator class="thick"/>
+	</groupbox>
 	</prefpane>
 
 	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
 	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 </prefwindow>
-

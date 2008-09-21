@@ -1414,6 +1414,9 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		PRUint32 matchCount;
 		result->GetMatchCount(&matchCount);
 		if (matchCount > 0) {
+#ifdef DEBUG
+			PR_fprintf(PR_STDERR, "search %s matched %d\n", NS_ConvertUTF16toUTF8(aInputName).get(), matchCount);
+#endif
 			result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);
 			result->SetDefaultIndex(0);
 		} else {
