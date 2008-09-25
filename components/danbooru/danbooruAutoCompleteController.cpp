@@ -35,15 +35,15 @@
 
 #ifdef MOZILLA_1_8_BRANCH
 NS_IMPL_ISUPPORTS7(danbooruAutoCompleteController, danbooruIAutoCompleteController,
-                                                   nsIAutoCompleteController,
-                                                   nsIAutoCompleteController_MOZILLA_1_8_BRANCH,
+						   nsIAutoCompleteController,
+						   nsIAutoCompleteController_MOZILLA_1_8_BRANCH,
 						   nsIAutoCompleteObserver,
 						   nsIRollupListener,
 						   nsITimerCallback,
 						   nsITreeView)
 #else
 NS_IMPL_ISUPPORTS5(danbooruAutoCompleteController, danbooruIAutoCompleteController,
-                                                   nsIAutoCompleteController,
+						   nsIAutoCompleteController,
 						   nsIAutoCompleteObserver,
 						   nsITimerCallback,
 						   nsITreeView)
@@ -87,7 +87,9 @@ danbooruAutoCompleteController::GetSearchStatus(PRUint16 *aSearchStatus)
 NS_IMETHODIMP
 danbooruAutoCompleteController::GetMatchCount(PRUint32 *aMatchCount)
 {
-	return mController->GetMatchCount(aMatchCount);
+	// richlistbox wants this, but does it break treeview compatibility?
+	return GetRowCount((PRInt32*)aMatchCount);
+	//return mController->GetMatchCount(aMatchCount);
 }
 
 NS_IMETHODIMP
@@ -233,12 +235,12 @@ danbooruAutoCompleteController::HandleKeyNavigation(PRUint32 aKey, PRBool *_retv
 
 	// doesn't handle completeSelectedIndex, but we don't use that for danbooru AC
 #ifdef MOZILLA_1_8_BRANCH
-	if (   aKey == nsIAutoCompleteController::KEY_LEFT 
-	    || aKey == nsIAutoCompleteController::KEY_RIGHT 
+	if (   aKey == nsIAutoCompleteController::KEY_LEFT
+	    || aKey == nsIAutoCompleteController::KEY_RIGHT
 #ifndef XP_MACOSX
 	    || aKey == nsIAutoCompleteController::KEY_HOME
 #endif
-            )
+	    )
 #else // !defined(MOZILLA_1_8_BRANCH)
 	if (   aKey == nsIDOMKeyEvent::DOM_VK_LEFT
 	    || aKey == nsIDOMKeyEvent::DOM_VK_RIGHT
@@ -311,6 +313,12 @@ danbooruAutoCompleteController::GetCommentAt(PRInt32 aIndex, nsAString & _retval
 	PRInt32 idx;
 	GetParentIndex(aIndex, &idx);
 	if(idx == -1)
+		_retval.Assign(NS_LITERAL_STRING("false"));
+	else
+		_retval.Assign(NS_LITERAL_STRING("true"));
+	return NS_OK;
+#if 0
+	if(idx == -1)
 		return mController->GetCommentAt(aIndex, _retval);
 	danbooruIAutoCompleteArrayResult *result;
 	mRelatedHash.Get(FirstLevelRowIndex(idx), &result);
@@ -325,6 +333,7 @@ danbooruAutoCompleteController::GetCommentAt(PRInt32 aIndex, nsAString & _retval
 	} else {
 		return NS_ERROR_FAILURE;
 	}
+#endif
 }
 
 NS_IMETHODIMP
@@ -884,17 +893,22 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 	GetLevel(index, &level);
 	if(level)
 	{
-		// since we support only one level, toggling while in second level collapses that level
+		// since we support only one level of depth, toggling while in second level collapses that level
 		GetParentIndex(index, &otherIndex);
 		if (mRelatedHash.Get(FirstLevelRowIndex(otherIndex), &result))
 		{
 			result->ToggleOpen();
 			UpdateRowParents(otherIndex);
 			result->GetMatchCount(&count);
-			mTree->RowCountChanged(otherIndex+1, -((PRInt32)count));
-			// move the cursor to the parent
+
 			nsCOMPtr<nsIAutoCompletePopup> popup;
 			mInput->GetPopup(getter_AddRefs(popup));
+
+			if (mTree)
+				mTree->RowCountChanged(otherIndex+1, -((PRInt32)count));
+			else
+				popup->Invalidate();
+			// move the cursor to the parent
 			NS_ENSURE_TRUE(popup != nsnull, NS_ERROR_FAILURE);
 			popup->SetSelectedIndex(otherIndex);
 		} else {
@@ -923,10 +937,16 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 		PR_fprintf(PR_STDERR, "\texisting %d items now %s\n", count, open?"open":"closed");
 	}
 #endif
-		if(open)
-			mTree->RowCountChanged(index + 1, count);
-		else
-			mTree->RowCountChanged(index + 1, -((PRInt32)count));
+		if(mTree) {
+			if(open)
+				mTree->RowCountChanged(index + 1, count);
+			else
+				mTree->RowCountChanged(index + 1, -((PRInt32)count));
+		} else {
+			nsCOMPtr<nsIAutoCompletePopup> popup;
+			mInput->GetPopup(getter_AddRefs(popup));
+			popup->Invalidate();
+		}
 	} else {
 		// new search
 		nsresult rv;
@@ -959,7 +979,13 @@ danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 		PR_fprintf(PR_STDERR, "\tadding %d items\n", count);
 	}
 #endif
-			mTree->RowCountChanged(index + 1, count);
+			if(mTree) {
+				mTree->RowCountChanged(index + 1, count);
+			} else {
+				nsCOMPtr<nsIAutoCompletePopup> popup;
+				mInput->GetPopup(getter_AddRefs(popup));
+				popup->Invalidate();
+			}
 		} else {
 			if (result)
 				NS_RELEASE(result);
@@ -1235,4 +1261,3 @@ danbooruAutoCompleteController::EnterMatch(PRBool aIsPopupSelection)
 
 	return NS_OK;
 }
-

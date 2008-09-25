@@ -54,9 +54,7 @@ REQUIRES =	\
 		string \
 		dom \
 		xpconnect \
-		js \
 		necko \
-		caps \
 		xmlextras \
 		storage \
 		layout \
@@ -117,52 +115,18 @@ include $(topsrcdir)/config/config.mk
 
 # EXTRA_COMPONENTS installs components written JavaScript to
 # dist/bin/components
-EXTRA_COMPONENTS = 
+EXTRA_COMPONENTS =
 #nsSample.js
+
+#DEFINES += -DDANBOORUUP_TESTING
+
+include $(topsrcdir)/config/rules.mk
 
 # EXTRA_DSO_LDOPTS specifies linker flags when building a shared library
 # from this Makefile. We link against the "dependent glue" and against the
 # frozen XPCOM shared library.
-
-# unicharutil_external is a 1,9 glue thing
-# Similarly, nsVoidArray isn't in the xpcom glue in 1.8
-ifneq (1,$(MOZILLA_1_8_BRANCH))
-UNICHARUTIL_LIB = $(DIST)/lib/$(LIB_PREFIX)unicharutil_external_s.$(LIB_SUFFIX)
-XPCOM_CORE_LIB =
-else
-UNICHARUTIL_LIB = $(DIST)/lib/$(LIB_PREFIX)unicharutil_s.$(LIB_SUFFIX)
-XPCOM_CORE_LIB = $(MOZ_COMPONENT_LIBS)
-endif
-
 EXTRA_DSO_LDOPTS = \
-		$(UNICHARUTIL_LIB) \
-		$(DIST)/lib/$(LIB_PREFIX)xpcomglue_s.$(LIB_SUFFIX) \
-		$(XPCOM_FROZEN_LDOPTS) \
+		$(call EXPAND_LIBNAME_PATH,unicharutil_external_s,$(LIBXUL_DIST)/lib) \
+		$(XPCOM_GLUE_LDOPTS) \
 		$(NSPR_LIBS) \
-		$(XPCOM_CORE_LIB) \
 		$(NULL)
-
-# XXXNOTE: We should be using XPCOM_FROZEN_LDOPTS instead of
-# MOZ_COMPONENT_LIBS, but that doesn't work on mac xcode < 1.5 and
-# on some other ports yet. Soon!
-#		$(XPCOM_FROZEN_LDOPTS) \
-#		$(NSPR_LIBS) \
-
-
-# Need to link with CoreFoundation on Mac
-ifneq (,$(filter mac cocoa,$(MOZ_WIDGET_TOOLKIT)))
-EXTRA_DSO_LDOPTS += \
-		$(TK_LIBS) \
-		$(NULL)
-endif
-
-include $(topsrcdir)/config/rules.mk
-
-#DEFINES += -DDANBOORUUP_TESTING
-
-libs:: $(TARGETS)
-#	$(INSTALL) $(srcdir)/xpconnect-sample.html $(DIST)/bin/res/samples
-
-install:: $(TARGETS)
-#	$(SYSINSTALL) $(IFLAGS1) $(srcdir)/xpconnect-sample.html $(DESTDIR)$(mozappdir)/res/samples
-

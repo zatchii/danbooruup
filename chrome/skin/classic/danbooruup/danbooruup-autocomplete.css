@@ -1,36 +1,20 @@
+/* styles for XUL autocomplete parts */
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+@namespace html url("http://www.w3.org/1999/xhtml");
+
 /* bindings are mostly to separate danbooru CSS classes from the mozilla ones */
 textbox[type="danbooruac"] {
 	-moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooruac") !important;
 	padding: 3px 4px 2px 2px;
 }
 
-/*
-popup[type="danbooru-autocomplete"] {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-result-popup");
-  display: -moz-popup !important;
-}
-*/
-
+/* swap the commented lines to use the old treeview popup */
 panel[type="danbooru-autocomplete"] {
   -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-rich-result-popup");
+/*-moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-result-popup"); */
 }
 
-/* copied from xul.css as a result */
-popup[type="danbooru-autocomplete"][hidden="true"] {
-  visibility: hidden;
-}
-
-/* copied from autocomplete.css as a result
-popup[type="danbooru-autocomplete"] {
-  border-width: 1px;
-  -moz-border-top-colors: ThreeDDarkShadow;
-  -moz-border-right-colors: ThreeDDarkShadow;
-  -moz-border-bottom-colors: ThreeDDarkShadow;
-  -moz-border-left-colors: ThreeDDarkShadow;
-  padding: 0;
-  background-color: -moz-Field !important;
-}
-*/
+/* copied from autocomplete.css as a result */
 
 panel[type="danbooru-autocomplete"] {
   -moz-appearance: none;
@@ -71,6 +55,23 @@ panel[type="danbooru-autocomplete"] {
   overflow: -moz-hidden-unscrollable;
 }
 
+.danbooru-autocomplete-richlistitem[selected="true"] {
+  background-color: Highlight;
+  color: HighlightText;
+}
+
+html|span.danbooru-ac-emphasize-text {
+  font-weight: bold;
+}
+
+html|span.danbooru-ac-emphasize-alt {
+  text-decoration: underline;
+}
+
+.danbooru-ac-spacer {
+  width: 1em;
+}
+
 .danbooru-autocomplete-tree {
   -moz-appearance: none !important;
   border: none !important;
@@ -102,4 +103,3 @@ treechildren.danbooru-autocomplete-treebody::-moz-tree-row(selected) {
 treechildren.danbooru-autocomplete-treebody::-moz-tree-cell-text(selected) {
   color: HighlightText;
 }
-

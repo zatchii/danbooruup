@@ -1,3 +1,4 @@
+// -*- Mode: javascript; tab-width: 8; indent-tabs-mode: t; javascript-indent-level: 8; -*-
 // insert our prototype and scriptaculous scripts into the page
 // vim:set encoding=utf-8:
 const RETRY_INTERVAL = 100;
@@ -27,16 +28,22 @@ function doAutocompleteInsertion()
 // the custom selector function for the Autocompleter
 function tagSelector(instance) {
 	var ret = [];
-	var entry	= instance.getToken();
+	var entry = instance.getToken();
 	var tags = [];
 	var result;
 
-	entry = entry.replace(/\\/g, '\\\\');
-	entry = entry.replace(/_/g, '\\_');
+	// fixup input for search query
+	entry = entry.replace(/\\/g, '\\\\')
+			.replace(/_/g, '\\_');
 	if (entry.indexOf('*') == -1)
-		entry += '%';
-	else
+	{
+		if (altsearch)
+			entry = '%' + entry.split('').join('%') + '%';
+		else
+			entry += '%';
+	} else {
 		entry = entry.replace(/\*/g, '%');
+	}
 
 	if (instance.options.isSearchField &&
 		(entry[0] == '-' || entry[0] == '~')
@@ -52,12 +59,12 @@ function tagSelector(instance) {
 	var count = Math.min(instance.options.choices, result.getMatchCount());
 
 	// div is for html escaping tag names
-	var div = document.createElement("div");
-	var text = document.createTextNode('');
-	div.appendChild(text);
+	var tagdiv = document.createElement("div");
+	var tagtext = document.createTextNode('');
+	tagdiv.appendChild(tagtext);
 	for(var i=0; i<count; i++) {
-		text.textContent = result.getValueAt(i);
-		tags.push("<li><span class=\""+ result.getStyleAt(i) + "\">" + div.innerHTML + "</span></li>");
+		tagtext.textContent = result.getValueAt(i);
+		tags.push("<li><span class=\""+ result.getStyleAt(i) + "\">" + tagdiv.innerHTML + "</span></li>");
 	}
 	delete result;
 
@@ -213,4 +220,3 @@ function attemptAutocompleteInsertion()
 	}
 }
 setTimeout(attemptAutocompleteInsertion, RETRY_INTERVAL);
-

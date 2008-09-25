@@ -1,3 +1,4 @@
+// -*- Mode: javascript; tab-width: 8; indent-tabs-mode: t; javascript-indent-level: 8; -*-
 // applies custom CSS for tag types to XUL windows
 
 function danbooruAddTagTypeStyleSheet() {
@@ -36,12 +37,14 @@ function danbooruAddTagTypeStyleSheet() {
 	// construct rules
 	for(var i=0, head, rule; i<TAGTYPE_COUNT; i++) {
 		head = selector + "::-moz-tree-cell-text(danbooru-tag-type-" + i + sid + ", " + column;
+		css += head + "), description.danbooru-tag-type-" + i
 
 		rule = getStyle(i).replace(/[{}]/g, '');
-		css += head + ")\n{\n" + rule + "\n}\n";
+		css += "\n{\n" + rule + "\n}\n";
 
 		rule = getStyle(i+".selected").replace(/[{}]/g, '');
-		css += head + ", selected)\n{\n" + rule + "\n}\n";
+		css += head + ", selected), description.danbooru-tag-type-" + i + "[selected=\"true\"]";
+		css += "\n{\n" + rule + "\n}\n";
 	}
 
 	//css += selector + "::-moz-tree-cell-text\n{\n-moz-padding-start: "+gDanbooruManager.getSID()+"px !important;\n}\n";

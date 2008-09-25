@@ -28,10 +28,10 @@ function __log(msg) {
 	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).logStringMessage(msg);
 }
 
-Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
-	.loadSubScript("chrome://danbooruup/content/utils.js");
-Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)
-	.loadSubScript("chrome://danbooruup/content/uploader.js");
+let (loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].getService(Ci.mozIJSSubScriptLoader)) {
+	loader.loadSubScript("chrome://danbooruup/content/utils.js");
+	loader.loadSubScript("chrome://danbooruup/content/uploader.js");
+}
 
 ResultWrapper = function(result) { this._result = result; }
 ResultWrapper.prototype = {
@@ -438,7 +438,6 @@ this.log(this.browserWindows.length+' after unregistering');
 
 		var unsafeWin = win.wrappedJSObject;
 		var unsafeLoc = new XPCNativeWrapper(unsafeWin, "location").location;
-		var protocol = new XPCNativeWrapper(unsafeLoc, "protocol").protocol;
 		var href = new XPCNativeWrapper(unsafeLoc, "href").href;
 		// to shut up the complaint about the following QI in the case of about:blank and such
 		var scheme = ioService.extractScheme(href);
@@ -489,8 +488,9 @@ this.log(this.browserWindows.length+' after unregistering');
 		sandbox.unsafeWindow = unsafeContentWin;
 		sandbox.GM_log = danbooruUpHitch(this, "log");
 		sandbox.danbooruUpSearchTags = danbooruUpHitch(this, "searchTags");
-		sandbox.prototype_ver = this.prototype_ver;
+		sandbox.prototype_ver = new sandbox.String(this.prototype_ver);
 		sandbox.__proto__ = safeWin;
+		sandbox.altsearch = this._branch.getBoolPref('autocomplete.altsearch');
 
 		// put useful declarations into style array inside sandbox
 		const TAGTYPE_COUNT = 5;
@@ -501,10 +501,10 @@ this.log(this.browserWindows.length+' after unregistering');
 		for(let i=0, rule; i<TAGTYPE_COUNT; i++) {
 			rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
 			rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
-			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
+			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ btoa(rule) +"');", sandbox);
 			rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
 			rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
-			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ safeWin.btoa(rule) +"');", sandbox);
+			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ btoa(rule) +"');", sandbox);
 		}
 
 		try {

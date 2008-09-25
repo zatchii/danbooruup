@@ -316,6 +316,25 @@ danbooruTagHistoryService::Init()
 	if (service)
 	  service->AddObserver(this, DANBOORUPROCESSTAGS_TOPIC, PR_TRUE);
 
+  if (!gPrefsInitialized) {
+    nsCOMPtr<nsIPrefService> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
+
+    prefService->GetBranch(PREF_DANBOORUUP_AC_BRANCH,
+                           getter_AddRefs(gTagHistory->mPrefBranch));
+    gTagHistory->mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ENABLE,
+                                           &gTagHistoryEnabled);
+		gTagHistory->mPrefBranch->GetIntPref(PREF_DANBOORUUP_AC_LIMIT, &gSearchLimit);
+		gTagHistory->mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ALTSEARCH, &gAltSearch);
+
+    nsCOMPtr<nsIPrefBranch2> branchInternal =
+      do_QueryInterface(gTagHistory->mPrefBranch);
+    branchInternal->AddObserver(PREF_DANBOORUUP_AC_ENABLE, gTagHistory, PR_TRUE);
+    branchInternal->AddObserver(PREF_DANBOORUUP_AC_LIMIT, gTagHistory, PR_TRUE);
+    branchInternal->AddObserver(PREF_DANBOORUUP_AC_ALTSEARCH, gTagHistory, PR_TRUE);
+
+    gPrefsInitialized = PR_TRUE;
+  }
+
 	return NS_OK;
 }
 
@@ -343,25 +362,6 @@ danbooruTagHistoryService::GetInstance()
 /* static */ PRBool
 danbooruTagHistoryService::TagHistoryEnabled()
 {
-  if (!gPrefsInitialized) {
-    nsCOMPtr<nsIPrefService> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
-
-    prefService->GetBranch(PREF_DANBOORUUP_AC_BRANCH,
-                           getter_AddRefs(gTagHistory->mPrefBranch));
-    gTagHistory->mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ENABLE,
-                                           &gTagHistoryEnabled);
-		gTagHistory->mPrefBranch->GetIntPref(PREF_DANBOORUUP_AC_LIMIT, &gSearchLimit);
-		gTagHistory->mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ALTSEARCH, &gAltSearch);
-
-    nsCOMPtr<nsIPrefBranch2> branchInternal =
-      do_QueryInterface(gTagHistory->mPrefBranch);
-    branchInternal->AddObserver(PREF_DANBOORUUP_AC_ENABLE, gTagHistory, PR_TRUE);
-    branchInternal->AddObserver(PREF_DANBOORUUP_AC_LIMIT, gTagHistory, PR_TRUE);
-    branchInternal->AddObserver(PREF_DANBOORUUP_AC_ALTSEARCH, gTagHistory, PR_TRUE);
-
-    gPrefsInitialized = PR_TRUE;
-  }
-
   return gTagHistoryEnabled;
 }
 
