@@ -993,7 +993,6 @@
 	    this.setAttribute("width", width > 100 ? width : 100);
 	    // invalidate() depends on the width attribute
 	    this._invalidate();
-
 	    // setConsumeRollupEvent() before we call openPopup()
 	    var nsIPopupBO = Components.interfaces.nsIPopupBoxObject;
 	    this.popupBoxObject.setConsumeRollupEvent(
@@ -1074,7 +1073,7 @@
 	    height = lastRowShown.boxObject.y + lastRowShown.boxObject.height -
 	      rows[0].boxObject.y;
 	  }
-dump("adjustHeight: height "+height+" rows "+rows.length+" maxRows "+this.maxRows+" matchCount "+this._matchCount+"\n");
+
 	  // Only update the height if we have a non-zero height and if it
 	  // changed (the richlistbox is collapsed if there are no results)
 	  if (height && height != this.richlistbox.height)

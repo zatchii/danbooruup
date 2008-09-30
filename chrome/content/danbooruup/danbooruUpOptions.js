@@ -494,7 +494,6 @@ var gDanbooruManager = {
 
     var pbi = Components.classes["@mozilla.org/preferences-service;1"]
 	      .getService(Components.interfaces.nsIPrefBranch);
-    pbi.setCharPref("extensions.danbooruUp.tooltipcrop", document.getElementById("cropGroup").value);
 
     var sbranch = pbi.getBranch("extensions.danbooruUp.tagtype.");
     for(var i=0; i<TAGTYPE_COUNT; i++)
@@ -599,73 +598,77 @@ var gDanbooruManager = {
   },
 
   // checkbox functions
-  onWriteEnableAC: function ()
+
+  readCheckMD5BeforeUpload: function ()
   {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
-    return pref.value;
+    this.checkMD5BeforeUploadChanged();
+    return undefined;
+  },
+
+  checkMD5BeforeUploadChanged: function ()
+  {
+    var pref = document.getElementById("pref.extensions.danbooruUp.checkMD5BeforeUpload");
+    var box = document.getElementById("updateTagsOnDuplicate");
+    box.disabled = !pref.value;
   },
 
   onReadEnableAC: function ()
   {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
-    this.onEnableACChanged(pref.value);
-    return pref.value;
+    this.onEnableACChanged();
+    return undefined;
   },
 
-  onEnableACChanged: function (aWhat)
+  onEnableACChanged: function ()
   {
-    var pref = document.getElementById("enableAC");
+    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
     var elements = [	"enableSiteAC",
+			"altSearch",
+			"resultLimit",
 			"updateURL",
 			"clearTagHistory",
 			"updateNow",
+			"cleanup",
+			"relatedUpdateURL",
+			"relatedUpdateNow",
 			"updateOnStartup",
 			"fastUpdate",
 			"updateBeforeDialog",
 			"updateAfterDialog",
 			"updateOnTimer",
-			"updateInterval",];
+			"updateInterval"];
     for (let i=0; i<elements.length; i++) {
-      document.getElementById(elements[i]).disabled = !aWhat;
+      document.getElementById(elements[i]).disabled = !pref.value;
     }
-    if (aWhat) {
+    if (pref.value) {
       this.onReadUpdateOnStartup();
       this.onReadUpdateOnTimer();
     }
   },
 
-  onWriteUpdateOnStartup: function ()
+  onReadUpdateOnStartup: function ()
   {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.onstartup");
-    return pref.value;
+    this.onReadUpdateOnStartupChanged();
+    return undefined;
   },
 
-  onReadUpdateOnStartup: function ()
+  onUpdateOnStartupChanged: function ()
   {
     var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.onstartup");
     var box = document.getElementById("fastUpdate");
     box.disabled = !pref.value;
-    return pref.value;
-  },
-
-  onWriteUpdateOnTimer: function ()
-  {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.ontimer");
-    return pref.value;
   },
 
   onReadUpdateOnTimer: function ()
   {
+    this.onUpdateOnTimerChanged();
+    return undefined;
+  },
+
+  onUpdateOnTimerChanged: function ()
+  {
     var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.ontimer");
     var box = document.getElementById("updateInterval");
     box.disabled = !pref.value;
-    return pref.value;
-  },
-
-  changeTooltipCrop: function ()
-  {
-    var grp = document.getElementById("cropGroup");
-    return grp.value;
   },
 
   _loadDanbooru: function ()

@@ -33,8 +33,13 @@ function tagSelector(instance) {
 	var result;
 
 	// fixup input for search query
-	entry = entry.replace(/\\/g, '\\\\')
-			.replace(/_/g, '\\_');
+	if (instance.options.isSearchField &&
+		(entry[0] == '-' || entry[0] == '~')
+		)
+	{
+		entry = entry.substr(1);
+	}
+
 	if (entry.indexOf('*') == -1)
 	{
 		if (altsearch)
@@ -45,12 +50,8 @@ function tagSelector(instance) {
 		entry = entry.replace(/\*/g, '%');
 	}
 
-	if (instance.options.isSearchField &&
-		(entry[0] == '-' || entry[0] == '~')
-		)
-	{
-		entry = entry.substr(1);
-	}
+	entry = entry.replace(/\\/g, '\\\\')
+			.replace(/_/g, '\\_');
 
 	result = danbooruUpSearchTags(entry, instance.options.choices);
 

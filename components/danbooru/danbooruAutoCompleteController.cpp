@@ -127,7 +127,14 @@ danbooruAutoCompleteController::HandleText(PRBool aIgnoreSelection)
 #ifdef DEBUG
 	{
 		nsString text;
+		PRUint32 rc;
+		PRInt32 start, end;
 		PR_fprintf(PR_STDERR, "handletext new\t%s\n\told %s\n", NS_ConvertUTF16toUTF8(newValue).get(), NS_ConvertUTF16toUTF8(mSearchString).get());
+		mController->GetMatchCount(&rc);
+		nsCOMPtr<nsIAutoCompleteInput> input(mInput);
+		input->GetSelectionStart(&start);
+		input->GetSelectionEnd(&end);
+		PR_fprintf(PR_STDERR, "\tmInput %08X\tmController rowCount %d\n\tstart %d end %d len %d\n", mInput, rc, newValue.Length());
 	}
 #endif
 		// always void the tree arrays
@@ -794,7 +801,7 @@ danbooruAutoCompleteController::GetParentIndex(PRInt32 rowIndex, PRInt32 *_retva
 {
 	InitRowParents();
 	*_retval = mRowParents[rowIndex];
-#ifdef DEBUG
+#if 0
 	{
 		PR_fprintf(PR_STDERR, "?   parent of %d (baseidx %d) is %d\n", rowIndex, mRootIndexes[rowIndex], mRowParents[rowIndex]);
 	}
@@ -874,6 +881,9 @@ danbooruAutoCompleteController::HasNextSibling(PRInt32 rowIndex, PRInt32 afterIn
 NS_IMETHODIMP
 danbooruAutoCompleteController::ToggleOpenState(PRInt32 index)
 {
+	if (index < 0)
+		return NS_OK;
+
 #ifdef DEBUG
 	{
 		char q[256];

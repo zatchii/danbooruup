@@ -169,26 +169,7 @@ this.log(this.browserWindows.length+' after unregistering');
 			break;
 		case "nsPref:changed":
 			this.startTimer();
-			this.setTooltipCrop();
 			break;
-		}
-	},
-	setTooltipCrop: function()
-	{
-		var cropping = this._branch.getCharPref("tooltipcrop");
-		var wm = Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator);
-		var en = wm.getEnumerator("navigator:browser");
-
-		// hackish, but setting it to an empty string is equivalent to "none"
-		if (cropping == "default") cropping = 'end';
-
-		// loop through all browser windows and change crop attribute
-		while (en.hasMoreElements())
-		{
-			var w = en.getNext();
-			if (w.document.getElementById("aHTMLTooltip")) {
-				w.document.getElementById("aHTMLTooltip").setAttribute("crop",cropping);
-			}
 		}
 	},
 	startTimer: function()
@@ -472,9 +453,9 @@ this.log(this.browserWindows.length+' after unregistering');
 
 	searchTags: function (s, l)
 	{
-		res = Cc["@unbuffered.info/danbooru/taghistory-service;1"]
+		var res = Cc["@unbuffered.info/danbooru/taghistory-service;1"]
 			.getService(Ci.danbooruITagHistoryService).searchTags(s, l);
-		wrap = new ResultWrapper(res);
+		var wrap = new ResultWrapper(res);
 		return wrap;
 	},
 
@@ -556,13 +537,13 @@ this.log(this.browserWindows.length+' after unregistering');
 	// XPCOM Glue stuff
 	QueryInterface: function(iid)
 	{
-		if (!iid.equals(Ci.nsIObserver) &&
-		    !iid.equals(Ci.danbooruIHelperService) &&
-		    !iid.equals(Ci.nsISupports) &&
-		    !iid.equals(Ci.nsISupportsWeakReference) &&
-		    !iid.equals(Ci.nsIClassInfo))
-			throw Components.results.NS_ERROR_NO_INTERFACE;
-		return this;
+		if (iid.equals(Ci.nsIObserver) ||
+		    iid.equals(Ci.danbooruIHelperService) ||
+		    iid.equals(Ci.nsISupports) ||
+		    iid.equals(Ci.nsISupportsWeakReference) ||
+		    iid.equals(Ci.nsIClassInfo))
+			return this;
+		throw Components.results.NS_ERROR_NO_INTERFACE;
 	},
 
 	get wrappedJSObject() { return this; },

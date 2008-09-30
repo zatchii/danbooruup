@@ -1341,7 +1341,8 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 	if (aPrevResult && (FindChar(aInputName, '*') == -1) && !gAltSearch) {
 		result = aPrevResult;
 
-		PRUint32 rowCount;
+		PRUint32 rowCount, newCount;
+		PRInt32 lastRetained = -1;
 		result->GetMatchCount(&rowCount);
 		for (PRInt32 i = rowCount-1; i >= 0; --i) {
 			nsString name;
@@ -1360,17 +1361,24 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 #endif
 
 #ifdef MOZILLA_1_8_BRANCH
-			if (!Equals(aInputName, sub, CaseInsensitiveCompare))
+			if (!Equals(aInputName, sub, CaseInsensitiveCompare)) {
 #else
-			if (!aInputName.Equals(sub, CaseInsensitiveCompare))
+			if (!aInputName.Equals(sub, CaseInsensitiveCompare)) {
 #endif
 				result->RemoveValueAt(i, PR_FALSE);
+			} else {
+				lastRetained = i;
+			}
 		}
+		// if the only retained tags are at the end of the list (and thus possibly truncated by maxresults)
+		// then we need to do a full search
+		result->GetMatchCount(&newCount);
+		if(rowCount-newCount == lastRetained)
+			goto newSearch;
 	} else {
+newSearch:
 		result = do_CreateInstance(DANBOORU_AUTOCOMPLETEARRAYRESULT_CONTRACTID);
-
-		if (result == nsnull) // nande da yo
-			return NS_ERROR_FAILURE;
+		NS_ENSURE_TRUE(result != nsnull, NS_ERROR_FAILURE);
 
 		result->SetSearchString(aInputName);
 

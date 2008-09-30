@@ -25,9 +25,10 @@
 		<preference id="pref.extensions.danbooruUp.fileurlsource"
 			name="extensions.danbooruUp.fileurlsource"			type="bool"/>
 		<preference id="pref.extensions.danbooruUp.checkMD5BeforeUpload"
+			onsyncfrompreference="return gDanbooruManager.checkMD5BeforeUploadChanged();"
 			name="extensions.danbooruUp.checkMD5BeforeUpload"		type="bool"/>
-		<preference id="pref.extensions.danbooruUp.tooltipcrop"
-			name="extensions.danbooruUp.tooltipcrop"			type="string"/>
+		<preference id="pref.extensions.danbooruUp.updateTagsOnDuplicate"
+			name="extensions.danbooruUp.updateTagsOnDuplicate"		type="bool"/>
 		<preference id="pref.extensions.danbooruUp.hashing.md5"
 			name="extensions.danbooruUp.hashing.md5"			type="bool"/>
 		<preference id="pref.extensions.danbooruUp.hashing.sha1"
@@ -38,29 +39,16 @@
 
 	<groupbox align="start">
 		<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="pref.extensions.danbooruUp.fileurlsource" />
-		<checkbox id="checkMD5BeforeUpload" label="&danbooruUpOptions.checkMD5BeforeUpload.label;" accesskey="&danbooruUpOptions.checkMD5BeforeUpload.accesskey;" preference="pref.extensions.danbooruUp.checkMD5BeforeUpload" />
-	</groupbox>
-	<groupbox align="start">
-		<caption label="&danbooruUpOptions.toolTipCrop.label;"/>
-		<radiogroup id="cropGroup"
-			    onsynctopreference="return gDanbooruManager.changeTooltipCrop();"
-			    preference="pref.extensions.danbooruUp.tooltipcrop">
-			<radio id="cropStart" value="start"
-			       accesskey="&danbooruUpOptions.toolTipCrop.start.accesskey;"
-			       label="&danbooruUpOptions.toolTipCrop.start.label;"/>
-			<radio id="cropEnd" value="end"
-			       accesskey="&danbooruUpOptions.toolTipCrop.end.accesskey;"
-			       label="&danbooruUpOptions.toolTipCrop.end.label;"/>
-			<radio id="cropCenter" value="center"
-			       accesskey="&danbooruUpOptions.toolTipCrop.center.accesskey;"
-			       label="&danbooruUpOptions.toolTipCrop.center.label;"/>
-			<radio id="cropNone" value="none"
-			       accesskey="&danbooruUpOptions.toolTipCrop.none.accesskey;"
-			       label="&danbooruUpOptions.toolTipCrop.none.label;"/>
-			<radio id="cropNone" value="default"
-			       accesskey="&danbooruUpOptions.toolTipCrop.default.accesskey;"
-			       label="&danbooruUpOptions.toolTipCrop.default.label;"/>
-		</radiogroup>
+		<checkbox id="checkMD5BeforeUpload"
+			  label="&danbooruUpOptions.checkMD5BeforeUpload.label;"
+			  accesskey="&danbooruUpOptions.checkMD5BeforeUpload.accesskey;"
+			  preference="pref.extensions.danbooruUp.checkMD5BeforeUpload"
+			  onsyncfrompreference="return gDanbooruManager.readCheckMD5BeforeUpload();"/>
+		<checkbox id="updateTagsOnDuplicate"
+			  label="&danbooruUpOptions.updateTagsOnDuplicate.label;"
+			  accesskey="&danbooruUpOptions.updateTagsOnDuplicate.accesskey;"
+			  preference="pref.extensions.danbooruUp.updateTagsOnDuplicate"
+			  class="indent"/>
 	</groupbox>
 	<groupbox align="start">
 		<caption label="&danbooruUpOptions.hashing.label;"/>
@@ -151,6 +139,7 @@
 	<prefpane id="danbooruUpAutocompletePane" flex="1" label="&danbooruUpOptions.autocompleteTab.label;">
 	<preferences>
 		<preference id="pref.extensions.danbooruUp.autocomplete.enabled"
+			    onsyncfrompreference="return gDanbooruManager.onEnableACChanged();"
 			    name="extensions.danbooruUp.autocomplete.enabled"			type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.site.enabled"
 			    name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
@@ -163,6 +152,7 @@
 		<preference id="pref.extensions.danbooruUp.relatedupdateuri"			instantApply="true"
 			    name="extensions.danbooruUp.relatedupdateuri"			type="string"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.onstartup"
+			    onsyncfrompreference="return gDanbooruManager.onUpdateOnStartupChanged();"
 			    name="extensions.danbooruUp.autocomplete.update.onstartup"		type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.faststartup"
 			    name="extensions.danbooruUp.autocomplete.update.faststartup"	type="bool"/>
@@ -171,6 +161,7 @@
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
 			    name="extensions.danbooruUp.autocomplete.update.afterdialog"	type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.ontimer"
+			    onsyncfrompreference="return gDanbooruManager.onUpdateOnTimerChanged();"
 			    name="extensions.danbooruUp.autocomplete.update.ontimer"		type="bool"/>
 		<preference id="pref.extensions.danbooruUp.autocomplete.update.interval"
 			    name="extensions.danbooruUp.autocomplete.update.interval"		type="int"/>
@@ -180,8 +171,7 @@
 			  label="&danbooruUpOptions.enableAC.label;"
 			  accesskey="&danbooruUpOptions.enableAC.accesskey;"
 			  preference="pref.extensions.danbooruUp.autocomplete.enabled"
-			  onsyncfrompreference="gDanbooruManager.onReadEnableAC();"
-			  onsynctopreference="gDanbooruManager.onWriteEnableAC();"/>
+			  onsyncfrompreference="gDanbooruManager.onReadEnableAC();"/>
 	</hbox>
 	<hbox>
 		<checkbox id="enableSiteAC"
@@ -244,8 +234,7 @@
 			  preference="pref.extensions.danbooruUp.autocomplete.update.onstartup"
 			  label="&danbooruUpOptions.updateOnStartup.label;"
 			  accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"
-			  onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();"
-			  onsynctopreference="gDanbooruManager.onWriteUpdateOnStartup();"/>
+			  onsyncfrompreference="gDanbooruManager.onReadUpdateOnStartup();"/>
 		<checkbox id="fastUpdate"
 			  preference="pref.extensions.danbooruUp.autocomplete.update.faststartup"
 			  label="&danbooruUpOptions.fastUpdate.label;"
@@ -267,8 +256,7 @@
 				  preference="pref.extensions.danbooruUp.autocomplete.update.ontimer"
 				  label="&danbooruUpOptions.updateOnTimer.label;"
 				  accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"
-				  onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();"
-				  onsynctopreference="gDanbooruManager.onWriteUpdateOnTimer();"/>
+				  onsyncfrompreference="gDanbooruManager.onReadUpdateOnTimer();"/>
 			<textbox id="updateInterval"
 				 preference="pref.extensions.danbooruUp.autocomplete.update.interval"/>
 			<label value="&danbooruUpOptions.min.label;" />
