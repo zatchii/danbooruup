@@ -134,7 +134,7 @@ danbooruAutoCompleteController::HandleText(PRBool aIgnoreSelection)
 		nsCOMPtr<nsIAutoCompleteInput> input(mInput);
 		input->GetSelectionStart(&start);
 		input->GetSelectionEnd(&end);
-		PR_fprintf(PR_STDERR, "\tmInput %08X\tmController rowCount %d\n\tstart %d end %d len %d\n", mInput, rc, newValue.Length());
+		PR_fprintf(PR_STDERR, "\tmInput %d\tmController rowCount %d\n\tstart %d end %d len %d\n", mInput != nsnull, rc, start, end, newValue.IsEmpty()?-1:newValue.Length());
 	}
 #endif
 		// always void the tree arrays

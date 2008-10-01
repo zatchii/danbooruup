@@ -1373,7 +1373,10 @@ danbooruTagHistoryService::AutoCompleteSearch(const nsAString &aInputName,
 		// if the only retained tags are at the end of the list (and thus possibly truncated by maxresults)
 		// then we need to do a full search
 		result->GetMatchCount(&newCount);
-		if(rowCount-newCount == lastRetained)
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+		PR_fprintf(PR_STDERR, "old %d new %d retained %d\n", rowCount, newCount, lastRetained);
+#endif
+		if(lastRetained == -1 || rowCount-newCount == lastRetained)
 			goto newSearch;
 	} else {
 newSearch:

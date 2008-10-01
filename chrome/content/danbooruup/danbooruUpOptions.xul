@@ -3,7 +3,7 @@
 <?xml-stylesheet href="chrome://mozapps/content/preferences/preferences.css" type="text/css"?>
 <?xml-stylesheet href="chrome://browser/skin/preferences/preferences.css" type="text/css"?>
 <?xml-stylesheet href="chrome://danbooruup/skin/danbooruup-autocomplete.css" type="text/css"?>
-<?xml-stylesheet href="chrome://danbooruup/skin/danbooruUp.css" type="text/css"?>
+<?xml-stylesheet href="chrome://danbooruup-css/skin/danbooruUpOptions.css" type="text/css"?>
 
 <!DOCTYPE prefwindow [
 <!ENTITY % danbooruUpOptionsDTD SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">

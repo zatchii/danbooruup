@@ -45,6 +45,7 @@
       <constructor><![CDATA[
 	mController = Components.classes["@unbuffered.info/danbooru/autocomplete-controller;1"].
 			createInstance(Components.interfaces.nsIAutoCompleteController);
+	this._isMac = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULRuntime).OS == 'Darwin'
       ]]></constructor>
 
       <!-- =================== nsIAccessibleProvider =================== -->
@@ -418,11 +419,14 @@
 	  // used in combination with these keys on Windows and Linux; and Alt
 	  // can be used on OS X, so make sure the unused one isn't used.
 	  if (!this.disableKeyNavigation &&
-	      !aEvent.altKey) {
+	      ((this._isMac && !aEvent.ctrlKey) ||
+	       (!this._isMac && !aEvent.altKey))) {
 	    switch (aEvent.keyCode) {
 	      case KeyEvent.DOM_VK_LEFT:
 	      case KeyEvent.DOM_VK_RIGHT:
 	      case KeyEvent.DOM_VK_HOME:
+	      case KeyEvent.DOM_VK_END:
+dump("key "+aEvent.keyCode+"\n");
 		cancel = this.mController.handleKeyNavigation(aEvent.keyCode);
 		break;
 	    }
@@ -457,7 +461,9 @@
 	      cancel = this.mController.handleEnter(false);
 	      break;
 	    case KeyEvent.DOM_VK_DELETE:
-	      cancel = this.mController.handleDelete();
+	    case KeyEvent.DOM_VK_BACK_SPACE:
+	      if ((this._isMac && aEvent.shiftKey) || !this._isMac)
+	        cancel = this.mController.handleDelete();
 	      break;
 	    case KeyEvent.DOM_VK_INSERT:
 	    case KeyEvent.DOM_VK_HELP:
@@ -472,7 +478,8 @@
 		this.toggleHistoryPopup();
 	      break;
 	    case KeyEvent.DOM_VK_F4:
-	      this.toggleHistoryPopup();
+	      if (!this._isMac)
+	        this.toggleHistoryPopup();
 	      break;
 	  }
 
