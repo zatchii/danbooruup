@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE overlay [
+<!ENTITY % danbooruUpOptionsDTD SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
+%danbooruUpOptionsDTD;
+]>
+
+<overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<prefpane id="danbooruUpGeneralPane" label="&danbooruUpOptions.generalTab.label;">
+	<preferences>
+		<preference id="pref.extensions.danbooruUp.fileurlsource"
+			name="extensions.danbooruUp.fileurlsource"			type="bool"/>
+		<preference id="pref.extensions.danbooruUp.checkMD5BeforeUpload"
+			onsyncfrompreference="return gDanbooruManager.checkMD5BeforeUploadChanged();"
+			name="extensions.danbooruUp.checkMD5BeforeUpload"		type="bool"/>
+		<preference id="pref.extensions.danbooruUp.updateTagsOnDuplicate"
+			name="extensions.danbooruUp.updateTagsOnDuplicate"		type="bool"/>
+		<preference id="pref.extensions.danbooruUp.hashing.md5"
+			name="extensions.danbooruUp.hashing.md5"			type="bool"/>
+		<preference id="pref.extensions.danbooruUp.hashing.sha1"
+			name="extensions.danbooruUp.hashing.sha1"			type="bool"/>
+		<preference id="pref.extensions.danbooruUp.suppressComponentAlert"
+			name="extensions.danbooruUp.suppressComponentAlert"		type="bool"/>
+	</preferences>
+
+		<checkbox id="fileURISource" label="&danbooruUpOptions.fileURISource.label;" accesskey="&danbooruUpOptions.fileURISource.accesskey;" preference="pref.extensions.danbooruUp.fileurlsource" />
+		<checkbox id="checkMD5BeforeUpload"
+			  label="&danbooruUpOptions.checkMD5BeforeUpload.label;"
+			  accesskey="&danbooruUpOptions.checkMD5BeforeUpload.accesskey;"
+			  preference="pref.extensions.danbooruUp.checkMD5BeforeUpload"
+			  onsyncfrompreference="return gDanbooruManager.readCheckMD5BeforeUpload();"/>
+		<checkbox id="updateTagsOnDuplicate"
+			  label="&danbooruUpOptions.updateTagsOnDuplicate.label;"
+			  accesskey="&danbooruUpOptions.updateTagsOnDuplicate.accesskey;"
+			  preference="pref.extensions.danbooruUp.updateTagsOnDuplicate"
+			  class="indent"/>
+	<groupbox>
+		<caption label="&danbooruUpOptions.hashing.label;"/>
+		<checkbox id="checkMD5"
+			  preference="pref.extensions.danbooruUp.hashing.md5"
+			  label="&danbooruUpOptions.hashingMD5.label;"/>
+		<checkbox id="checkSHA1"
+			  preference="pref.extensions.danbooruUp.hashing.sha1"
+			  label="&danbooruUpOptions.hashingSHA1.label;"/>
+	</groupbox>
+	<groupbox>
+		<caption label="&danbooruUpOptions.notifications.label;"/>
+		<checkbox id="checkSuppressComponentAlert"
+			  preference="pref.extensions.danbooruUp.suppressComponentAlert"
+			  label="&danbooruUpOptions.suppressComponentAlert.label;"/>
+	</groupbox>
+	</prefpane>
+</overlay>

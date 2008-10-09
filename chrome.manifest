@@ -8,6 +8,6 @@ content	danbooruup-bindings	jar:chrome/danbooruup.jar!/content/danbooruup-1.9/	x
 skin	danbooruup	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup/
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-win/	os=WINNT
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-lnx/	os=Linux
-skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-lnx/	os=Linux
+skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-lnx/	os=FreeBSD
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-mac/	os=Darwin
 locale	danbooruup	en-US	jar:chrome/danbooruup.jar!/locale/en-US/danbooruup/

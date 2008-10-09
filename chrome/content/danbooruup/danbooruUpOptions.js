@@ -1,129 +1,12 @@
 // handles danbooru list preference conversion along with the options dialog
+// probably should go into the helper service
 // vim:set ts=2 sw=2 et:
-
-const TAGTYPE_COUNT = 5;
-
-var atomSvc = Components.classes["@mozilla.org/atom-service;1"].getService(Components.interfaces.nsIAtomService);
 
 function Danbooru(host)
 {
 	this.rawHost = host;
 	this.selected = false;
 }
-
-function DanbooruTagView()
-{
-  this.rows = 0;
-  this.tree = null;
-  this.data = new Array;
-  this.selection = null;
-}
-DanbooruTagView.prototype = {
-  sid: 0,
-
-  set rowCount(c) { throw "rowCount is a readonly property"; },
-  get rowCount() { return this.rows; },
-
-  setTree: function(tree)
-  {
-    this.tree = tree;
-  },
-
-  getCellText: function(row, column)
-  {
-    return this.data[row][column.index] || "";
-  },
-
-  setCellValue: function(row, column, value)
-  {
-  },
-
-  setCellText: function(row, column, value)
-  {
-    this.data[row][column.index] = value;
-  },
-
-  addRow: function(row)
-  {
-    this.rows = this.data.push(row);
-    this.rowCountChanged(this.rows - 1, 1);
-  },
-
-  addRows: function(rows)
-  {
-    var length = rows.length;
-    for(var i = 0; i < length; i++)
-      this.rows = this.data.push(rows[i]);
-    this.rowCountChanged(this.rows - length, length);
-  },
-
-  rowCountChanged: function(index, count)
-  {
-    this.tree.rowCountChanged(index, count);
-  },
-
-  invalidate: function()
-  {
-    this.tree.invalidate();
-  },
-
-  clear: function()
-  {
-    this.data = new Array;
-    this.rows = 0;
-  },
-
-  handleCopy: function(row)
-  {
-    return (row < 0 || this.copycol < 0) ? "" : (this.data[row][this.copycol] || "");
-  },
-
-  performActionOnRow: function(action, row)
-  {
-    if (action == "copy")
-    {
-      var data = this.handleCopy(row)
-      this.tree.treeBody.parentNode.setAttribute("copybuffer", data);
-    }
-  },
-  getRowProperties: function(row, prop) { },
-  getCellProperties: function(row, column, prop) {
-    prop.AppendElement(atomSvc.getAtom("danbooru-tag-type-"+row+"-sid"+this.sid));
-/*
-    en = prop.Enumerate();n=0;
-    p='';
-    while(!en.isDone())
-    {
-      x=en.currentItem();
-      p += x.QueryInterface(Components.interfaces.nsIAtom).toString() + "\n";
-      try { en.next(); } catch (ex) { break; }
-    }
-    Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
-      logStringMessage(p);
-*/
-  },
-  getColumnProperties: function(column, prop) { },
-  isContainer: function(index) { return false; },
-  isContainerOpen: function(index) { return false; },
-  isSeparator: function(index) { return false; },
-  isSorted: function() { },
-  canDrop: function(index, orientation) { return false; },
-  drop: function(row, orientation) { return false; },
-  getParentIndex: function(index) { return 0; },
-  hasNextSibling: function(index, after) { return false; },
-  getLevel: function(index) { return 0; },
-  getImageSrc: function(row, column) { },
-  getProgressMode: function(row, column) { },
-  getCellValue: function(row, column) { },
-  toggleOpenState: function(index) { },
-  cycleHeader: function(col) { },
-  selectionChanged: function() { },
-  cycleCell: function(row, column) { },
-  isEditable: function(row, column) { return false; },
-  isSelectable: function(row, column) { return false; },
-  performAction: function(action) { },
-  performActionOnCell: function(action, row, column) { }
-};
 
 var gDanbooruManager = {
   _danbooru     : [],
@@ -271,106 +154,27 @@ var gDanbooruManager = {
     }
   },
 
-  clearTagHistory: function ()
-  {
-    var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-			    .getService(Components.interfaces.nsIPromptService);
-    if (promptService.confirm(window,
-          this._bundle.GetStringFromName("danbooruUp.prompt.title"),
-          this._bundle.GetStringFromName("danbooruUp.msg.clearconfirm")))
-      Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).tagService.removeAllEntries();
-  },
-
-  // opens download progress window
-  openDownloader: function (aAction)
-  {
-    window.openDialog("chrome://danbooruup/content/danbooruUpDown.xul", "danbooruUpDown", "centerscreen,chrome,dialog=yes,modal=yes,close=no", {action:aAction});
-  },
-
-  // tag type stuff
-
-  // serial for tag popup preview needs to be incremented, since fiddling with the rules via DOM doesn't actually
-  // change anything in gecko 1.8
-  getSID: function ()
-  {
-    if(this._tagView) return this._tagView.sid;
-    return 0;
-  },
-  invalidateTagTree: function ()
-  {
-    // invalidate tends to not redraw if the tree isn't focused
-    if(this._tagView) {
-      this._tagView.tree.focused = !this._tagView.tree.focused;
-      this._tagView.tree.invalidate();
-      setTimeout(function() {
-          gDanbooruManager._tagView.tree.focused = !gDanbooruManager._tagView.tree.focused;
-          gDanbooruManager._tagView.tree.invalidate();
-        }, 0);
-    }
-  },
-  // listbox style selection changed
-  tagTypeSelected: function (evt)
-  {
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-    var tt = document.getElementById("tagType");
-    // save style to array, and to pref as well if instant apply is active
-    gDanbooruManager._styles[tt.oldvalue] = document.getElementById("styleBox").value;
-    if (document.documentElement.instantApply && tt.oldvalue) {
-      try { prefs.setCharPref(tt.oldvalue, document.getElementById("styleBox").value); }
-      catch (e) { }
-    }
-
-    document.getElementById("styleBox").value = gDanbooruManager._styles[tt.value];
-    tt.oldvalue = tt.value;
-    return true;
-  },
-  revertStyle: function ()
-  {
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-    var tt = document.getElementById("tagType");
-
-    var oldstyle = prefs.getCharPref(tt.value);
-    // throws if there is no user value
-    try { prefs.clearUserPref(tt.value); } catch(ex) { }
-    var style = prefs.getCharPref(tt.value);
-
-    // don't actually clear the old value
-    if (!document.documentElement.instantApply)
-      prefs.setCharPref(tt.value, oldstyle);
-
-    gDanbooruManager._styles[tt.value] = style;
-    document.getElementById("styleBox").value = style;
-  },
-  applyStyle: function ()
-  {
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-    var styleName = document.getElementById("tagType").value;
-    var styleText = document.getElementById("styleBox").value;
-
-    if (document.documentElement.instantApply)
-      prefs.setCharPref(styleName, styleText);
-
-    gDanbooruManager._styles[styleName] = styleText;
-    this._tagView.sid++;
-    danbooruAddTagTypeStyleSheet();
-  },
-
   // load function only for danbooruUpOptions window
   onLoad: function ()
   {
     this._bundle = Components.classes['@mozilla.org/intl/stringbundle;1'].getService(Components.interfaces.nsIStringBundleService)
 		   .createBundle('chrome://danbooruup/locale/danbooruUp.properties');
-    this._tree = document.getElementById("danbooruTree");
+    //this._tree = document.getElementById("danbooruTree");
 
     this.init(null);
 
     var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
     os.addObserver(this, "danbooru-clear-done", false);
 
+    // we use instantApply as a hack since the helper service reads the prefs directly
+    // save these for ondialogcancel
+    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
+                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
+    this._oldUpdateURI = prefs.getComplexValue("updateuri", Components.interfaces.nsISupportsString).data;
+    this._oldRelatedUpdateURI = prefs.getComplexValue("relatedupdateuri", Components.interfaces.nsISupportsString).data;
+
     // sort and display the table
+/*
     this._tree.treeBoxObject.view = this._view;
     this.onDanbooruSort("rawHost", false);
 
@@ -378,13 +182,6 @@ var gDanbooruManager = {
     var tagTree = document.getElementById("tagTree");
     var tagPrefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-
-    // we use instantApply as a hack since the helper service reads the prefs directly 
-    // save these for ondialogcancel
-    var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
-    this._oldUpdateURI = prefs.getComplexValue("updateuri", Components.interfaces.nsISupportsString).data;
-    this._oldRelatedUpdateURI = prefs.getComplexValue("relatedupdateuri", Components.interfaces.nsISupportsString).data;
 
     document.getElementById("tagTreeBox").onPopupClick = function()
     {
@@ -418,6 +215,7 @@ var gDanbooruManager = {
     tagTypes.addEventListener("ValueChange", gDanbooruManager.tagTypeSelected, false);
     tagTypes.selectedIndex = 0;
     danbooruAddTagTypeStyleSheet();
+*/
   },
 
   // used by danbooruUpBox and Options
@@ -507,96 +305,6 @@ var gDanbooruManager = {
     return true;
   },
 
-  // site list functions
-  onDanbooruSelected: function ()
-  {
-    var hasSelection = this._tree.view.selection.count > 0;
-    var hasRows = this._tree.view.rowCount > 0;
-    document.getElementById("btnRemoveHost").disabled = !hasRows || !hasSelection;
-  },
-
-  onDanbooruDeleted: function ()
-  {
-    if (this._view.rowCount) {
-      var removedDanbooru = [];
-      this.deleteSelectedItems(this._tree, this._view, this._danbooru, removedDanbooru);
-    }
-    var hasSelection = this._tree.view.selection.count > 0;
-    document.getElementById("btnRemoveHost").disabled = (!this._danbooru.length) || (this._tree.view.selection.count < 1);
-  },
-
-  onDanbooruKeyPress: function (aEvent)
-  {
-    if (aEvent.keyCode == aEvent.DOM_VK_DELETE)
-      this.onDanbooruDeleted();
-  },
-
-  _lastDanbooruSortColumn: "",
-  _lastDanbooruSortAscending: false,
-
-  onDanbooruSort: function (aColumn)
-  {
-    this._lastDanbooruSortAscending = this.sort(this._tree,
-		    this._view,
-		    this._danbooru,
-		    aColumn,
-		    this._lastDanbooruSortColumn,
-		    this._lastDanbooruSortAscending);
-    this._lastDanbooruSortColumn = aColumn;
-  },
-
-  deleteSelectedItems: function (aTree, aView, aItems, aDeletedItems)
-  {
-    var selection = aTree.view.selection;
-    selection.selectEventsSuppressed = true;
-
-    var rc = selection.getRangeCount();
-    for (var i = 0; i < rc; ++i) {
-      var min = { }; var max = { };
-      selection.getRangeAt(i, min, max);
-      for (var j = min.value; j <= max.value; ++j) {
-        aDeletedItems.push(aItems[j]);
-        aItems[j] = null;
-      }
-    }
-
-    var nextSelection = 0;
-    for (i = 0; i < aItems.length; ++i) {
-      if (!aItems[i]) {
-        var j = i;
-        while (j < aItems.length && !aItems[j])
-          ++j;
-        aItems.splice(i, j - i);
-        nextSelection = j < aView.rowCount ? j - 1 : j - 2;
-        aView._rowCount -= j - i;
-        aTree.treeBoxObject.rowCountChanged(i, i - j);
-      }
-    }
-
-    if (aItems.length) {
-      selection.select(nextSelection);
-      aTree.treeBoxObject.ensureRowIsVisible(nextSelection);
-      aTree.focus();
-    }
-    selection.selectEventsSuppressed = false;
-  },
-
-  sort: function (aTree, aView, aDataSet, aColumn,
-			aLastSortColumn, aLastSortAscending)
-  {
-    var ascending = (aColumn == aLastSortColumn) ? !aLastSortAscending : true;
-    aDataSet.sort(function (a, b) { return a[aColumn].toLowerCase().localeCompare(b[aColumn].toLowerCase()); });
-    if (!ascending)
-      aDataSet.reverse();
-
-    aTree.view.selection.select(-1);
-    aTree.view.selection.select(0);
-    aTree.treeBoxObject.invalidate();
-    aTree.treeBoxObject.ensureRowIsVisible(0);
-
-    return ascending;
-  },
-
   // checkbox functions
 
   readCheckMD5BeforeUpload: function ()
@@ -612,65 +320,6 @@ var gDanbooruManager = {
     box.disabled = !pref.value;
   },
 
-  onReadEnableAC: function ()
-  {
-    this.onEnableACChanged();
-    return undefined;
-  },
-
-  onEnableACChanged: function ()
-  {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
-    var elements = [	"enableSiteAC",
-			"altSearch",
-			"resultLimit",
-			"updateURL",
-			"clearTagHistory",
-			"updateNow",
-			"cleanup",
-			"relatedUpdateURL",
-			"relatedUpdateNow",
-			"updateOnStartup",
-			"fastUpdate",
-			"updateBeforeDialog",
-			"updateAfterDialog",
-			"updateOnTimer",
-			"updateInterval"];
-    for (let i=0; i<elements.length; i++) {
-      document.getElementById(elements[i]).disabled = !pref.value;
-    }
-    if (pref.value) {
-      this.onReadUpdateOnStartup();
-      this.onReadUpdateOnTimer();
-    }
-  },
-
-  onReadUpdateOnStartup: function ()
-  {
-    this.onReadUpdateOnStartupChanged();
-    return undefined;
-  },
-
-  onUpdateOnStartupChanged: function ()
-  {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.onstartup");
-    var box = document.getElementById("fastUpdate");
-    box.disabled = !pref.value;
-  },
-
-  onReadUpdateOnTimer: function ()
-  {
-    this.onUpdateOnTimerChanged();
-    return undefined;
-  },
-
-  onUpdateOnTimerChanged: function ()
-  {
-    var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.ontimer");
-    var box = document.getElementById("updateInterval");
-    box.disabled = !pref.value;
-  },
-
   _loadDanbooru: function ()
   {
     this._danbooru = [];
@@ -679,7 +328,7 @@ var gDanbooruManager = {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 		.getService(Components.interfaces.nsIPrefService);
     var pbi = prefs.getBranch('extensions.danbooruUp.');
-    // this pref is a comma-delimited list of hosts
+    // this pref is a `-delimited list of hosts
     var pref = 'postadduri';
     var selpref = 'postadduri.selected';
 
@@ -689,6 +338,7 @@ var gDanbooruManager = {
     try { var hosts = pbi.getComplexValue(pref, Components.interfaces.nsISupportsString).data; } catch(ex) { return; }
 
     var hostList = hosts.split("`");
+
     for (let j=0; j<hostList.length; j++) {
       // trim leading and trailing spaces
       var host = hostList[j].replace(/^\s*/,"").replace(/\s*$/,"");
@@ -719,8 +369,6 @@ var gDanbooruManager = {
       return;
     }
 
-    this._view._rowCount = this._danbooru.length;
-
     var selhost = null;
     try {
       selhost = pbi.getIntPref(selpref);
@@ -745,4 +393,3 @@ var gDanbooruManager = {
     this._danbooru.push(new Danbooru(aDanbooru));
   }
 };
-

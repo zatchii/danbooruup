@@ -9,12 +9,34 @@
 
 #danbooruUpOptions {
 	padding: 1px;
-	width: 40em !important;
+	width: 35em !important;
+/*
 	height: 48em !important;
+*/
 }
 
-#danbooruUpOptions > prefpane {
+#dSTBox {
+	height: 6ex !important;
+}
+#dTBox {
+	height: 8ex !important;
+}
+
+#danbooruUpOptions > prefpane > vbox.content-box {
 	padding: 1px;
+}
+
+prefpane#danbooruUpGeneralPane {
+	max-height: 20em;
+}
+prefpane#danbooruUpStylePane {
+	max-height: 30em;
+}
+prefpane#danbooruUpDanbooruPane {
+	max-height: 30em;
+}
+prefpane#danbooruUpAutocompletePane {
+	max-height: 45em;
 }
 
 #styleBox {
@@ -22,9 +44,6 @@
 }
 #danbooruTree {
 	min-height: 15em;
-}
-#updateInterval,#resultLimit {
-	width: 5em;
 }
 
 #tagTreeBox {
@@ -36,7 +55,6 @@
 	padding: 0;
 	border-style: solid;
 	background-color: -moz-Field;
-	max-width: 15em;
 }
 
 #danbooruUpOptions radio[pane] {

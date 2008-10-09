@@ -157,12 +157,12 @@ NS_IMPL_THREADSAFE_RELEASE(danbooruTagHistoryService)
 
 #ifdef DANBOORUUP_TESTING
 PRBool danbooruTagHistoryService::gTagHistoryEnabled = PR_TRUE;
-PRBool danbooruTagHistoryService::gPrefsInitialized = PR_TRUE;
+PRBool danbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #else
 PRBool danbooruTagHistoryService::gTagHistoryEnabled = PR_FALSE;
 PRBool danbooruTagHistoryService::gPrefsInitialized = PR_FALSE;
 #endif
-PRInt32 danbooruTagHistoryService::gSearchLimit = 0;
+PRInt32 danbooruTagHistoryService::gSearchLimit = -1;
 PRBool danbooruTagHistoryService::gAltSearch = PR_FALSE;
 
 #ifdef MOZILLA_1_8_BRANCH
@@ -1031,6 +1031,7 @@ NS_IMETHODIMP
 danbooruTagHistoryService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
 {
 	if (!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID)) {
+		mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ENABLE, &gTagHistoryEnabled);
 		mPrefBranch->GetIntPref(PREF_DANBOORUUP_AC_LIMIT, &gSearchLimit);
 		mPrefBranch->GetBoolPref(PREF_DANBOORUUP_AC_ALTSEARCH, &gAltSearch);
 	} else if (!strcmp(aTopic, DANBOORUPROCESSTAGS_TOPIC)){
@@ -1397,8 +1398,8 @@ newSearch:
 			for (PRInt32 i = length; i>=0; i--) {
 				likeInputName.Insert(NS_LITERAL_STRING("*"),i);
 			}
-#ifdef DEBUG
-			PR_fprintf(PR_STDERR, "alt %s\n", NS_ConvertUTF16toUTF8(likeInputName).get());
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+			PR_fprintf(PR_STDERR, "altsearch conversion %s\n", NS_ConvertUTF16toUTF8(likeInputName).get());
 #endif
 		}
 		// escape SQL wildcards first, and change * wildcard to SQL % wildcard
@@ -1413,6 +1414,9 @@ newSearch:
 		searchStmt->BindStringParameter(0, likeInputName);
 		searchStmt->BindInt32Parameter(1, gSearchLimit);
 		searchStmt->ExecuteStep(&row);
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
+		PR_fprintf(PR_STDERR, "query %s limit %d\n", NS_ConvertUTF16toUTF8(likeInputName).get(), gSearchLimit);
+#endif
 		while (row)
 		{
 			name = searchStmt->AsSharedWString(0, nsnull);
@@ -1425,7 +1429,7 @@ newSearch:
 		PRUint32 matchCount;
 		result->GetMatchCount(&matchCount);
 		if (matchCount > 0) {
-#ifdef DEBUG
+#if defined(DANBOORUUP_TESTING) || defined(DEBUG)
 			PR_fprintf(PR_STDERR, "search %s matched %d\n", NS_ConvertUTF16toUTF8(aInputName).get(), matchCount);
 #endif
 			result->SetSearchResult(nsIAutoCompleteResult::RESULT_SUCCESS);

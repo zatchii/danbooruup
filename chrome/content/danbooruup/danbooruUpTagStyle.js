@@ -12,7 +12,7 @@ function danbooruAddTagTypeStyleSheet() {
 	if(document.location.href == "chrome://danbooruup/content/danbooruUpOptions.xul") {
 		optionsDialog = true;
 
-		sid = "-sid" + gDanbooruManager.getSID();
+		sid = "-sid" + getSID();
 		selector = "#tagTreeBody" + selector;
 		column = "tagTree-type";
 	}
@@ -25,7 +25,7 @@ function danbooruAddTagTypeStyleSheet() {
 	{
 		var s = '';
 		if(optionsDialog)
-			try { s = gDanbooruManager._styles[st]; } catch (ex) { }
+			try { s = gStyles[st]; } catch (ex) { }
 		if(!s)
 			try { s = prefs.getCharPref(st); } catch (ex) { }
 //	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
@@ -65,7 +65,7 @@ function danbooruAddTagTypeStyleSheet() {
 	document.insertBefore(pi, document.firstChild);
 
 	if(optionsDialog) {
-		gDanbooruManager.invalidateTagTree();
+		invalidateTagTree();
 	}
 }
 

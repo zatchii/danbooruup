@@ -1,0 +1,216 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE overlay [
+<!ENTITY % danbooruUpOptionsDTD SYSTEM "chrome://danbooruup/locale/danbooruUpOptions.dtd">
+%danbooruUpOptionsDTD;
+]>
+
+<overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<prefpane id="danbooruUpAutocompletePane" label="&danbooruUpOptions.autocompleteTab.label;">
+	<stringbundle id="bundleDanbooruOptions" src="chrome://danbooruup/locale/danbooruUp.properties"/>
+	<script type="application/x-javascript"><![CDATA[
+	    function onReadEnableAC()
+	    {
+		onEnableACChanged();
+		return undefined;
+	    }
+
+	    function onEnableACChanged()
+	    {
+		var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
+		var elements = [	"enableSiteAC",
+		    "altSearch",
+		    "resultLimit",
+		    "updateURL",
+		    "clearTagHistory",
+		    "updateNow",
+		    "cleanup",
+		    "relatedUpdateURL",
+		    "relatedUpdateNow",
+		    "updateOnStartup",
+		    "fastUpdate",
+		    "updateBeforeDialog",
+		    "updateAfterDialog",
+		    "updateOnTimer",
+		    "updateInterval"];
+		for (let i=0; i<elements.length; i++) {
+		    document.getElementById(elements[i]).disabled = !pref.value;
+		}
+		if (pref.value) {
+		    onReadUpdateOnStartup();
+		    onReadUpdateOnTimer();
+		}
+	    }
+
+	    function onReadUpdateOnStartup()
+	    {
+		onReadUpdateOnStartupChanged();
+		return undefined;
+	    }
+
+	    function onUpdateOnStartupChanged()
+	    {
+		var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.onstartup");
+		var box = document.getElementById("fastUpdate");
+		box.disabled = !pref.value;
+	    }
+
+	    function onReadUpdateOnTimer()
+	    {
+		onUpdateOnTimerChanged();
+		return undefined;
+	    }
+
+	    function onUpdateOnTimerChanged()
+	    {
+		var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.update.ontimer");
+		var box = document.getElementById("updateInterval");
+		box.disabled = !pref.value;
+	    }
+
+	    function clearTagHistory()
+	    {
+		var promptService = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
+		.getService(Components.interfaces.nsIPromptService);
+		var bundle = document.getElementById("bundleDanbooruOptions");
+		if (promptService.confirm(window,
+					  bundle.getString("danbooruUp.prompt.title"),
+					  bundle.getString("danbooruUp.msg.clearconfirm")))
+		    Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService).tagService.removeAllEntries();
+	    }
+
+	    // opens download progress window
+	    function openDownloader(aAction)
+	    {
+		window.openDialog("chrome://danbooruup/content/danbooruUpDown.xul", "danbooruUpDown", "centerscreen,chrome,dialog=yes,modal=yes,close=no", {action:aAction});
+	    }
+	]]>
+	</script>
+	<preferences>
+		<preference id="pref.extensions.danbooruUp.autocomplete.enabled"
+			    onsyncfrompreference="return onEnableACChanged();"
+			    name="extensions.danbooruUp.autocomplete.enabled"			type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.site.enabled"
+			    name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.altsearch"
+			    name="extensions.danbooruUp.autocomplete.altsearch"			type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.limit"
+			    name="extensions.danbooruUp.autocomplete.limit"			type="int"/>
+		<preference id="pref.extensions.danbooruUp.updateuri"				instantApply="true"
+			    name="extensions.danbooruUp.updateuri"				type="string"/>
+		<preference id="pref.extensions.danbooruUp.relatedupdateuri"			instantApply="true"
+			    name="extensions.danbooruUp.relatedupdateuri"			type="string"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.onstartup"
+			    onsyncfrompreference="return onUpdateOnStartupChanged();"
+			    name="extensions.danbooruUp.autocomplete.update.onstartup"		type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.faststartup"
+			    name="extensions.danbooruUp.autocomplete.update.faststartup"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
+			    name="extensions.danbooruUp.autocomplete.update.beforedialog"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
+			    name="extensions.danbooruUp.autocomplete.update.afterdialog"	type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.ontimer"
+			    onsyncfrompreference="return onUpdateOnTimerChanged();"
+			    name="extensions.danbooruUp.autocomplete.update.ontimer"		type="bool"/>
+		<preference id="pref.extensions.danbooruUp.autocomplete.update.interval"
+			    name="extensions.danbooruUp.autocomplete.update.interval"		type="int"/>
+	</preferences>
+	<hbox>
+		<checkbox id="enableAC"
+			  label="&danbooruUpOptions.enableAC.label;"
+			  accesskey="&danbooruUpOptions.enableAC.accesskey;"
+			  preference="pref.extensions.danbooruUp.autocomplete.enabled"
+			  onsyncfrompreference="onReadEnableAC();"/>
+	</hbox>
+	<hbox>
+		<checkbox id="enableSiteAC"
+			  preference="pref.extensions.danbooruUp.autocomplete.site.enabled"
+			  label="&danbooruUpOptions.enableAC.site.label;"
+			  accesskey="&danbooruUpOptions.enableAC.site.accesskey;"
+			  tooltiptext="&danbooruUpOptions.enableAC.site.tooltip;"
+			  class="indent"/>
+	</hbox>
+	<groupbox>
+		<checkbox id="altSearch" label="&danbooruUpOptions.altSearch.label;" accesskey="&danbooruUpOptions.altSearch.accesskey;" preference="pref.extensions.danbooruUp.autocomplete.altsearch" />
+		<hbox align="center">
+			<label control="resultLimit"
+			       value="&danbooruUpOptions.resultLimit.label;"
+			       accesskey="&danbooruUpOptions.resultLimit.accesskey;" align="bottom"/>
+			<textbox id="resultLimit" size="5"
+				 preference="pref.extensions.danbooruUp.autocomplete.limit" />
+			<label value="&danbooruUpOptions.matches.label;" />
+		</hbox>
+	</groupbox>
+	<groupbox>
+		<caption label="&danbooruUpOptions.urlgroup.label;"/>
+		<hbox align="center">
+			<label control="updateURL"
+			       value="&danbooruUpOptions.updateURL.label;"
+			       accesskey="&danbooruUpOptions.updateURL.accesskey;" align="bottom"/>
+			<textbox id="updateURL" flex="1"
+				 preference="pref.extensions.danbooruUp.updateuri" />
+		</hbox>
+		<hbox align="center" pack="end">
+			<button id="clearTagHistory"
+				label="&danbooruUpOptions.clearTagHistory.label;"
+				oncommand="clearTagHistory();"/>
+			<button id="updateNow"
+				label="&danbooruUpOptions.updateNow.label;"
+				accesskey="&danbooruUpOptions.updateNow.accesskey;"
+				oncommand="openDownloader('tagupdate')"/>
+			<button id="cleanup"
+				label="&danbooruUpOptions.cleanup.label;"
+				accesskey="&danbooruUpOptions.cleanup.accesskey;"
+				oncommand="openDownloader('tagcleanup')"/>
+		</hbox>
+		<hbox align="center">
+			<label control="relatedUpdateURL"
+			       value="&danbooruUpOptions.relatedUpdateURL.label;"
+			       accesskey="&danbooruUpOptions.relatedUpdateURL.accesskey;" align="bottom"/>
+			<textbox id="relatedUpdateURL" flex="1"
+				 preference="pref.extensions.danbooruUp.relatedupdateuri" />
+		</hbox>
+		<hbox align="center" pack="end">
+			<button id="relatedUpdateNow"
+				label="&danbooruUpOptions.relatedUpdateNow.label;"
+				accesskey="&danbooruUpOptions.relatedUpdateNow.accesskey;"
+				oncommand="openDownloader('relatedtagdownload')"/>
+		</hbox>
+	</groupbox>
+	<groupbox align="start">
+		<caption label="&danbooruUpOptions.updategroup.label;"/>
+		<checkbox id="updateOnStartup"
+			  preference="pref.extensions.danbooruUp.autocomplete.update.onstartup"
+			  label="&danbooruUpOptions.updateOnStartup.label;"
+			  accesskey="&danbooruUpOptions.updateOnStartup.accesskey;"
+			  onsyncfrompreference="onReadUpdateOnStartup();"/>
+		<checkbox id="fastUpdate"
+			  preference="pref.extensions.danbooruUp.autocomplete.update.faststartup"
+			  label="&danbooruUpOptions.fastUpdate.label;"
+			  accesskey="&danbooruUpOptions.fastUpdate.accesskey;"
+			  tooltiptext="&danbooruUpOptions.fastUpdate.tooltip;"
+			  class="indent"/>
+		<groupbox>
+			<caption label="&danbooruUpOptions.updateOnUpload.label;" />
+			<checkbox id="updateBeforeDialog"
+				  preference="pref.extensions.danbooruUp.autocomplete.update.beforedialog"
+				  label="&danbooruUpOptions.updateOnUpload.before.label;"/>
+			<checkbox id="updateAfterDialog"
+				  preference="pref.extensions.danbooruUp.autocomplete.update.afterdialog"
+				  label="&danbooruUpOptions.updateOnUpload.after.label;"
+				  tooltiptext="&danbooruUpOptions.updateOnUpload.after.tooltip;"/>
+		</groupbox>
+		<hbox align="center" pack="start">
+			<checkbox id="updateOnTimer"
+				  preference="pref.extensions.danbooruUp.autocomplete.update.ontimer"
+				  label="&danbooruUpOptions.updateOnTimer.label;"
+				  accesskey="&danbooruUpOptions.updateOnTimer.accesskey;"
+				  onsyncfrompreference="onReadUpdateOnTimer();"/>
+			<textbox id="updateInterval" size="5"
+				 preference="pref.extensions.danbooruUp.autocomplete.update.interval"/>
+			<label value="&danbooruUpOptions.min.label;" />
+		</hbox>
+		<separator class="thick"/>
+	</groupbox>
+	</prefpane>
+</overlay>
