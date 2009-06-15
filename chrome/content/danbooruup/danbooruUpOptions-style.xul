@@ -8,259 +8,116 @@
 <overlay xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 	<prefpane id="danbooruUpStylePane" label="&danbooruUpOptions.styleTab.label;" onpaneload="setTimeout(function() initStylePane(), 0)">
 	<preferences>
+		<preference id="pref.extensions.danbooruUp.tagtype.0"
+			    name="extensions.danbooruUp.tagtype.0"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.1"
+			    name="extensions.danbooruUp.tagtype.1"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.2"
+			    name="extensions.danbooruUp.tagtype.2"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.3"
+			    name="extensions.danbooruUp.tagtype.3"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.4"
+			    name="extensions.danbooruUp.tagtype.4"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.0.selected"
+			    name="extensions.danbooruUp.tagtype.0.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.1.selected"
+			    name="extensions.danbooruUp.tagtype.1.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.2.selected"
+			    name="extensions.danbooruUp.tagtype.2.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.3.selected"
+			    name="extensions.danbooruUp.tagtype.3.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.4.selected"
+			    name="extensions.danbooruUp.tagtype.4.selected"	type="string" />
 	</preferences>
 	<stringbundle id="bundleDanbooruOptions" src="chrome://danbooruup/locale/danbooruUp.properties"/>
 	<script type="application/x-javascript"><![CDATA[
-	    const TAGTYPE_COUNT = 5;
-
-	    var atomSvc = Components.classes["@mozilla.org/atom-service;1"].getService(Components.interfaces.nsIAtomService);
-	    var gTagView;
-	    var gStyles = [];
-
-	    function DanbooruTagView()
-	    {
-		this.rows = 0;
-		this.tree = null;
-		this.data = new Array;
-		this.selection = null;
-	    }
-	    DanbooruTagView.prototype = {
-		sid: 0,
-
-		set rowCount(c) { throw "rowCount is a readonly property"; },
-		get rowCount() { return this.rows; },
-
-		setTree: function(tree)
+		var tagStyles = {};
+		tagStyles[''] = true;
+		tagStyles['.selected'] = true;
+		function initStylePane()
 		{
-		    this.tree = tree;
-		},
-
-		getCellText: function(row, column)
-		{
-		    return !!this.data[row] ? this.data[row][column.index] || "" : "";
-		},
-
-		setCellValue: function(row, column, value)
-		{
-		},
-
-		setCellText: function(row, column, value)
-		{
-		    this.data[row][column.index] = value;
-		},
-
-		addRow: function(row)
-		{
-		    this.rows = this.data.push(row);
-		    this.rowCountChanged(this.rows - 1, 1);
-		},
-
-		addRows: function(rows)
-		{
-		    var length = rows.length;
-		    for(var i = 0; i < length; i++)
-			this.rows = this.data.push(rows[i]);
-		    this.rowCountChanged(this.rows - length, length);
-		},
-
-		rowCountChanged: function(index, count)
-		{
-		    this.tree.rowCountChanged(index, count);
-		},
-
-		invalidate: function()
-		{
-		    this.tree.invalidate();
-		},
-
-		clear: function()
-		{
-		    this.data = new Array;
-		    this.rows = 0;
-		},
-
-		handleCopy: function(row)
-		{
-		    return (row < 0 || this.copycol < 0) ? "" : (this.data[row][this.copycol] || "");
-		},
-
-		performActionOnRow: function(action, row)
-		{
-		    if (action == "copy")
-		    {
-			var data = this.handleCopy(row)
-			this.tree.treeBody.parentNode.setAttribute("copybuffer", data);
-		    }
-		},
-		getRowProperties: function(row, prop) { },
-		getCellProperties: function(row, column, prop) {
-		    prop.AppendElement(atomSvc.getAtom("danbooru-tag-type-"+row+"-sid"+this.sid));
-/*
-		    en = prop.Enumerate();n=0;
-		    p='';
-		    while(!en.isDone())
-		    {
-			x=en.currentItem();
-			p += x.QueryInterface(Components.interfaces.nsIAtom).toString() + "\n";
-			try { en.next(); } catch (ex) { break; }
-		    }
-		    Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).
-		    logStringMessage(p);
-*/
-		},
-		getColumnProperties: function(column, prop) { },
-		isContainer: function(index) { return false; },
-		isContainerOpen: function(index) { return false; },
-		isSeparator: function(index) { return false; },
-		isSorted: function() { },
-		canDrop: function(index, orientation) { return false; },
-		drop: function(row, orientation) { return false; },
-		getParentIndex: function(index) { return 0; },
-		hasNextSibling: function(index, after) { return false; },
-		getLevel: function(index) { return 0; },
-		getImageSrc: function(row, column) { },
-		getProgressMode: function(row, column) { },
-		getCellValue: function(row, column) { },
-		toggleOpenState: function(index) { },
-		cycleHeader: function(col) { },
-		selectionChanged: function() { },
-		cycleCell: function(row, column) { },
-		isEditable: function(row, column) { return false; },
-		isSelectable: function(row, column) { return false; },
-		performAction: function(action) { },
-		performActionOnCell: function(action, row, column) { }
-	    };
-
-	    function initStylePane() {
-		document.getElementById("tagTreeBox").onPopupClick = function()
-		{
-		    let tagTypes = document.getElementById("tagType");
-		    let tagTree = document.getElementById("tagTree");
-		    let row = tagTree.currentIndex;
-		    let type = tagTree.view.getCellText(row,{index:0});
-		    if(!type) return;
-		    if(tagTypes.label == type)
-		    {
-			tagTypes.selectedIndex++;
-		    } else if (tagTypes.label.match(new RegExp("^"+type+"$"))) {
-			tagTypes.selectedIndex--;
-		    } else {
-			tagTypes.selectedIndex = row * 2;
-		    }
-		};
-
-		var tagTypes = document.getElementById("tagType");
-		var tagTree = document.getElementById("tagTree");
-		var tagPrefs = Components.classes["@mozilla.org/preferences-service;1"]
-			.getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-
-		gTagView = new DanbooruTagView();
-		tagTree.treeBoxObject.view = gTagView;
-		//tagTree.setAttribute("hidescrollbar", true);
-		var bundle = document.getElementById("bundleDanbooruOptions");
-		for (var i=0, pn; i<TAGTYPE_COUNT; i++) {
-		    pn = bundle.getString("danbooruUp.tagType."+i);
-		    gTagView.addRow([pn]);
-
-		    tagTypes.appendItem(pn, i);
-		    gStyles[i] = tagPrefs.getCharPref(i);
-		    tagTypes.appendItem(bundle.getString("danbooruUp.tagType."+i+".selected"), i+".selected");
-		    gStyles[i+".selected"] = tagPrefs.getCharPref(i+".selected");
+			document.getElementById('styleList').selectedIndex = 0;
+			onStyleSelect();
+			applyStyle();
 		}
 
-		tagTypes.addEventListener("ValueChange", tagTypeSelected, false);
-		tagTypes.selectedIndex = 0;
-		danbooruAddTagTypeStyleSheet();
-	    }
-
-	    // tag type stuff
-
-	    // serial for tag popup preview needs to be incremented, since fiddling with the rules via DOM doesn't actually
-	    // change anything in gecko 1.8
-	    function getSID()
-	    {
-		if(gTagView) return gTagView.sid;
-		return 0;
-	    }
-	    function invalidateTagTree()
-	    {
-		// invalidate tends to not redraw if the tree isn't focused
-		if(gTagView) {
-		    gTagView.tree.focused = !gTagView.tree.focused;
-		    gTagView.tree.invalidate();
-		    setTimeout(function() {
-			gTagView.tree.focused = !gTagView.tree.focused;
-			gTagView.tree.invalidate();
-		    }, 0);
-		}
-	    }
-	    // listbox style selection changed
-	    function tagTypeSelected(evt)
-	    {
-		var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-		var tt = document.getElementById("tagType");
-		// save style to array, and to pref as well if instant apply is active
-		gStyles[tt.oldvalue] = document.getElementById("styleBox").value;
-		if (document.documentElement.instantApply && tt.oldvalue) {
-		    try { prefs.setCharPref(tt.oldvalue, document.getElementById("styleBox").value); }
-		    catch (e) { }
+		function getStylePrefElement(style)
+		{
+			return document.getElementById('pref.extensions.danbooruUp.tagtype.' + style);
 		}
 
-		document.getElementById("styleBox").value = gStyles[tt.value];
-		tt.oldvalue = tt.value;
-		return true;
-	    }
-	    function revertStyle()
-	    {
-		var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-		var tt = document.getElementById("tagType");
+		function getCurrentStylePref(qualifier)
+		{
+			var style = document.getElementById('styleList').selectedItem.value
+			return getStylePrefElement(style + qualifier);
+		}
 
-		var oldstyle = prefs.getCharPref(tt.value);
-		// throws if there is no user value
-		try { prefs.clearUserPref(tt.value); } catch(ex) { }
-		var style = prefs.getCharPref(tt.value);
+		function onStyleChange(qualifier, value)
+		{
+			getCurrentStylePref(qualifier).value = value;
+		}
 
-		// don't actually clear the old value
-		if (!document.documentElement.instantApply)
-		    prefs.setCharPref(tt.value, oldstyle);
+		function onStyleSelect()
+		{
+			document.getElementById('currentStyle').value = document.getElementById('styleList').selectedItem.searchLabel;
+			for (var st in tagStyles)
+				document.getElementById('styleBox' + st).value = getCurrentStylePref(st).value;
+		}
 
-		gStyles[tt.value] = style;
-		document.getElementById("styleBox").value = style;
-	    }
-	    function applyStyle()
-	    {
-		var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-		var styleName = document.getElementById("tagType").value;
-		var styleText = document.getElementById("styleBox").value;
+	    	function getStyle(style)
+		{
+			var e = document.getElementById('pref.extensions.danbooruUp.tagtype.' + style);
+			if (e) {
+				return e.value;
+			}
+			return null;
+		}
 
-		if (document.documentElement.instantApply)
-		    prefs.setCharPref(styleName, styleText);
+		function applyStyle()
+		{
+			danbooruAddTagTypeStyleSheet(getStyle);
+		}
 
-		gStyles[styleName] = styleText;
-		gTagView.sid++;
-		danbooruAddTagTypeStyleSheet();
-	    }
+		function revertStyle()
+		{
+			for (var st in tagStyles) {
+				let pref = getCurrentStylePref(st);
+				if (pref.hasUserValue)
+					pref.reset();
+			}
+			onStyleSelect();
+		}
 	]]>
 	</script>
 		<hbox>
 			<vbox id="tagTreeBox" flex="1">
-				<tree anonid="tree" class="danbooru-autocomplete-tree plain" hidescrollbar="true"
-				      hidecolumnpicker="true" id="tagTree" flex="1" width="300">
-					<treecols anonid="treecols">
-						<treecol id="tagTree-type" class="danbooru-autocomplete-treecol" flex="1"/>
-					</treecols>
-					<treechildren id="tagTreeBody" class="danbooru-autocomplete-treebody"/>
-				</tree>
+				<richlistbox id="styleList" class="danbooru-autocomplete" onselect="onStyleSelect();" flex="1">
+					<richlistitem value="0" searchlabel="&danbooruUpOptions.tagtype.0;" class="danbooru-tagtype-0">
+						<description>&danbooruUpOptions.tagtype.0;</description>
+					</richlistitem>
+					<richlistitem value="2" searchlabel="&danbooruUpOptions.tagtype.2;" class="danbooru-tagtype-0 danbooru-tagtype-2">
+						<description>&danbooruUpOptions.tagtype.2;</description>
+					</richlistitem>
+					<richlistitem value="1" searchlabel="&danbooruUpOptions.tagtype.1;" class="danbooru-tagtype-0 danbooru-tagtype-1">
+						<description>&danbooruUpOptions.tagtype.1;</description>
+					</richlistitem>
+					<richlistitem value="3" searchlabel="&danbooruUpOptions.tagtype.3;" class="danbooru-tagtype-0 danbooru-tagtype-3">
+						<description>&danbooruUpOptions.tagtype.3;</description>
+					</richlistitem>
+					<richlistitem value="4" searchlabel="&danbooruUpOptions.tagtype.4;" class="danbooru-tagtype-0 danbooru-tagtype-4">
+						<description>&danbooruUpOptions.tagtype.4;</description>
+					</richlistitem>
+				</richlistbox>
 			</vbox>
 			<vbox flex="3">
 				<vbox align="start" id="dSTBox" flex="1">
 				<description id="danbooruStyleText">&danbooruUpOptions.style.description;</description>
 				</vbox>
-				<menulist id="tagType" />
-				<textbox id="styleBox" flex="1" multiline="true"/>
+				<label id="currentStyle" />
+				<label control="styleBox" value="&danbooruUpOptions.tagtype.default;" />
+				<textbox id="styleBox" flex="1" multiline="true" oninput="onStyleChange('', this.value);"/>
+				<label control="styleBox.selected" value="&danbooruUpOptions.tagtype.selected;" />
+				<textbox id="styleBox.selected" flex="1" multiline="true" oninput="onStyleChange('.selected', this.value);"/>
 			</vbox>
 		</hbox>
 				<hbox class="actionButtons" pack="end">

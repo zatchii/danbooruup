@@ -18,9 +18,6 @@ function onLoad()
 		var obsSvc = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		obsSvc.addObserver(gListener, "danbooru-update-done", false);
 		obsSvc.addObserver(gListener, "danbooru-update-failed", false);
-		obsSvc.addObserver(gListener, "danbooru-update-processing-max", false);
-		obsSvc.addObserver(gListener, "danbooru-update-processing-progress", false);
-		obsSvc.addObserver(gListener, "danbooru-cleanup-confirm", false);
 	}
 }
 
@@ -31,9 +28,6 @@ function onUnload()
 		var obsSvc = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		try { obsSvc.removeObserver(gListener, "danbooru-update-done"); } catch(e) { __log(e); }
 		try { obsSvc.removeObserver(gListener, "danbooru-update-failed"); } catch(e) { __log(e); }
-		try { obsSvc.removeObserver(gListener, "danbooru-update-processing-max"); } catch(e) { __log(e); }
-		try { obsSvc.removeObserver(gListener, "danbooru-update-processing-progress"); } catch(e) { __log(e); }
-		try { obsSvc.removeObserver(gListener, "danbooru-cleanup-confirm"); } catch(e) { __log(e); }
 	}
 }
 
@@ -47,26 +41,8 @@ function init()
 		gListener = new DanbooruDownloadListener();
 		gListener.ownerWindow = window;
 		try {
-			helperSvc.update(true,true,gListener);
-		} catch(e if e.result == kErrorNotAvailable) {
-			window.close();
-		}
-		break;
-	case 'tagcleanup':
-		gListener = new DanbooruDownloadListener();
-		gListener.ownerWindow = window;
-		try {
-			helperSvc.cleanup(true,gListener);
-		} catch(e if e.result == kErrorNotAvailable) {
-			window.close();
-		}
-		break;
-	case 'relatedtagdownload':
-		gListener = new DanbooruDownloadListener();
-		gListener.ownerWindow = window;
-		try {
-			helperSvc.downloadRelatedTagDB(true,gListener);
-		} catch(e if e.result == kErrorNotAvailable) {
+			helperSvc.update(true, gListener);
+		} catch (e if e.result == kErrorNotAvailable) {
 			window.close();
 		}
 		break;
@@ -232,7 +208,9 @@ DanbooruDownloadListener.prototype = {
 		$('progress').mode = 'determined';
 		if (aProgressMax > 0 && aProgress > 0)
 			$('progress').setAttribute('value', aProgress/aProgressMax*100);
-		if (aRequest == null && aContext == null)
+
+		// tag-history-service sets them like this when reports progress.
+		if (aRequest == null && aContext == null)	
 		{
 			$('label').setAttribute('value', danBundle.GetStringFromName('danbooruUp.msg.processing'));
 			$('button').disabled = true;
@@ -293,24 +271,6 @@ DanbooruDownloadListener.prototype = {
 			$('label').setAttribute('value', aSubject.status + ' ' + aSubject.statusText);
 			$('button').setAttribute('label', danBundle.GetStringFromName('danbooruUp.msg.retry'));
 			this.mStatus = kErrorFailure;
-			break;
-		case "danbooru-update-processing-max":
-			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
-			this.mNodes = aSubject.data;
-			$('progress').mode = 'determined';
-			$('progress').setAttribute('value', 0);
-			break;
-		case "danbooru-update-processing-progress":
-			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
-			$('progress').setAttribute('value', aSubject.data/this.mNodes*100);
-			break;
-		case "danbooru-cleanup-confirm":
-			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
-			var hs = Components.classes['@unbuffered.info/danbooru/helper-service;1'].getService(Components.interfaces.danbooruIHelperService);
-			if(this.confirm(danBundle.GetStringFromName('danbooruUp.prompt.title'), danBundle.formatStringFromName('danbooruUp.msg.cleanupconfirm', [aSubject.data, hs.tagService.rowCount], 2)))
-				obsSvc.notifyObservers(null, 'danbooru-process-tags', null);
-			else
-				this.mWindow.close();
 			break;
 		}
 	},

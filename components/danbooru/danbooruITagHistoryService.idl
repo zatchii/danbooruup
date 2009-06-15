@@ -37,7 +37,7 @@
 
 #include "nsISupports.idl"
 #include "nsIInterfaceRequestor.idl"
-#include "danbooruIAutoCompleteArrayResult.idl"
+#include "danbooruISearchCallback.idl"
 
 [scriptable, uuid(4d39eff7-397a-4a14-be57-b5e472760ecd)]
 interface danbooruITagHistoryService : nsISupports
@@ -53,91 +53,39 @@ interface danbooruITagHistoryService : nsISupports
   readonly attribute unsigned long maxID;
 
   /**
-   * Scriptable manual search for tags.
-   */
-  danbooruIAutoCompleteArrayResult searchTags(in AString inputname, in long limit);
-
-  /**
    * Scriptable manual search for related tags.
    */
-  danbooruIAutoCompleteArrayResult searchRelatedTags(in AString inputname);
+  boolean searchRelatedTags(in AString tagname, in danbooruISearchCallback callback);
 
   /**
    * AutoCompleteController-called tag search.
    */
 
-  void autoCompleteSearch(in AString aInputName,
-                                  in danbooruIAutoCompleteArrayResult aPrevResult,
-                                  inout nsIAutoCompleteResult aResult);
+  void autocompleteSearch(in AString query,
+                                  in nsIVariant acontext,
+                                  in danbooruISearchCallback callback);
 
   /**
-   * Updates the tag database from a given XML source.
+   * Update the tag database from a given XML source.
    * @param aXmlURI The URI from which to retrieve tags from.
    * @param insert True if retrieving tags for insertion, false if retrieving tags for clean up.
    */
-  void updateTagListFromURI(in AString aXmlURI, in boolean insert, in nsIInterfaceRequestor notification);
+  void updateTagListFromURI(in AString aXmlURI, in nsIInterfaceRequestor notification);
 
   /**
-   * Gets the name and value at a position in the tag history.
+   * Add a list of tags to a list of contexts in the tag history.
+   * Returns false if some tags were not found.
    */
-  void getEntryAt(in unsigned long index, out AString name, out long value);
+  boolean updateTagHistory(in nsIVariant tags, in nsIVariant acontext);
 
   /**
-   * Gets just the name at a position in the tag history.
+   * Remove all tags.
    */
-  void getNameAt(in unsigned long index, out AString name);
+  void clearTags();
 
   /**
-   * Gets just the value at a position in the tag history.
+   * Clear tagging history.
    */
-  void getValueAt(in unsigned long index, out long value);
-
-  /**
-   * Appends a name and value pair to the end of the tag history.
-   */
-  //void addEntry(in AString name, in unsigned long id, in long value);
-  void addEntry(in AString name, in AString id, in long value);
-
-  /**
-   * Appends just a name to the end of the tag history. Default value is 0.
-   */
-  //void addNameEntry(in AString name, in unsigned long id);
-  void addNameEntry(in AString name, in AString id);
-
-  /**
-   * Removes the entry at a position.
-   */
-  void removeEntryAt(in unsigned long index);
-
-  /**
-   * Removes all entries that are paired with a name.
-   */
-  void removeEntriesForName(in AString name);
-
-  /**
-   * Removes all entries in the entire tag history.
-   */
-  void removeAllEntries();
-
-  /**
-   * Returns true if there is no entry that is paired with a name.
-   */
-  boolean nameExists(in AString name);
-
-  /**
-   * Gets whether a name and value pair exists in the tag history.
-   */
-  boolean entryExists(in AString name, in long value);
-
-  /**
-   * Increments the value associated with a given name.
-   * Returns true if the value was incremented, false if the name does not exist.
-   */
-  boolean incrementValueForName(in AString name);
-
-  /**
-   * Detaches the related tag database for updates.
-   */
-  void detachRelatedTagDatabase();
+  void clearHistory();
 };
 

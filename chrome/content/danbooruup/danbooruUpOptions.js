@@ -10,10 +10,8 @@ function Danbooru(host)
 
 var gDanbooruManager = {
   _danbooru     : [],
-  _styles       : [],
   _bundle       : null,
   _tree         : null,
-  _tagView      : null,
 
   _view: {
     _rowCount: 0,
@@ -171,51 +169,7 @@ var gDanbooruManager = {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
     this._oldUpdateURI = prefs.getComplexValue("updateuri", Components.interfaces.nsISupportsString).data;
-    this._oldRelatedUpdateURI = prefs.getComplexValue("relatedupdateuri", Components.interfaces.nsISupportsString).data;
 
-    // sort and display the table
-/*
-    this._tree.treeBoxObject.view = this._view;
-    this.onDanbooruSort("rawHost", false);
-
-    var tagTypes = document.getElementById("tagType");
-    var tagTree = document.getElementById("tagTree");
-    var tagPrefs = Components.classes["@mozilla.org/preferences-service;1"]
-                .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
-
-    document.getElementById("tagTreeBox").onPopupClick = function()
-    {
-      var tagTypes = document.getElementById("tagType");
-      var tagTree = document.getElementById("tagTree");
-      var row = tagTree.currentIndex;
-      var type = tagTree.view.getCellText(row,{index:0});
-      if(tagTypes.label == type)
-      {
-        tagTypes.selectedIndex++;
-      } else if (tagTypes.label.match(new RegExp("^"+type+"$"))) {
-        tagTypes.selectedIndex--;
-      } else {
-        tagTypes.selectedIndex = row * 2;
-      }
-    };
-
-    this._tagView = new DanbooruTagView();
-    tagTree.treeBoxObject.view = this._tagView;
-    tagTree.setAttribute("hidescrollbar", true);
-    for (var i=0, pn; i<TAGTYPE_COUNT; i++) {
-      pn = this._bundle.GetStringFromName("danbooruUp.tagType."+i);
-      this._tagView.addRow([pn]);
-
-      tagTypes.appendItem(pn, i);
-      this._styles[i] = tagPrefs.getCharPref(i);
-      tagTypes.appendItem(this._bundle.GetStringFromName("danbooruUp.tagType."+i+".selected"), i+".selected");
-      this._styles[i+".selected"] = tagPrefs.getCharPref(i+".selected");
-    }
-
-    tagTypes.addEventListener("ValueChange", gDanbooruManager.tagTypeSelected, false);
-    tagTypes.selectedIndex = 0;
-    danbooruAddTagTypeStyleSheet();
-*/
   },
 
   // used by danbooruUpBox and Options
@@ -246,8 +200,9 @@ var gDanbooruManager = {
   {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"]
                 .getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.");
-    prefs.setCharPref("updateuri", this._oldUpdateURI);
-    prefs.setCharPref("relatedupdateuri", this._oldRelatedUpdateURI);
+    if (!document.documentElement.instantApply) {
+      prefs.setCharPref("updateuri", this._oldUpdateURI);
+    }
     return true;
   },
 
@@ -289,19 +244,6 @@ var gDanbooruManager = {
     } else {
       this._saveDanbooru();
     }
-
-    var pbi = Components.classes["@mozilla.org/preferences-service;1"]
-	      .getService(Components.interfaces.nsIPrefBranch);
-
-    var sbranch = pbi.getBranch("extensions.danbooruUp.tagtype.");
-    for(var i=0; i<TAGTYPE_COUNT; i++)
-    {
-      sbranch.setCharPref(i, this._styles[i]);
-      sbranch.setCharPref(i+".selected", this._styles[i+".selected"]);
-    }
-
-    //var os=Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
-    //os.notifyObservers(null, "danbooru-options-changed", null);
     return true;
   },
 

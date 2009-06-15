@@ -24,6 +24,13 @@
 <!ENTITY danbooruUpOptions.revert.tooltip		"Restores the currently selected style to the default value.">
 <!ENTITY danbooruUpOptions.applyStyle.label		"Apply Styles to Preview">
 <!ENTITY danbooruUpOptions.applyStyle.accesskey		"A">
+<!ENTITY danbooruUpOptions.tagtype.0			"General">
+<!ENTITY danbooruUpOptions.tagtype.1			"Artist">
+<!ENTITY danbooruUpOptions.tagtype.2			"Ambiguous">
+<!ENTITY danbooruUpOptions.tagtype.3			"Copyright">
+<!ENTITY danbooruUpOptions.tagtype.4			"Character">
+<!ENTITY danbooruUpOptions.tagtype.default		"Default">
+<!ENTITY danbooruUpOptions.tagtype.selected		"Selected">
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
 <!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here. The sites listed here will also have site autocompletion enabled for them. There must always be at least one entry in this list. Older danbooru sites may still use api/add_post, or post/upload.xml but the most recent version uses post/create.xml.">
@@ -34,7 +41,7 @@
 <!ENTITY danbooruUpOptions.removedanbooru.label		"Remove Site">
 
 <!ENTITY danbooruUpOptions.autocompleteTab.label	"Tag Autocomplete">
-<!ENTITY danbooruUpOptions.urlgroup.label		"Tag History">
+<!ENTITY danbooruUpOptions.urlgroup.label		"Tag List">
 <!ENTITY danbooruUpOptions.updategroup.label		"Updating">
 <!ENTITY danbooruUpOptions.enableAC.label		"Enable Tag Autocomplete">
 <!ENTITY danbooruUpOptions.enableAC.accesskey		"E">
@@ -43,24 +50,26 @@
 <!ENTITY danbooruUpOptions.enableAC.site.tooltip	"Adds autocomplete to text fields on danbooru site pages.">
 <!ENTITY danbooruUpOptions.altSearch.label		"Alternate searching (abc -> *a*b*c*)">
 <!ENTITY danbooruUpOptions.altSearch.accesskey		"A">
+<!ENTITY danbooruUpOptions.threadedSearch.label		"Search in background thread">
+<!ENTITY danbooruUpOptions.threadedSearch.accesskey	"B">
+<!ENTITY danbooruUpOptions.threadedSearch.tooltip	"Doing queries in a separate thread makes the user interface more responsive, but introduces myriad ways for poor programming to crash the browser. Try disabling this if you experience instabilities.">
 <!ENTITY danbooruUpOptions.resultLimit.label		"Limit search results to">
 <!ENTITY danbooruUpOptions.resultLimit.accesskey	"L">
 <!ENTITY danbooruUpOptions.matches.label		"matches">
+<!ENTITY danbooruUpOptions.updateURL.description	"The update URL is also used to get the location of tag/related.xml for the related tag lookup.">
 <!ENTITY danbooruUpOptions.updateURL.label		"Update URL:">
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
+<!ENTITY danbooruUpOptions.clearTags.label		"Clear Tags">
+<!ENTITY danbooruUpOptions.clearTags.accesskey		"C">
 <!ENTITY danbooruUpOptions.updateNow.label		"Update Now">
 <!ENTITY danbooruUpOptions.updateNow.accesskey		"N">
-<!ENTITY danbooruUpOptions.cleanup.label		"Remove 0-post tags">
-<!ENTITY danbooruUpOptions.cleanup.accesskey		"R">
-<!ENTITY danbooruUpOptions.relatedUpdateURL.label	"Related Tags URL:">
-<!ENTITY danbooruUpOptions.relatedUpdateURL.accesskey	"R">
-<!ENTITY danbooruUpOptions.relatedUpdateNow.label	"Update Now">
-<!ENTITY danbooruUpOptions.relatedUpdateNow.accesskey	"o">
+<!ENTITY danbooruUpOptions.keepHistory.label		"Keep history of used tags">
+<!ENTITY danbooruUpOptions.keepHistory.accesskey	"H">
+<!ENTITY danbooruUpOptions.keepHistory.tooltip		"Makes the suggestions tend towards tags you've recently used.">
+<!ENTITY danbooruUpOptions.clearHistory.label		"Delete tag history">
+<!ENTITY danbooruUpOptions.clearHistory.accesskey	"I">
 <!ENTITY danbooruUpOptions.updateOnStartup.label	"Update on startup">
 <!ENTITY danbooruUpOptions.updateOnStartup.accesskey	"p">
-<!ENTITY danbooruUpOptions.fastUpdate.label		"Faster startup updating">
-<!ENTITY danbooruUpOptions.fastUpdate.accesskey		"F">
-<!ENTITY danbooruUpOptions.fastUpdate.tooltip		"This option speeds up startup by only retrieving fron the server tags that are new instead of the entire list.">
 <!ENTITY danbooruUpOptions.updateOnUpload.label		"Update on upload">
 <!ENTITY danbooruUpOptions.updateOnUpload.accesskey	"d">
 <!ENTITY danbooruUpOptions.updateOnUpload.before.label	"Update before update dialog appears">
@@ -69,5 +78,4 @@
 <!ENTITY danbooruUpOptions.updateOnTimer.label		"Update on timer every">
 <!ENTITY danbooruUpOptions.updateOnTimer.accesskey	"t">
 <!ENTITY danbooruUpOptions.min.label			"minutes">
-<!ENTITY danbooruUpOptions.clearTagHistory.label	"Clear Tag History">
 

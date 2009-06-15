@@ -7,22 +7,21 @@
 
 <dialog id="danbooruUpBox" title="&danbooru-box-title;"
 	windowtype = "danbooru:UploadBox"
-        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel"
 	width="500px"
 	height="175px"
 	persist="screenX screenY width height"
-	onload="init(); setTimeout(danbooruAddTagTypeStyleSheet, 100);"
-        ondialogaccept="return doOK();"
-        ondialogcancel="return doCancel();">
+	onload="init();"
+	ondialogaccept="return doOK();"
+	ondialogcancel="return doCancel();">
 
 	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpTagStyle.js"/>
 	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/danbooruUpOptions.js"/>
 	<script type="application/javascript" src="chrome://danbooruup/content/danbooruUpBox.js"/>
+	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/autoCompleterXULPopup.js"/>
+	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/autoCompleter.js"/>
 
-<!--	<popupset>
-		<panel type="danbooru-autocomplete" id="DanbooruAutocompletePopup" noautofocus="true"/>
-	</popupset>-->
 <grid>
 <columns>
 <column>
@@ -42,16 +41,8 @@
 			tooltiptext="&danbooru-box-switch-source-tooltip;" onclick="return doSwitchSource(true);"/>
 	</hbox>
 	<textbox id="tags"
-		type="danbooruac"
-		autocompletesearch="danboorutag"
 		newlines="stripsurroundingwhitespace"
-		maxrows="15"
 		flex="1"/>
-	<!--	showcommentcolumn="false"
-		autocompletepopup="DanbooruAutocompletePopup"
-		completeselectedindex="false"
-		tabscrolling="false"
-		showimagecolumn="false" -->
 	<hbox>
 		<radiogroup id="ratinggrp">
 			<hbox>

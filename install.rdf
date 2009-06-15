@@ -5,7 +5,7 @@
   <RDF:Description RDF:about="rdf:#$p7Be1H"
                    em:id="{ec8030f7-c20a-464f-9b0e-13a3a9e97384}"
                    em:minVersion="3.0"
-                   em:maxVersion="3.0.*" />
+                   em:maxVersion="3.5.*" />
   <RDF:Description RDF:about="urn:mozilla:extension:file:danbooruup.jar"
                    em:package="content/danbooruup/"
                    em:locale="locale/en-US/danbooruup/"
@@ -13,7 +13,7 @@
   <RDF:Description RDF:about="urn:mozilla:install-manifest"
                    em:id="{7209145A-6A2A-42C1-99EB-4DE7293990E1}"
                    em:name="Danbooru Uploader"
-                   em:version="0.3.2"
+                   em:version="0.3.3"
                    em:type="2"
                    em:description="Uploads images to danbooru from the context menu."
                    em:creator="Buffered"

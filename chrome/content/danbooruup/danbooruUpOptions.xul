@@ -14,7 +14,7 @@
 	windowtype="danbooruUp:Options"
 	title="&danbooruUpOptions.title;"
 	onkeypress="return gDanbooruManager.onWindowKeyPress(event);"
-	onload="var nl=&quot;\n&quot;; try{gDanbooruManager.onLoad();}catch(e){dump(e+nl);} /*window.setTimeout(function(){dump('panel '+ document.getElementById('tagTreeBox') + ' : ' + gTagView + nl)}, 0)*/"
+	onload="var nl=&quot;\n&quot;; try{gDanbooruManager.onLoad();}catch(e){dump(e+nl);}"
 	onunload="gDanbooruManager.onUnload();"
 	onbeforeaccept="gDanbooruManager.onOK();"
 	ondialogcancel="return gDanbooruManager.onDialogCancel();"

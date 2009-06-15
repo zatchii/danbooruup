@@ -15,24 +15,41 @@ function init()
 
 	document.getElementById('tags').focus();
 
-	window.locations = [window.arguments[0].imageLocation.spec];
+	var source = '';
+	if ('arguments' in window) {
+		window.locations = [window.arguments[0].imageLocation.spec];
 
-	if(!window.arguments[0].imageLocation.equals(window.arguments[0].imageURI))
-		window.locations.push(window.arguments[0].imageURI.spec);
+		if(!window.arguments[0].imageLocation.equals(window.arguments[0].imageURI))
+			window.locations.push(window.arguments[0].imageURI.spec);
 
-	if(window.arguments[0].referrer)
-		window.locations.unshift(window.arguments[0].referrer);
+		if(window.arguments[0].referrer)
+			window.locations.unshift(window.arguments[0].referrer);
 
-	document.getElementById('nextSrcBtn').disabled = true;
-	if (prefService.getBoolPref("extensions.danbooruUp.fileurlsource") || !(window.arguments[0].imageURI.scheme == 'file') )
-	{
-		document.getElementById('source').value = window.arguments[0].imageURI.spec;
-		if(window.locations.length == 1)
-		{
-			document.getElementById('prevSrcBtn').disabled = true;
-		}
+		if (prefService.getBoolPref("extensions.danbooruUp.fileurlsource") || !(window.arguments[0].imageURI.scheme == 'file') )
+			source = window.arguments[0].imageURI.spec;
+	} else {
+		window.locations = [];
 	}
 
+	document.getElementById('source').value = source;
+	document.getElementById('nextSrcBtn').disabled = true;
+	if (window.locations.length == 1 && source)
+		document.getElementById('prevSrcBtn').disabled = true;
+
+	if (prefService.getBoolPref('extensions.danbooruUp.autocomplete.enabled') && completer.tagService) {
+		var context = ['__ALL__'];
+		if ('arguments' in window) {
+			// The components of the host name except the TLD, and the components of the path except the filename
+			context = context.concat(window.arguments[0].imageURI.host.split('.').slice(0, -1),
+					window.arguments[0].imageURI.path.split('/').filter(function (x) {return x}).slice(0, -1));
+		}
+		completer.context = context;
+		new AutoCompleter(document.getElementById('tags'), completer, danbooruACXULPopup);
+
+		let stylePrefs = Components.classes["@mozilla.org/preferences-service;1"]
+			.getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
+		setTimeout(function() {danbooruAddTagTypeStyleSheet(function(style) {return stylePrefs.getCharPref(style)});}, 100);
+	}
 }
 
 function doSwitchSource(forward) {
@@ -82,21 +99,15 @@ function doOK()
 
 	var helpersvc= Components.classes["@unbuffered.info/danbooru/helper-service;1"]
 			.getService(Components.interfaces.danbooruIHelperService);
-	if(tags.length) {
+	if (tags.length) {
 		// compact tag input
 		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
-		var flat=[];
+		var context = completer.context;
 		var needupdate = false;
-		for(var a in tagarr) {
-			flat[tagarr[a]]=null;
-		}
 		try {
 			var tagHist = helpersvc.tagService;
-			for(var a in flat) {
-				if (!tagHist.incrementValueForName(a))
-					needupdate = true;
-			}
-		} catch(e) {
+			needupdate = !tagHist.updateTagHistory(tagarr, context);
+		} catch (e) {
 			// silently fail
 		}
 		needupdate = prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.afterdialog") && needupdate;
@@ -167,7 +178,7 @@ function doArtistSearch() {
 		if (responseXML
 			&& responseXML.documentElement.namespaceURI != "http://www.mozilla.org/newlayout/xml/parsererror.xml"
 			&& (xhr.status == 200 || xhr.status == 0)) {
-			result = responseXML.evaluate("/artists/artist", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+			var result = responseXML.evaluate("/artists/artist", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
 			if (result.snapshotLength == 1) {
 				var tags = document.getElementById('tags');
 				var append = result.snapshotItem(0).getAttribute("name") + ' ';
@@ -211,3 +222,58 @@ function doArtistSearch() {
 	xhr.send(null);
 }
 
+var completer = {
+	timer: Components.classes['@mozilla.org/timer;1'].createInstance(Components.interfaces.nsITimer),
+	running: false,
+	cur_tag: '',
+	cur_callback: null,
+	context: null,	// Set from init()
+
+	tagService: Components.classes["@unbuffered.info/danbooru/helper-service;1"]
+		.getService(Components.interfaces.danbooruIHelperService).tagService,
+
+	getSuggestions: function(tag, callback)
+	{
+		if (!this.running) {
+			this.timer.init(this, 100, this.timer.TYPE_ONE_SHOT);
+			this.running = true;
+		}
+		this.cur_tag = tag;
+		this.cur_callback = callback;
+	},
+
+	abortSuggestion: function()
+	{
+		this.timer.cancel();
+		this.running = false;
+	},
+
+	// Called by timer, time to do search
+	observe: function(subject, topic, data)
+	{
+		this.running = false;
+		this.tagService.autocompleteSearch(this.cur_tag, this.context, this.cur_callback);
+	},
+
+	getRelated: function(tag, callback)
+	{
+		this.tagService.searchRelatedTags(tag, callback);
+	},
+
+	openBrowserTab: function(tag)
+	{
+		var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+			.getService(Components.interfaces.nsIIOService);
+		var wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+			.getService(Components.interfaces.nsIWindowMediator);
+		var br = wm.getMostRecentWindow("navigator:browser");
+
+		var boardUri = document.getElementById('danbooru').label;
+		var uri = ioService.newURI(boardUri, null, null).QueryInterface(Components.interfaces.nsIURL);
+		uri.path = uri.path.replace(/\/[^/]+\/[^/]+$/, "/post/index");
+
+		uri.query = "tags=" + encodeURIComponent(tag);
+
+		br.getBrowser().selectedTab = br.getBrowser().addTab(uri.spec);
+	},
+};

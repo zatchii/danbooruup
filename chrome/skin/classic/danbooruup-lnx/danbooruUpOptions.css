@@ -17,9 +17,6 @@
 	padding: 1px;
 }
 
-#styleBox {
-	min-height: 20em;
-}
 #danbooruTree {
 	min-height: 15em;
 }
@@ -27,7 +24,7 @@
 	width: 5em;
 }
 
-#tagTreeBox {
+#styleList {
 	border-width: 1px;
 	-moz-border-top-colors: ThreeDDarkShadow;
 	-moz-border-right-colors: ThreeDDarkShadow;
@@ -36,7 +33,9 @@
 	padding: 0;
 	border-style: solid;
 	background-color: -moz-Field;
+	min-width: 7em;
 	max-width: 15em;
+	min-height: 30em;
 }
 
 #danbooruUpOptions radio[pane] {

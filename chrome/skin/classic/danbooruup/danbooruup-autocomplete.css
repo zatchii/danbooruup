@@ -4,17 +4,8 @@
 
 /* bindings are mostly to separate danbooru CSS classes from the mozilla ones */
 textbox[type="danbooruac"] {
-	-moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooruac") !important;
 	padding: 3px 4px 2px 2px;
 }
-
-/* swap the commented lines to use the old treeview popup */
-panel[type="danbooru-autocomplete"] {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-rich-result-popup");
-/*-moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-result-popup"); */
-}
-
-/* copied from autocomplete.css as a result */
 
 panel[type="danbooru-autocomplete"] {
   -moz-appearance: none;
@@ -27,79 +18,12 @@ panel[type="danbooru-autocomplete"] {
   background-color: -moz-Field !important;
 }
 
-.danbooru-autocomplete-tree {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-tree");
+.danbooru-autocomplete {
+	width: 40em;
 }
 
-.danbooru-autocomplete-treebody {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-treebody");
+.danbooru-autocomplete richlistbox {
+	max-height: 20em;
+	min-height: 1em;
 }
 
-.danbooru-autocomplete-treerows {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-treerows");
-}
-
-.danbooru-autocomplete-richlistbox {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-richlistbox");
-  -moz-user-focus: ignore;
-  -moz-appearance: none;
-}
-
-.danbooru-autocomplete-richlistbox > scrollbox {
-  overflow-x: hidden !important;
-}
-
-.danbooru-autocomplete-richlistitem {
-  -moz-binding: url("chrome://danbooruup-bindings/content/danbooruUp.xml#danbooru-autocomplete-richlistitem");
-  -moz-box-orient: vertical;
-  overflow: -moz-hidden-unscrollable;
-}
-
-.danbooru-autocomplete-richlistitem[selected="true"] {
-  background-color: Highlight;
-  color: HighlightText;
-}
-
-html|span.danbooru-ac-emphasize-text {
-  font-weight: bold;
-}
-
-html|span.danbooru-ac-emphasize-alt {
-  text-decoration: underline;
-}
-
-.danbooru-ac-spacer {
-  width: 1em;
-}
-
-.danbooru-autocomplete-tree {
-  -moz-appearance: none !important;
-  border: none !important;
-  background-color: transparent !important;
-}
-
-.danbooru-autocomplete-treecol {
-  -moz-appearance: none !important;
-  margin: 0 !important;
-  border: none !important;
-  padding: 0 !important;
-}
-
-.danbooru-autocomplete-treebody::-moz-tree-cell-text {
-  -moz-padding-start: 8px;
-}
-
-treechildren.danbooru-autocomplete-treebody::-moz-tree-twisty {
-	-moz-appearance: none;
-        padding: 0;
-        width: 0;
-        list-style-image: none;
-}
-
-treechildren.danbooru-autocomplete-treebody::-moz-tree-row(selected) {
-  background-color: Highlight;
-}
-
-treechildren.danbooru-autocomplete-treebody::-moz-tree-cell-text(selected) {
-  color: HighlightText;
-}

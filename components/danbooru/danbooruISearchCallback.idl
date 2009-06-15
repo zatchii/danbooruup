@@ -1,0 +1,12 @@
+#include "nsISupports.idl"
+#include "nsIVariant.idl"
+
+[scriptable, function, uuid(53551dff-a2a7-42a4-85af-9276507b3527)]
+interface danbooruISearchCallback : nsISupports
+{
+  /**
+   * Generic callback function for reporting search results.
+   */
+  void handleSearchResult(in AString tagname, in nsIVariant result);
+};
+

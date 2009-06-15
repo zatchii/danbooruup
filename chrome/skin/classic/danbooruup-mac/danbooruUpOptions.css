@@ -39,14 +39,11 @@ prefpane#danbooruUpAutocompletePane {
 	max-height: 45em;
 }
 
-#styleBox {
-	min-height: 20em;
-}
 #danbooruTree {
 	min-height: 15em;
 }
 
-#tagTreeBox {
+#styleList {
 	border-width: 1px;
 	-moz-border-top-colors: ThreeDDarkShadow;
 	-moz-border-right-colors: ThreeDDarkShadow;
@@ -55,6 +52,7 @@ prefpane#danbooruUpAutocompletePane {
 	padding: 0;
 	border-style: solid;
 	background-color: -moz-Field;
+	min-width: 7em;
 }
 
 #danbooruUpOptions radio[pane] {
