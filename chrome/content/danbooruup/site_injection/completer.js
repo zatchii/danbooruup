@@ -24,17 +24,7 @@ var danbooruUpCompleter = {
 	doSearch: function()
 	{
 		this.timer = null;
-
-		var element = document.createElement('DUSearch');
-		element.setAttribute('command', 'search');
-		element.setAttribute('query', this.cur_tag);
-		document.documentElement.appendChild(element);
-
-		var evt = document.createEvent("Events");
-		evt.initEvent('DanbooruUpSearchEvent', true, false);
-		element.dispatchEvent(evt);
-
-		document.documentElement.removeChild(element);
+		this.sendRequest(this.cur_tag, 'search');
 	},
 
 	// Called on window event, the result has been written to window.danbooruUpCompleterResult.
@@ -46,35 +36,22 @@ var danbooruUpCompleter = {
 
 	getRelated: function(tag, callback)
 	{
-		// Will only work if the booru is running from the top level.
-		var uri = document.location.protocol + '//' + document.location.host + '/tag/related.xml';
-		uri += '?tags=' + encodeURIComponent(tag);
+		this.cur_callback = callback;
+		this.sendRequest(tag, 'related');
+	},
 
-		var request = new XMLHttpRequest();
-		request.open('GET', uri);
+	sendRequest: function(tag, command)
+	{
+		var element = document.createElement('DUSearch');
+		element.setAttribute('command', command);
+		element.setAttribute('query', tag);
+		document.documentElement.appendChild(element);
 
-		var o = this;
-		request.addEventListener('load',
-			function(event) {
-				if (this.status == 200) {
-					var tags = [];
-					var el = this.responseXML.documentElement.firstChild;
-					while (el.nodeType != 1)
-						el = el.nextSibling;
-					for (var node = el.firstChild; node; node = node.nextSibling) {
-						if (node.nodeType != 1)
-							continue;
-						tags.push([node.getAttribute('name'), 0, 0]);	// Just push them on without type info...
-					}
+		var evt = document.createEvent("Events");
+		evt.initEvent('DanbooruUpSearchEvent', true, false);
+		element.dispatchEvent(evt);
 
-					callback(tag, tags);
-				} else {
-					__log('Got status ' + this.status + ' from artist search.');
-				}
-			},
-			false
-		);
-		request.send(null);
+		document.documentElement.removeChild(element);
 	},
 
 	openBrowserTab: function(tag)

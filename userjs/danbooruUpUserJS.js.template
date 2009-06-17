@@ -146,7 +146,7 @@ var danbooruUpCompleter = {
 };
 
 
-window.addEventListener('load', function(e) {
+window.addEventListener('DOMContentLoaded', function(e) {
 		var script_arr = [];
 		$ONLOAD_SCRIPTS
 	},

@@ -437,16 +437,21 @@ var danbooruUpHelperObject = {
 		{
 			var command = e.target.getAttribute('command');
 			var query = e.target.getAttribute('query');
-			if (command != 'search')
-				return;
-			danbooruUpHelperObject.tagService.autocompleteSearch(query, ['__ALL__'],
-				function(tag, result) {
-					Components.utils.evalInSandbox('unsafeWindow.danbooruUpCompleterResult = ' + [tag, result].toSource() + ';', sandbox);
-					var evt = sandbox.document.createEvent('Events');
-					evt.initEvent('DanbooruUpSearchResultEvent', true, false);
-					sandbox.window.dispatchEvent(evt);
-				}
-			);
+			var return_fun = function(tag, result) {
+				Components.utils.evalInSandbox('unsafeWindow.danbooruUpCompleterResult = ' + [tag, result].toSource() + ';', sandbox);
+				var evt = sandbox.document.createEvent('Events');
+				evt.initEvent('DanbooruUpSearchResultEvent', true, false);
+				sandbox.window.dispatchEvent(evt);
+			};
+			if (command == 'search') {
+				danbooruUpHelperObject.tagService.autocompleteSearch(query, ['__ALL__'],
+						return_fun
+				);
+			} else if (command == 'related') {
+				danbooruUpHelperObject.tagService.searchRelatedTags(query,
+						return_fun
+				);
+			}
 		}
 
 		try {

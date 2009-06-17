@@ -12,10 +12,10 @@ from optparse import OptionParser
 opt_parser = OptionParser()
 opt_parser.add_option('-f', dest='tagfile',
         default='http://danbooru.donmai.us/tag/index.xml?limit=0',
-        help="Set URL to download the tag xml file from")
+        help="XML tag file URL")
 opt_parser.add_option('-o', dest='outfile',
         default='danbooruUpUserJS.js',
-        help="Name of output file")
+        help="name of output file")
 options, args = opt_parser.parse_args()
 
 

@@ -5,17 +5,25 @@
  * Lets you add and save notes by hovering over the image and pressing Ctrl + Shift + A
  */
 
+
 (function () {
+
+	// Drop privileges in Greasemonkey
+	if (typeof window.wrappedJSObject == "object") {
+	  location.href = "javascript:(" + encodeURI(arguments.callee.toSource()) + ")();";
+	  return;
+	}
 
 	var mouse_coord;
 
 	var base_coord;
 	var preview_box;
-	
+
 
 	function ratio()
 	{
-		return window.image.width / window.image.getAttribute('orig_width');
+		var image = document.getElementById('image');
+		return image.width / image.getAttribute('orig_width');
 	}
 
 	function makeNote()
@@ -42,8 +50,20 @@
 
 	function onKeyDown(ev)
 	{
+
+		// Cancel note on Escape
+		if (preview_box && ev.keyCode == 27) {
+			preview_box.parentNode.removeChild(preview_box);
+			preview_box = null;
+			ev.preventDefault();
+			ev.stopPropagation();
+			return;
+		}
+
 		if (!(ev.keyCode == 65 && ev.ctrlKey && ev.shiftKey))	// Ctrl + Shift + A
 			return;
+		ev.preventDefault();
+		ev.stopPropagation();
 
 		// If a note edit box is open, save the note.
 		var editbox = document.getElementById('edit-box');
@@ -63,9 +83,7 @@
 		preview_box = document.createElement('div');
 		preview_box.className = 'note-box unsaved';
 		preview_box.style.opacity = 0.2;
-		preview_box.style.height = preview_box.style.width = '150px';
 		note_container.appendChild(preview_box);
-		preview_box.addEventListener('mousemove', onMouseMove, false);
 		preview_box.addEventListener('click', onMouseClick, false);
 
 		base_coord = mouse_coord;
@@ -80,18 +98,18 @@
 	function updatePreview()
 	{
 		var ps = preview_box.style;
-		ps.left = Math.min(base_coord.x, mouse_coord.x);
-		ps.top = Math.min(base_coord.y, mouse_coord.y);
-		ps.width = Math.abs(base_coord.x - mouse_coord.x);
-		ps.height = Math.abs(base_coord.y - mouse_coord.y);
+		ps.left = Math.min(base_coord.x, mouse_coord.x) + 'px';
+		ps.top = Math.min(base_coord.y, mouse_coord.y) + 'px';
+		ps.width = Math.abs(base_coord.x - mouse_coord.x) + 'px';
+		ps.height = Math.abs(base_coord.y - mouse_coord.y) + 'px';
 	}
 
 	function onMouseMove(ev)
 	{
 		var note_container = document.getElementById('note-container');
 		mouse_coord = {
-			x: ev.pointerX() - note_container.offsetLeft,
-			y: ev.pointerY() - note_container.offsetTop
+			x: ev.pageX - note_container.offsetLeft,
+			y: ev.pageY - note_container.offsetTop
 		};
 
 		if (preview_box)
@@ -100,11 +118,16 @@
 
 	document.addEventListener('keydown', onKeyDown, false);
 
-	window.addEventListener('load', function() {
-			window.image.addEventListener('mousemove', onMouseMove, false);
-			document.getElementById('note-container').addEventListener('mousemove', onMouseMove, false);
-		},
-		false
-	);
+	if (window.opera) {
+		document.addEventListener('DOMContentLoaded', function() {
+				document.getElementById('image').addEventListener('mousemove', onMouseMove, false);
+				document.getElementById('note-container').addEventListener('mousemove', onMouseMove, false);
+			},
+			false
+		);
+	} else {
+		document.getElementById('image').addEventListener('mousemove', onMouseMove, false);
+		document.getElementById('note-container').addEventListener('mousemove', onMouseMove, false);
+	}
 
 })()
