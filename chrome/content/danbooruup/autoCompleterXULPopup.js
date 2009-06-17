@@ -73,7 +73,7 @@ danbooruACXULPopup.prototype = {
 				let x = tags[i];
 				let li = document.createElementNS('http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul', 'richlistitem');
 				li.value = x[0];
-				li.setAttribute('class', tc[x[1]] + (x[2] ? tc[2] : ''));
+				li.setAttribute('class', tc[x[1]] + (x[2] ? ' ' + tc[2] : ''));
 				li.label = indent ? indent + x[0] : x[0];
 				let label = document.createElementNS('http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul', 'description');
 				label.appendChild(document.createTextNode(li.label));

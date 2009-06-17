@@ -123,7 +123,7 @@ danbooruACHTMLPopup.prototype = {
 				let x = tags[i];
 				let li = document.createElement('option');
 				li.value = x[0];
-				li.setAttribute('class', tc[x[1]] + (x[2] ? tc[2] : ''));
+				li.setAttribute('class', tc[x[1]] + (x[2] ? ' ' + tc[2] : ''));
 				li.appendChild(document.createTextNode(indent ? indent + x[0] : x[0]));
 				li.indent = indent;
 				lb.add(li, insertBefore);
