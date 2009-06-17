@@ -17,6 +17,7 @@ var danbooruUpCompleter = {
 	{
 		if (this.timer)
 			window.clearTimeout(this.timer);
+		this.timer = null;
 	},
 
 	// Called on time out, send the query.

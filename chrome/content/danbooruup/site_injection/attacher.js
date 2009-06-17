@@ -22,10 +22,13 @@ function inhibitForm(id) {
 		var target = null;
 		try {
 			target = stopf.caller.arguments[0].target;
-		} catch (e) { }
+		} catch (e) { 
+			target = el.getElementsByTagName('textarea')[0];
+		}
 		if (target && target.danbooruUpAutoCompleter) {
-			if (!target.danbooruUpAutoCompleter.onEnter())
+			if (!target.danbooruUpAutoCompleter.onEnter()) {
 				submit.call(el);
+			}
 		}
 	};
 	el.submit = stopf;
@@ -68,9 +71,9 @@ if (document.location.href.match(/\/wiki(\/|$)/)) {
 if (document.location.href.match(/\/tag_subscription(\/|$)/)) {
 	// User subscriptions. Tricky.
 	// TODO: Bind new fields as they're ajax-added
-	let inputs = document.getElementsByTagName('input');
-	for (var i = 0; i < inputs.length; i++) {
-		if (inputs[i].id.match(/tag_query/))
-			danbooruUpACAttacher(inputs[i].id);
+	let subscriptionInputs = document.getElementsByTagName('input');
+	for (var i = 0; i < subscriptionInputs.length; i++) {
+		if (subscriptionInputs[i].id.match(/tag_query/))
+			danbooruUpACAttacher(subscriptionInputs[i].id);
 	}
 }

@@ -21,6 +21,8 @@ var AutoCompleter = function(textfield, completer, createPopup)
 	this._showSugg = function(tag, suggestions) { o.showSuggestions(tag, suggestions); };
 	this._showRel = function(tag, related) { o.showRelated(tag, related); };
 	this._textfield.addEventListener('keypress', function(event) { o.onKeyPress(event); }, false);
+	this._textfield.addEventListener('keydown', function(event) { o.onKeyDown(event); }, false);
+	this._textfield.addEventListener('keyup', function(event) { o.onKeyUp(event); }, false);
 	this._textfield.addEventListener('input', function(event) { o.onInput(event); }, false);
 	this._textfield.addEventListener('blur', function(event) { o._popup.timedHide(); }, false);
 	this._textfield.addEventListener('focus', function(event) { o._popup.cancelHide(); }, false);
@@ -36,7 +38,9 @@ AutoCompleter.prototype = {
 		'danbooru-tagtype-0 danbooru-tagtype-3',
 		'danbooru-tagtype-0 danbooru-tagtype-4',
 	],
-	ignoreInput: false,
+	ignoreKeypress: false,
+	ignoreEnter: false,
+	ctrlKey: false,
 
 	// Listens on the list box for mouse events.
 	onClick: function(event)
@@ -52,20 +56,45 @@ AutoCompleter.prototype = {
 			this.replaceCurrentTag(orgSource.value);
 			if (!event.ctrlKey)
 				this.hidePopup();
+			else
+				this._popup.openPopup();
 		}
 	},
 
 	// Listens on the text input field for keypress events.
+	onKeyDown: function(event)
+	{
+		this.lastKeyCode = event.keyCode;
+		if (event.keyCode == KeyEvent.DOM_VK_CONTROL)
+			this.ctrlKey = true;
+	},
+
+	onKeyUp: function(event)
+	{
+		if (event.keyCode == KeyEvent.DOM_VK_CONTROL)
+			this.ctrlKey = false;
+	},
+
 	onKeyPress: function(event)
 	{
-		if (this.ignoreInput)
+		if (this.ignoreKeypress)
 			return;
+		// Ignore enter events that come in too quick succession.
+		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN && this.ignoreEnter > new Date()) {
+			event.preventDefault();
+			event.stopPropagation();
+			return;
+		}
+
+
 		var lb = this._listbox;
 		var moved = true;
 
+
 		// Handle some keys for the autocomplete list.
 		if (this._popup.state == 'open') {
-			switch (event.keyCode) {
+			//switch (event.keyCode) {
+			switch (this.lastKeyCode) {
 				case KeyEvent.DOM_VK_UP:
 					if (lb.selectedIndex == -1 || lb.selectedIndex == 0)
 						lb.selectedIndex = lb.itemCount - 1;
@@ -104,6 +133,8 @@ AutoCompleter.prototype = {
 						lb.selectedIndex = -1;
 						this.hidePopup();
 					}
+					this.ignoreEnter = new Date();
+					this.ignoreEnter.setMilliseconds(this.ignoreEnter.getMilliseconds() + 100);
 					break;
 				case KeyEvent.DOM_VK_ESCAPE:
 					this.hidePopup();
@@ -123,7 +154,8 @@ AutoCompleter.prototype = {
 				lb.selectedItem = lb.getItemAtIndex(lb.selectedIndex);
 			}
 		} else {
-			switch (event.keyCode) {
+			//switch (event.keyCode) {
+			switch (this.lastKeyCode) {
 				case KeyEvent.DOM_VK_INSERT:
 				case KeyEvent.DOM_VK_HELP:
 					let cur_tag = this.getTagAtCursor();
@@ -145,7 +177,6 @@ AutoCompleter.prototype = {
 					break;
 			}
 		}
-
 		if (moved) {
 			event.preventDefault();
 			event.stopPropagation();
@@ -156,8 +187,10 @@ AutoCompleter.prototype = {
 	// Returns true if the default action should be stopped.
 	onEnter: function()
 	{
-		ev = { stop: false, keyCode: KeyEvent.DOM_VK_RETURN,
-			preventDefault: function() { this.stop = true; }, stopPropagation: function() {} }
+		this.lastKeyCode = KeyEvent.DOM_VK_RETURN;
+		ev = { stop: false, keyCode: KeyEvent.DOM_VK_RETURN, ctrlKey: this.ctrlKey,
+			preventDefault: function() { this.stop = true; }, stopPropagation: function() {}
+		};
 		this.onKeyPress(ev);
 		return ev.stop;
 	},
@@ -170,7 +203,7 @@ AutoCompleter.prototype = {
 			this._completer.getSuggestions(tag, this._showSugg);
 			this.openPopup()
 		} else if (this._popup.state == 'open') {
-			this.hidePopup();
+			this._popup.timedHide();
 		}
 	},
 
@@ -232,7 +265,7 @@ AutoCompleter.prototype = {
 			let indent = this._popup.getIndent(position) + '\u00a0\u00a0';	// non-breaking space.
 
 			// The requested tag is probably in there itself, filter it.
-			this._popup.insertTags(related.filter(function(x) x[0] != tag), indent, null, this.tag_classes, position);
+			this._popup.insertTags(related.filter(function(x) {return x[0] != tag;}), indent, null, this.tag_classes, position);
 
 			lb.ensureIndexIsVisible(position);
 			lb.selectedIndex = position;
@@ -286,7 +319,8 @@ AutoCompleter.prototype = {
 	// Get the tag the caret is currently positioned over, stripping tag prefixes, or an empty string.
 	getTagAtCursor: function()
 	{
-		var [from, to] = this.getTagBoundsAtCursor();
+		var from, to;
+		[from, to] = this.getTagBoundsAtCursor();
 		// Something is selected?
 		if (from === -1)
 		return '';
@@ -301,7 +335,8 @@ AutoCompleter.prototype = {
 	// Replace the tag the caret is currently positioned over, keeping tag prefixes.
 	replaceCurrentTag: function(replacement)
 	{
-		var [from, to] = this.getTagBoundsAtCursor();
+		var from, to;
+		[from, to] = this.getTagBoundsAtCursor();
 		if (from === -1)
 			return;
 		replacement += ' ';
@@ -313,7 +348,11 @@ AutoCompleter.prototype = {
 		this._textfield.setSelectionRange(newend, newend);
 		this._textfield.focus();
 
+		// Ignore any simulated keypresses during scrolling.
+		this.ignoreKeypress = true;
+		// Scroll to caret position
 		this._popup.scrollText(this._textfield);
+		this.ignoreKeypress = false;
 	},
 
 	hidePopup: function()

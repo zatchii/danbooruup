@@ -335,10 +335,10 @@ var danbooruUpHelperObject = {
 	//
 	script_src:[],
 	script_ins:'',
-	files: ["chrome://danbooruup/content/extra/completer.js",
-		"chrome://danbooruup/content/extra/autoCompleterHTMLPopup.js",
+	files: ["chrome://danbooruup/content/site_injection/completer.js",
+		"chrome://danbooruup/content/site_injection/autoCompleterHTMLPopup.js",
 		"chrome://danbooruup/content/autoCompleter.js",
-		"chrome://danbooruup/content/extra/attacher.js",
+		"chrome://danbooruup/content/site_injection/attacher.js",
 		],
 	// load scripts as strings to hopefully save some minor amount of processing time
 	// at the cost of memory
@@ -350,7 +350,7 @@ var danbooruUpHelperObject = {
 				var script = ioService.newURI(this.files[i],null,null)
 				this.script_src.push(this.getContents(script));
 			}
-			this.script_ins = this.getContents(ioService.newURI("chrome://danbooruup/content/extra/ac-insert2.js",null,null));
+			this.script_ins = this.getContents(ioService.newURI("chrome://danbooruup/content/site_injection/ac-insert2.js",null,null));
 		} catch(x) { Components.utils.reportError(x); }
 
 	},

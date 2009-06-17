@@ -19,8 +19,6 @@ for (var i=0; i < script_arr.length; i++)
 // create the CSS
 var cssdec = '.danbooru-autocomplete { border: 1px solid black; overflow: auto; background: #fff; min-height: 1em; z-index: 1000 !important; ' +
 	'width: 20em; position: absolute;}\n';
-		//".danbooruup-ac > ul > li { display: block; text-align: left; background: #fff; margin: 0; padding: 0; padding-left: 4px; padding-right: 4px;}\n" +
-		//".danbooruup-ac > ul > li.selected { background: #ffc; }\n";
 
 // tag style rules
 for (rule in style_arr) {

@@ -1,4 +1,4 @@
-// Makes the autocompleter work in HTML
+// Makes the autocompleter work in HTML DOM
 
 var danbooruACHTMLPopup = function(textfield) {
 	this.div = document.createElement('div');
@@ -78,6 +78,8 @@ danbooruACHTMLPopup.prototype = {
 	// Hide after a certain time if cancelHide or openPopup isn't called by then.
 	timedHide: function()
 	{
+		if (this.timer)
+			return;
 		var o = this;
 		this.timer = window.setTimeout(function() { o.timer = null; o.hidePopup(); }, 200);
 	},
@@ -93,7 +95,7 @@ danbooruACHTMLPopup.prototype = {
 	// Called by the autocompleter to figure whether an onclick was on target.
 	isClick: function(event)
 	{
-		var source = event.originalTarget;
+		var source = event.target;
 		while (source && source.localName != 'OPTION') {
 			source = source.parentNode;
 		}
@@ -135,9 +137,13 @@ danbooruACHTMLPopup.prototype = {
 	// Scroll the textfield to the cursor position.
 	scrollText: function(textfield)
 	{
-		// Send a escape keypress.
-		evt = document.createEvent("KeyboardEvent");
-		evt.initKeyEvent('keypress', false, false, window, false, false, false, false, KeyEvent.DOM_VK_ESCAPE, 0);
-		textfield.dispatchEvent(evt);
+		try {
+			// Send a escape keypress.
+			evt = document.createEvent("KeyboardEvent");
+			evt.initKeyEvent('keypress', false, false, window, false, false, false, false, KeyEvent.DOM_VK_ESCAPE, 0);
+			textfield.dispatchEvent(evt);
+		} catch (e) {
+			// Can't send key events in Opera... Can't scroll the input field at all...
+		}
 	}
 };

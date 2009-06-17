@@ -1,0 +1,156 @@
+// ==UserScript==
+	// @include http://danbooru.donmai.us/*
+// ==/UserScript==
+
+var style_arr = {
+	'0': '',
+	'1': 'color: #a00;',
+	'2': 'background: #ddd;',
+	'3': 'color: #a0a;',
+	'4': 'color: #0a0;',
+	'0.selected': '',
+	'1.selected': '',
+	'2.selected': '',
+	'3.selected': '',
+	'4.selected': '',
+};
+
+var KeyEvent = {
+	DOM_VK_RETURN: 13,
+	DOM_VK_CONTROL: 17,
+	DOM_VK_ESCAPE: 27,
+	DOM_VK_SPACE: 32,
+	DOM_VK_PAGE_UP: 33,
+	DOM_VK_PAGE_DOWN: 34,
+	DOM_VK_UP: 38,
+	DOM_VK_DOWN: 40,
+	DOM_VK_INSERT: 45,
+	DOM_VK_HELP: 6
+};
+
+var danbooruUpCompleter = {
+	prev_result: [],
+	prev_tag: '',
+	prev_pos: 0,
+	cur_tag: '',
+	cur_callback: null,
+	timer: null,
+
+	getSuggestions: function(tag, callback)
+	{
+		this.cur_callback = callback;
+		this.cur_tag = tag;
+		var o = this;
+		if (!this.timer)
+			this.timer = window.setTimeout(function() { o.doSearch(); }, 100);
+	},
+
+	abortSuggestion: function()
+	{
+		if (this.timer)
+			window.clearTimeout(this.timer);
+		this.timer = null;
+	},
+
+	writeRegexp: function(query)
+	{
+		var re = query.replace(/[][().?+{}|^$\\]/g, '\\$&');
+		re = re.replace(/\*/g, '.*');
+		if (/\*/.test(re))
+			re += '$';
+		return new RegExp('^' + re);
+	},
+
+	// Called on time out, do query.
+	doSearch: function()
+	{
+		this.timer = null;
+
+		var re = this.writeRegexp(this.cur_tag);
+		var ref = function(x) { return re.test(x) };
+
+		var tags;
+		// If there's no wildcards, and the search is a more specific version of the old search,
+		// then search in the previously returned result first.
+		if ((this.prev_tag == this.cur_tag.slice(0, this.prev_tag.length) &&
+			 !/\*/.test(this.cur_tag))) {
+			tags = this.prev_result.filter(ref);
+		} else {
+			tags = [];
+			this.prev_pos = 0;
+		}
+
+		var i;
+		for (i = this.prev_pos; i < danbooruUpACTagArray.length && tags.length < 100; i++) {
+			if (re.test(danbooruUpACTagArray[i][0]))
+				tags.push(danbooruUpACTagArray[i]);
+		}
+
+		this.prev_pos = i;
+		this.prev_tag = this.cur_tag;
+		this.prev_result = tags;
+
+		this.cur_callback(this.cur_tag, tags);
+	},
+
+	getRelated: function(tag, callback)
+	{
+		// Will only work if the booru is running from the top level.
+		var uri = document.location.protocol + '//' + document.location.host + '/tag/related.xml';
+		uri += '?tags=' + encodeURIComponent(tag);
+
+		var request = new XMLHttpRequest();
+		request.open('GET', uri);
+
+		var o = this;
+		request.onreadystatechange = function(event) {
+			if (this.readyState == 4) {
+				if (this.status == 200) {
+					var tags = [];
+					var el = this.responseXML.documentElement.firstChild;
+					while (el.nodeType != 1)
+						el = el.nextSibling;
+					for (var node = el.firstChild; node; node = node.nextSibling) {
+						if (node.nodeType != 1)
+							continue;
+						tags.push(node.getAttribute('name'));
+					}
+
+					callback(tag, o.enhanceTags(tags));
+				} else {
+				}
+			}
+		};
+		request.send(null);
+	},
+
+	enhanceTags: function(tags)
+	{
+		var tag_dict = {};
+		for (var i = 0; i < tags.length; i++)
+			tag_dict[tags[i]] = [tags[i], 0, 0];
+		for (var i = 0; i < danbooruUpACTagArray.length; i++) {
+			if (danbooruUpACTagArray[i][0] in tag_dict)
+				tag_dict[danbooruUpACTagArray[i][0]] = danbooruUpACTagArray[i];
+		}
+		var tags_new = [];
+		for (var i = 0; i < tags.length; i++)
+			tags_new.push(tag_dict[tags[i]]);
+		return tags_new;
+	},
+
+	openBrowserTab: function(tag)
+	{
+		alert('Hey!');
+	}
+};
+
+
+window.addEventListener('load', function(e) {
+		var script_arr = [];
+		$ONLOAD_SCRIPTS
+	},
+	false
+);
+
+
