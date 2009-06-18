@@ -58,7 +58,7 @@ danbooruUpACAttacher('tag_implication_consequent');	// Tag alias
 danbooruUpACAttacher('user_blacklisted_tags');	// Tag alias
 danbooruUpACAttacher('user_uploaded_tags');	// Tag alias
 
-if (document.location.href.match(/\/tag(\/|$)/)) {	// Tag search
+if (document.location.href.match(/\/tag(\/|\?|$)/)) {	// Tag search
 	danbooruUpACAttacher('name');
 }
 if (document.location.href.match(/\/tag_(alias|implication)(\/|\?|$)/)) {	// Tag alias/implication

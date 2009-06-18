@@ -3,7 +3,7 @@ const DANBOORU_TAGHISTORYSERVICE_CID = Components.ID('{4d39eff7-397a-4a14-be57-b
 
 // SQL statements and constants
 const kSetCollate = 'PRAGMA case_sensitive_like = true';
-const kTagHistoryFileName = 'danbooruhistory.sqlite';
+const kTagHistoryFileName = 'danbooruhistory_z.sqlite';
 const kTagTableName = 'tag';
 const kTagTableSchema = 'tag_id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, tag_count INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0, ambiguous INTEGER NOT NULL DEFAULT 0';
 const kTagTableCreate = 'CREATE TABLE IF NOT EXISTS tag(tag_id INTEGER PRIMARY KEY, tag_name TEXT NOT NULL UNIQUE, tag_count INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0, ambiguous INTEGER NOT NULL DEFAULT 0)';
