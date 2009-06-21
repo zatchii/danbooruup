@@ -1,5 +1,6 @@
 // ==UserScript==
 	// @include http://danbooru.donmai.us/post/show/*
+	// @include http://safebooru.donmai.us/post/show/*
 // ==/UserScript==
 /**
  * Lets you add and save notes by hovering over the image and pressing Ctrl + Shift + A

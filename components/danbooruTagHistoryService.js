@@ -324,7 +324,7 @@ var tagHistoryService = {
 	{
 		if (this._dbBusy || !this._acPrefs.getBoolPref('enabled'))
 			throw {result: Components.results.NS_ERROR_NOT_AVAILABLE};
-		// uri = 'file:///home/vn/OperaDownloads/index_1.xml';
+		this._dbBusy = true;
 
 		// XMLHttpRequest seems reluctant to participate in any form of threading.
 		var request = Components.classes['@mozilla.org/xmlextras/xmlhttprequest;1']

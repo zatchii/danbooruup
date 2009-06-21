@@ -1,5 +1,6 @@
 // ==UserScript==
 	// @include http://danbooru.donmai.us/*
+	// @include http://safebooru.donmai.us/*
 // ==/UserScript==
 
 var style_arr = {
@@ -25,6 +26,7 @@ var KeyEvent = {
 	DOM_VK_UP: 38,
 	DOM_VK_DOWN: 40,
 	DOM_VK_INSERT: 45,
+	DOM_VK_E: 69,
 	DOM_VK_HELP: 6
 };
 

@@ -117,6 +117,11 @@ AutoCompleter.prototype = {
 
 				case KeyEvent.DOM_VK_INSERT:
 				case KeyEvent.DOM_VK_HELP:
+				case KeyEvent.DOM_VK_E:
+					if (this.lastKeyCode == KeyEvent.DOM_VK_E && !event.ctrlKey) {
+						moved = false;
+						break;
+					}
 					if (this._listbox.selectedIndex != -1) {
 						this._completer.getRelated(this._listbox.selectedItem.value, this._showRel);
 					} else {
@@ -158,6 +163,11 @@ AutoCompleter.prototype = {
 			switch (this.lastKeyCode) {
 				case KeyEvent.DOM_VK_INSERT:
 				case KeyEvent.DOM_VK_HELP:
+				case KeyEvent.DOM_VK_E:
+					if (this.lastKeyCode == KeyEvent.DOM_VK_E && !event.ctrlKey) {
+						moved = false;
+						break;
+					}
 					let cur_tag = this.getTagAtCursor();
 					if (cur_tag)
 						this._completer.getRelated(cur_tag, this._showRel);
