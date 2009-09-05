@@ -16,19 +16,21 @@ var style_arr = {
 	'4.selected': '',
 };
 
-var KeyEvent = {
-	DOM_VK_RETURN: 13,
-	DOM_VK_CONTROL: 17,
-	DOM_VK_ESCAPE: 27,
-	DOM_VK_SPACE: 32,
-	DOM_VK_PAGE_UP: 33,
-	DOM_VK_PAGE_DOWN: 34,
-	DOM_VK_UP: 38,
-	DOM_VK_DOWN: 40,
-	DOM_VK_INSERT: 45,
-	DOM_VK_E: 69,
-	DOM_VK_HELP: 6
-};
+if (!window.KeyEvent) {
+	var KeyEvent = {
+		DOM_VK_RETURN: 13,
+		DOM_VK_CONTROL: 17,
+		DOM_VK_ESCAPE: 27,
+		DOM_VK_SPACE: 32,
+		DOM_VK_PAGE_UP: 33,
+		DOM_VK_PAGE_DOWN: 34,
+		DOM_VK_UP: 38,
+		DOM_VK_DOWN: 40,
+		DOM_VK_INSERT: 45,
+		DOM_VK_E: 69,
+		DOM_VK_HELP: 6
+	};
+}
 
 var danbooruUpCompleter = {
 	prev_result: [],
@@ -56,7 +58,7 @@ var danbooruUpCompleter = {
 
 	writeRegexp: function(query)
 	{
-		var re = query.replace(/[][().?+{}|^$\\]/g, '\\$&');
+		var re = query.replace(/[\][().?+{}|^$\\]/g, '\\$&');
 		re = re.replace(/\*/g, '.*');
 		if (/\*/.test(re))
 			re += '$';

@@ -131,4 +131,4 @@
 		document.getElementById('note-container').addEventListener('mousemove', onMouseMove, false);
 	}
 
-})()
+})();
