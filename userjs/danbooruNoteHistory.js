@@ -159,6 +159,11 @@
 			
 	}
 
+	/* Insert zero-width spaces into long words to help with word wrapping */
+	function zerospace(text) {
+		return text.replace(/\w{40}/g, '$&\u200B');
+	}
+
 	/* Return a formatted diff of two notes */
 	function note_diff(str, prev_str) {
 		var frag = document.createDocumentFragment();
@@ -177,7 +182,7 @@
 				node = document.createElement('span');
 				break;
 			}
-			node.appendChild(document.createTextNode(x[1]));
+			node.appendChild(document.createTextNode(zerospace(x[1])));
 			frag.appendChild(node);
 		});
 
@@ -205,7 +210,7 @@
 					prev_note.body.replace(/\n/g, '\u00b6'))
 			));
 		} else {
-			tr.appendChild(dom_td(note.body.replace(/\n/g, '\u00b6') + (note.is_active ? '': ' (deleted)')));
+			tr.appendChild(dom_td(zerospace(note.body.replace(/\n/g, '\u00b6') + (note.is_active ? '': ' (deleted)'))));
 		}
 		tr.appendChild(dom_td(dom_link(get_user_name(note.creator_id), '/user/show/' + note.creator_id)));
 		tr.appendChild(dom_td(format_time(note.updated_at)));
@@ -323,6 +328,7 @@
 
 		var outerDiv = document.createElement('div');
 		outerDiv.id = 'noteHistoryTable';
+		outerDiv.style.clear = 'left';
 
 		// Add 'Show diffs' checkbox
 		var showDiffsLabel = outerDiv.appendChild(document.createElement('label'));
@@ -373,6 +379,7 @@
 		var on = history[note_version];
 		if (selected_note && sn.left == on.x && sn.top == on.y && sn.width == on.width && sn.height == on.height) {
 			selected_note.elements.box.style.backgroundColor = '#FAA';
+			document.location.hash = '#';
 			selected_note.elements.box.scrollIntoView();
 		} else {
 			// If not, make a box.
@@ -389,14 +396,33 @@
 			position_box.style.top = on.y * ratio + 'px';
 			position_box.style.width = on.width * ratio + 'px';
 			position_box.style.height = on.height * ratio + 'px';
+			document.location.hash = '#';
 			position_box.scrollIntoView();
 		}
 	}
 
 	function get_note_history(post_id, callback) {
-		send_json_request('note/history.json?post_id=' + post_id,
+		get_note_history_helper(post_id,
 			function (history) {
 				callback(history.map(function(x) { x.updated_at = new Date(x.updated_at.s * 1000); return x; }));
+			},
+			1,
+			[]
+		);
+	}
+
+	function get_note_history_helper(post_id, callback, page, history_store) {
+		send_json_request('note/history.json?post_id=' + post_id + '&page=' + page,
+			function (history) {
+				history.forEach(
+					function(x) {
+						history_store.push(x);
+					}
+				);
+				if (history.length < 50)
+					callback(history_store);
+				else
+					get_note_history_helper(post_id, callback, page + 1, history_store);
 			}
 		);
 	}
@@ -436,6 +462,7 @@
 					old_table.parentNode.removeChild(old_table);
 
 				// Add history table.
+				document.location.hash = '#';
 				document.getElementById('content').appendChild(dom_history_table(note_history)).firstChild.scrollIntoView();
 			});
 		},
