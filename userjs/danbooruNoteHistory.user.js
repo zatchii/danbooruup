@@ -3,7 +3,9 @@
 	// @include http://safebooru.donmai.us/post/show/*
 // ==/UserScript==
 /**
- * Shows the note history of a post on-page when the user presses Ctrl + Shift + O
+ * Shows the note history of a post on-page when the user presses Ctrl + Shift + S
+ *
+ * Recommend renaming to danbooruNoteHistory.js if using with Opera.
  */
 
 (function () {
@@ -448,7 +450,7 @@
 
 
 	document.addEventListener('keydown', function(ev) {
-			if (!(ev.keyCode == 79 && ev.ctrlKey && ev.shiftKey))	// Ctrl + Shift + O
+			if (!(ev.keyCode == 83 && ev.ctrlKey && ev.shiftKey))	// Ctrl + Shift + S
 				return;
 
 			var post_id = /\/post\/show\/(\d+)/.exec(document.location.pathname)[1];

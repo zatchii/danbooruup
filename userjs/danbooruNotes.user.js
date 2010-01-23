@@ -4,6 +4,8 @@
 // ==/UserScript==
 /**
  * Lets you add and save notes by hovering over the image and pressing Ctrl + Shift + A
+ *
+ * Recommend renaming to danbooruNotes.js if using with Opera.
  */
 
 
@@ -24,7 +26,7 @@
 	function ratio()
 	{
 		var image = document.getElementById('image');
-		return image.width / image.getAttribute('orig_width');
+		return image.width / image.getAttribute('data-orig_width');
 	}
 
 	function makeNote()
