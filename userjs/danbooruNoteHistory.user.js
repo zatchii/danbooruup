@@ -356,7 +356,7 @@
 	function image_ratio()
 	{
 		var image = document.getElementById('image');
-		return image.width / image.getAttribute('orig_width');
+		return image.width / image.getAttribute('data-orig_width');
 	}
 
 	var history = {};
