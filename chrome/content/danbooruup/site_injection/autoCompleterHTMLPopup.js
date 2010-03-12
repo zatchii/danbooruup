@@ -96,7 +96,7 @@ danbooruACHTMLPopup.prototype = {
 	isClick: function(event)
 	{
 		var source = event.target;
-		while (source && source.localName != 'OPTION') {
+		while (source && source.tagName != 'OPTION') {
 			source = source.parentNode;
 		}
 		return source;
