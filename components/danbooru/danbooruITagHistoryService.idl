@@ -62,6 +62,7 @@ interface danbooruITagHistoryService : nsISupports
    */
 
   void autocompleteSearch(in AString query,
+                                  in AString prefix,
                                   in nsIVariant acontext,
                                   in danbooruISearchCallback callback);
 

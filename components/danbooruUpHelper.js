@@ -444,9 +444,17 @@ var danbooruUpHelperObject = {
 				sandbox.window.dispatchEvent(evt);
 			};
 			if (command == 'search') {
-				danbooruUpHelperObject.tagService.autocompleteSearch(query, ['__ALL__'],
+				let [tagstr, ctxstr] = query.split(' ');
+				let [tag, prefix] = tagstr.split('P');
+				let ctx = ctxstr.split(',');
+				danbooruUpHelperObject.tagService.autocompleteSearch(tag, prefix, ctx,
 						return_fun
 				);
+			} else if (command == 'update') {
+				let [tagstr, ctxstr] = query.split(' ');
+				let tags = tagstr.split('X').map(function(x) x.split('P'));
+				let ctx = ctxstr.split(',');
+				danbooruUpHelperObject.tagService.updateTagHistory(tags, ctx);
 			} else if (command == 'related') {
 				danbooruUpHelperObject.tagService.searchRelatedTags(query,
 						return_fun

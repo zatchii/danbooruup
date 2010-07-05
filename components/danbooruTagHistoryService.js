@@ -9,7 +9,7 @@ const kTagTableSchema = 'tag_id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, 
 const kTagTableCreate = 'CREATE TABLE IF NOT EXISTS tag(tag_id INTEGER PRIMARY KEY, tag_name TEXT NOT NULL UNIQUE, tag_count INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0, ambiguous INTEGER NOT NULL DEFAULT 0)';
 const kTagInsert = 'INSERT OR IGNORE INTO tag(tag_id, tag_name, tag_count, tag_type, ambiguous) VALUES(?1, ?2, ?3, ?4, ?5)';
 const kTagLookup = 'SELECT tag_id, tag_type, ambiguous FROM tag WHERE tag_name = ?1';
-const kTagGetIds = 'SELECT tag_id FROM tag WHERE tag_name in (%%%)';
+const kTagGetIds = 'SELECT tag_name, tag_id FROM tag WHERE tag_name IN (%%%)';
 
 const kTagHistoryMaxItems = 10000;
 const kTagHistoryName = 'tag_history';
@@ -20,12 +20,18 @@ const kTagContextSchema = 'ctx_id INTEGER PRIMARY KEY, context TEXT NOT NULL UNI
 const kTagContextCreate = 'CREATE TABLE IF NOT EXISTS tag_context(ctx_id INTEGER PRIMARY KEY, context TEXT NOT NULL UNIQUE, weight REAL DEFAULT 1)';
 const kTagHistoryInsert = 'INSERT INTO tag_history(ctx_id, tag_id) VALUES(?1, ?2)';
 const kTagContextInsert = 'INSERT OR IGNORE INTO tag_context(context) VALUES(?1)';
-const kTagContextGetIds = 'SELECT ctx_id FROM tag_context WHERE context in (%%%)';
-const kTrimHistory = 'DELETE FROM tag_history WHERE th_id in (SELECT th_id FROM tag_history ORDER BY th_id LIMIT (SELECT max(0, count() - ?1) FROM tag_history))';
+const kTagContextGetIds = 'SELECT context, ctx_id FROM tag_context WHERE context IN (%%%)';
+const kTrimHistory = 'DELETE FROM tag_history WHERE th_id IN (SELECT th_id FROM tag_history ORDER BY th_id LIMIT (SELECT max(0, count() - ?1) FROM tag_history))';
 const kUpdateContextWeights = 'UPDATE tag_context SET weight = 1.0 / (SELECT count() from tag_history WHERE tag_history.ctx_id = tag_context.ctx_id)';
 const kTrimContexts = 'DELETE FROM tag_context WHERE weight is NULL';
 const kHistorySearch = 'SELECT tag_name, tag_type, ambiguous FROM tag JOIN tag_history USING (tag_id) JOIN tag_context USING (ctx_id) ' +
-			"WHERE tag_name LIKE ?1 ESCAPE '\\' AND context in (%%%) GROUP BY tag_id ORDER BY SUM(weight) DESC, tag_count, tag_name LIMIT ?";
+			"WHERE tag_name LIKE ?1 ESCAPE '\\' AND context IN (%%%) GROUP BY tag_id ORDER BY SUM(weight) DESC, tag_count DESC, tag_name LIMIT ?";
+
+const kSpecHistoryMaxItems = 2000;
+const kSpecHistoryCreate = 'CREATE TABLE IF NOT EXISTS spec_history(sh_id INTEGER PRIMARY KEY, spec TEXT NOT NULL, value TEXT NOT NULL, context TEXT NOT NULL)';
+const kSpecHistoryInsert = 'INSERT INTO spec_history(spec, value, context) VALUES(?1, ?2, ?3)';
+const kTrimSpecHistory = 'DELETE FROM spec_history WHERE sh_id <= (SELECT MAX(sh_id) - ? FROM spec_history)';
+const kSpecSearch = "SELECT value FROM spec_history WHERE value LIKE ?1 ESCAPE '\\' AND context IN (%%%) AND spec = ? GROUP BY value ORDER BY COUNT() DESC, value ASC LIMIT ?";
 
 const kTagSearch = "SELECT tag_name, tag_type, ambiguous FROM tag WHERE tag_name LIKE ?1 ESCAPE '\\' ORDER BY tag_count DESC, tag_name ASC LIMIT ?2";
 // const kTagSearchAlt = "SELECT tag_name, tag_type FROM tag WHERE tag_name LIKE ?1 ESCAPE '\\' ORDER BY value DESC, LENGTH(tag_name) ASC, tag_name ASC LIMIT ?2";
@@ -33,9 +39,11 @@ const kTagSearch = "SELECT tag_name, tag_type, ambiguous FROM tag WHERE tag_name
 const kRemoveAll = 'DELETE FROM tag';
 const kDeleteContext = 'DELETE FROM tag_context';
 const kDeleteHistory = 'DELETE FROM tag_history';
+const kDeleteSpecHistory = 'DELETE FROM spec_history';
 const kMaxID = 'SELECT max(tag_id) FROM tag';
 const kRowCount = 'SELECT count() FROM tag';
 
+const tagPrefix = /^$|^[-~]$|^ambiguous:|^(:?general|artist|char(?:acter)?|copy(?:right)?):/;
 
 
 const Cc = Components.classes;
@@ -155,7 +163,7 @@ var tagHistoryService = {
 	setUpTables: function()
 	{
 		var db = this.db;
-		db.executeSimpleSQL(kTagTableCreate + ';' + kTagHistoryCreate + ';' + kTagContextCreate + ';' + kSetCollate);
+		db.executeSimpleSQL(kTagTableCreate + ';' + kTagHistoryCreate + ';' + kTagContextCreate + ';' + kSpecHistoryCreate + ';' + kSetCollate);
 		db.schemaVersion = 1;
 	},
 
@@ -223,18 +231,28 @@ var tagHistoryService = {
 		return richtags;
 	},
 
-	autocompleteSearch: function(query, context, callback)
+	autocompleteSearch: function(query, prefix, context, callback)
 	{
 		var db = this.db;
 		var limit = this._acPrefs.getIntPref('limit');
 		var alternate = this._acPrefs.getBoolPref('altsearch');
+
+		if (!tagPrefix.test(prefix) && !this._acPrefs.getBoolPref('keephistory')) {
+			callback.handleSearchResult(prefix, null);
+			return;
+		}
+
+		if (prefix !== '' && prefix.charAt(0) == '-') {
+			context = context.concat('__NEG__');
+			prefix = prefix.slice(1);
+		}
 		if (this._acPrefs.getBoolPref('threaded')) {
 			bgDispatch(
-				function(cb) { tagHistoryService.searchTags(query, context, limit, alternate, db, cb); },
+				function(cb) { tagHistoryService.searchTags(query, prefix, context, limit, alternate, db, cb); },
 				callback.handleSearchResult
 			);
 		} else {
-			this.searchTags(query, context, limit, alternate, db, callback.handleSearchResult);
+			this.searchTags(query, prefix, context, limit, alternate, db, callback.handleSearchResult);
 		}
 	},
 
@@ -245,7 +263,7 @@ var tagHistoryService = {
 
 	clearHistory: function()
 	{
-		this.db.executeSimpleSQL(kDeleteHistory + ';' + kDeleteContext);
+		this.db.executeSimpleSQL(kDeleteHistory + ';' + kDeleteContext + ';' + kDeleteSpecHistory);
 	},
 
 	// Expand a sql statement by replacing '%%%' with a given amount of comma delimited '?' marks.
@@ -265,7 +283,7 @@ var tagHistoryService = {
 	},
 
 	// Search for tags matching the query, placing tags previously used in the given context first.
-	searchTags: function(query, context, limit, alternate, db, callback)
+	searchTags: function(query, prefix, context, limit, alternate, db, callback)
 	{
 		var res = [];
 		var seen = {};
@@ -275,6 +293,11 @@ var tagHistoryService = {
 			query = this.alternateQuery(query);
 		else if (query.indexOf('*') == -1)
 			query += '*';
+
+		if (!tagPrefix.test(prefix)) {
+			this.searchSpecs(query, prefix, context, limit, db, callback);
+			return;
+		}
 
 		//var time1 = (new Date()).getTime();
 
@@ -316,6 +339,29 @@ var tagHistoryService = {
 		dump('\nq2 used ');
 		dump(time3 - time2);
 		*/
+
+		callback('', res);
+	},
+
+	searchSpecs: function(query, prefix, context, limit, db, callback)
+	{
+		var res = [];
+		var stmt = db.createStatement(this.expandQuery(kSpecSearch, context.length));
+		try {
+			query = stmt.escapeStringForLIKE(query, '\\');
+			query = query.replace(/\*/g, '%');
+			stmt.bindStringParameter(0, query);
+			for (var i = 1; i <= context.length; i++)
+				stmt.bindStringParameter(i, context[i - 1]);
+			stmt.bindStringParameter(context.length + 1, prefix);
+			stmt.bindInt32Parameter(context.length + 2, limit);
+
+			while (stmt.executeStep()) {
+				res.push([stmt.getString(0), 0, 0]);
+			}
+		} finally {
+			stmt.finalize();
+		}
 
 		callback('', res);
 	},
@@ -411,18 +457,32 @@ var tagHistoryService = {
 	{
 		if (!this._acPrefs.getBoolPref('keephistory'))
 			return;
+
+		var context_m = context.concat('__NEG__');
 		// Eliminate duplicates.
 		var tagdict = {};
 		var tagcount = 0;
 		var ctxdict = {};
 		var ctxcount = 0;
+		var speclist = [];
 		var i;
 
 		for (i = 0; i < tags.length; i++) {
-			let t = tags[i].toLowerCase();
-			if (!(t in tagdict)) {
-				tagdict[t] = t;
-				tagcount++;
+			let t = tags[i][0];
+			let p = tags[i][1];
+			let is_tag = tagPrefix.test(p);
+			let is_neg = p !== '' && p.charAt(0) == '-';
+			if (is_neg)
+				p = p.slice(0);
+			if (is_tag) {
+				if (!(t in tagdict)) {
+					if (is_neg)
+						ctxdict['__NEG__'] = '__NEG__';
+					tagdict[t] = is_neg ? context_m : context;
+					tagcount++;
+				}
+			} else {
+				speclist.push([p, t, is_neg ? context_m : context]);
 			}
 		}
 		for (i = 0; i < context.length; i++) {
@@ -432,7 +492,7 @@ var tagHistoryService = {
 			}
 		}
 
-		if (ctxcount == 0 || tagcount == 0)
+		if (ctxcount == 0 || (tagcount == 0 && speclist.length == 0))
 			return true;
 
 		var db = this.db;
@@ -448,36 +508,61 @@ var tagHistoryService = {
 			stmt.finalize();
 
 			// Get ids for contexts
-			contextIds = [];
+			contextIds = {};
 			stmt = db.createStatement(this.expandQuery(kTagContextGetIds, ctxcount));
 			i = 0;
 			for (ctx in ctxdict)
 				stmt.bindStringParameter(i++, ctx);
 			while (stmt.executeStep())
-				contextIds.push(stmt.getInt32(0));
+				contextIds[stmt.getString(0)] = stmt.getInt32(1);
 			stmt.finalize();
 
 			// Get ids for tags
-			tagIds = [];
+			tagIds = {};
 			stmt = db.createStatement(this.expandQuery(kTagGetIds, tagcount));
 			i = 0;
 			for (tag in tagdict)
 				stmt.bindStringParameter(i++, tag);
 			while (stmt.executeStep())
-				tagIds.push(stmt.getInt32(0));
+				tagIds[stmt.getString(0)] = stmt.getInt32(1);
 			stmt.finalize();
 
+			var found_tags = 0;
 			// Insert history items
 			stmt = db.createStatement(kTagHistoryInsert);
-			for (i = 0; i < tagIds.length; i++) {
-				for (var j = 0; j < contextIds.length; j++) {
-					stmt.bindInt32Parameter(0, contextIds[j]);
-					stmt.bindInt32Parameter(1, tagIds[i]);
+			// for (i = 0; i < tagIds.length; i++) {
+			for (var tag in tagIds) {
+				found_tags++;
+				let tag_id = tagIds[tag];
+				let ctx = tagdict[tag];
+				for (var j = 0; j < ctx.length; j++) {
+					let ctx_id = contextIds[ctx[j]];
+					if (!ctx_id)
+						continue;
+					stmt.bindInt32Parameter(0, ctx_id);
+					stmt.bindInt32Parameter(1, tag_id);
 					stmt.executeStep();
 					stmt.reset();
 				}
 			}
 			stmt.finalize();
+
+			// Insert search specifiers
+			stmt = db.createStatement(kSpecHistoryInsert);
+			for (i = 0; i < speclist.length; i++) {
+				let spec = speclist[i][0];
+				let value = speclist[i][1];
+				let ctx = speclist[i][2];
+				for (var j = 0; j < ctx.length; j++) {
+					stmt.bindStringParameter(0, spec);
+					stmt.bindStringParameter(1, value);
+					stmt.bindStringParameter(2, ctx[j]);
+					stmt.executeStep();
+					stmt.reset();
+				}
+			}
+			stmt.finalize();
+
 
 			// Trim history, recalculate context weights and remove unused contexts
 			stmt = db.createStatement(kTrimHistory);
@@ -486,6 +571,11 @@ var tagHistoryService = {
 			stmt.finalize();
 			db.executeSimpleSQL(kUpdateContextWeights);
 			db.executeSimpleSQL(kTrimContexts);
+
+			stmt = db.createStatement(kTrimSpecHistory);
+			stmt.bindInt32Parameter(0, kSpecHistoryMaxItems);
+			stmt.executeStep();
+			stmt.finalize();
 
 			db.commitTransaction();
 
@@ -497,7 +587,7 @@ var tagHistoryService = {
 		}
 
 		// True if all tags were found in the db
-		return tagIds.length == tagcount;
+		return found_tags == tagcount;
 	}
 };
 

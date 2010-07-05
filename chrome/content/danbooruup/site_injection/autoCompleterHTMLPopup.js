@@ -7,14 +7,6 @@ var danbooruACHTMLPopup = function(textfield) {
 	this.div.appendChild(this.listbox);
 	textfield.parentNode.insertBefore(this.div, textfield.nextSibling);
 
-	if (textfield.tagName == 'TEXTAREA') {
-		this.tag_prefix = this.post_tag_prefix;
-		this.other_prefix = this.post_other_prefix;
-	} else {
-		this.tag_prefix = this.search_tag_prefix;
-		this.other_prefix = this.search_other_prefix;
-	}
-
 	this.listbox.size = 10;
 	this.listbox.style.width = '100%';
 
@@ -54,12 +46,6 @@ function danbooruACExtendSelect()
 
 danbooruACHTMLPopup.prototype = {
 	state: 'hidden',
-	search_tag_prefix: /^[-~]/,
-	search_other_prefix: /^(:?user|fav|md5|-?rating|source|id|width|height|score|mpixels|date|status|order|parent|unlocked|sub|pool):/i,
-
-	post_tag_prefix: /^(?:(?:general|artist|char(?:acter)?|copy(?:right)?|amb(?:iguous)?):)+/i,
-	post_other_prefix: /^(?:rating|parent|-?pool):/i,
-
 	timer: null,
 
 	openPopup: function()
@@ -100,7 +86,7 @@ danbooruACHTMLPopup.prototype = {
 			source = source.parentNode;
 		}
 		return source;
-	},	
+	},
 
 	getIndent: function(position)
 	{

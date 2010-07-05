@@ -44,7 +44,7 @@ function init()
 					window.arguments[0].imageURI.path.split('/').filter(function (x) {return x}).slice(0, -1));
 		}
 		completer.context = context;
-		new AutoCompleter(document.getElementById('tags'), completer, danbooruACXULPopup);
+		new AutoCompleter(document.getElementById('tags'), completer, danbooruACXULPopup, 'post');
 
 		let stylePrefs = Components.classes["@mozilla.org/preferences-service;1"]
 			.getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
@@ -99,12 +99,13 @@ function doOK()
 
 	var helpersvc= Components.classes["@unbuffered.info/danbooru/helper-service;1"]
 			.getService(Components.interfaces.danbooruIHelperService);
+	var needupdate = false;
 	if (tags.length) {
-		// compact tag input
-		var tagarr=tags.replace(/\s\s+/g, ' ').replace(/^\s+|\s+$/g,'').split(' ');
-		var context = completer.context;
-		var needupdate = false;
 		try {
+			// Push tags to completer object.
+			document.getElementById('tags').danbooruUpAutoCompleter.onSubmit();
+			var tagarr = completer.submitted_tags;
+			var context = completer.context;
 			var tagHist = helpersvc.tagService;
 			needupdate = !tagHist.updateTagHistory(tagarr, context);
 		} catch (e) {
@@ -228,17 +229,20 @@ var completer = {
 	cur_tag: '',
 	cur_callback: null,
 	context: null,	// Set from init()
+	submitted_tags: null,
 
 	tagService: Components.classes["@unbuffered.info/danbooru/helper-service;1"]
 		.getService(Components.interfaces.danbooruIHelperService).tagService,
 
-	getSuggestions: function(tag, callback)
+	getSuggestions: function(tag, prefix, search_type, callback)
 	{
 		if (!this.running) {
 			this.timer.init(this, 100, this.timer.TYPE_ONE_SHOT);
 			this.running = true;
 		}
 		this.cur_tag = tag;
+		this.cur_prefix = prefix;
+		this.cur_search_type = search_type;
 		this.cur_callback = callback;
 	},
 
@@ -252,12 +256,18 @@ var completer = {
 	observe: function(subject, topic, data)
 	{
 		this.running = false;
-		this.tagService.autocompleteSearch(this.cur_tag, this.context, this.cur_callback);
+		this.tagService.autocompleteSearch(this.cur_tag.toLowerCase(), this.cur_prefix.toLowerCase(), this.context, this.cur_callback);
 	},
 
 	getRelated: function(tag, callback)
 	{
 		this.tagService.searchRelatedTags(tag, callback);
+	},
+
+	onSubmit: function(search_type, tags)
+	{
+		this.submitted_tags = tags;
+		return false;
 	},
 
 	openBrowserTab: function(tag)

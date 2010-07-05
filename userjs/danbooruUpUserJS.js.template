@@ -32,18 +32,587 @@ if (!window.KeyEvent) {
 	};
 }
 
+IF DATABASE
+var danbooruUpDBUpdater = {
+	defaults: {
+		'Enable': true,
+		'EnableUpdates': true,
+		'UpdateFrequency': 24,
+		'UpdateOnSubmit': true,
+		'AlternateSearching': false,
+		'LastUpdated': 0,
+		'ForceUpdate': false,
+		'KeepHistory': true,
+		'Aborts': 0,
+	},
+
+	options: [
+		{s: 'Enable', l: 'Enable tag autocompletion',
+			c: [
+				{s: 'AlternateSearching', l: 'Alternate searching (abc -> *a*b*c*)'},
+				{s: 'KeepHistory', l:'Use search history'},
+				{s: 'UpdateOnSubmit', l: 'Update after post submission'},
+				{s: 'EnableUpdates', l: 'Periodic updates',
+					c: [
+					 {s: 'UpdateFrequency', l: 'Hours between updates'}
+				]},
+		]},
+	],
+
+	database: null,
+	status_div: null,
+	finish_callback: null,
+	finish_waiters: 0,
+
+	init: function(is_retry)
+	{
+		if (!is_retry) {
+			this.initSettings();
+			this.initGui();
+		}
+		if (this.initDatabase())
+			return; // Wait for database to be initialised
+
+		this.checkForUpdate(false);
+	},
+
+	initSettings: function()
+	{
+		if (!window.localStorage)
+			return;
+		for (d in this.defaults) {
+			if (localStorage['danbooruUp' + d] === undefined)
+				localStorage['danbooruUp' + d] = this.defaults[d]
+		}
+	},
+
+	initGui: function()
+	{
+		var navbar = document.getElementById('navbar') || document.getElementById('links');
+		if (!navbar)
+			return;
+
+		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em; -o-transition-duration: 0.2s; } ' +
+			'#dbu_panel h3 { font-family: "verdana", sans-serif; font-size: 15px; font-weight: 400; margin-left: 1em;} ' +
+			'#dbu_panel ul { list-style: none; margin: 0} #dbu_panel li { margin: 0; margin-top: 0.2em; } ' +
+			'#dbu_panel label { font-weight: normal; margin-left: 0.2em; }' +
+			'#dbu_panel input[type=number] { width: 3em; }' +
+			'#dbu_status { height: 1.5em; }' +
+			'#dbu_button { -o-transition-duration: 0.5s; }';
+
+		var style = document.createElement("style");
+		style.innerHTML = cssdec;
+		document.getElementsByTagName("head")[0].appendChild(style);
+
+
+		// Make configure link
+		var menuItem = document.createElement('a');
+		menuItem.appendChild(document.createTextNode('\u232c'));
+		menuItem.href = '';
+		menuItem.id = 'dbu_button';
+		menuItem.addEventListener('click', function(e) {
+			panel.style.display = (panel.style.display == 'none' ? '' : 'none');
+			// Only fades in, not out since display:none is instant.
+			panel.style.opacity = (panel.style.opacity == 1 ? 0 : 1);
+			e.preventDefault();
+		}, false);
+		if (navbar.id == 'navbar')
+			navbar.insertBefore(document.createElement('li'), navbar.lastElementChild).appendChild(menuItem);
+		else
+			navbar.insertBefore(menuItem, navbar.lastElementChild);
+		this.menuItem = menuItem;
+
+		// Make panel
+		var o = this;
+		var panel = document.querySelector('body').appendChild(document.createElement('div'));
+		panel.id = 'dbu_panel';
+		panel.innerHTML = '<h3>Autocompletion settings</h3> <div></div>' +
+			'<input type="button" value="Update now"/> <input type="button" value="Clear tags"/> <input type="button" value="Clear history"/> <div><small id="dbu_status"/></div>';
+
+		var buttons = panel.querySelectorAll('input');
+		buttons[0].onclick = function() { o.checkForUpdate(true) };
+		buttons[1].onclick = function() { o.clearTags() };
+		buttons[2].onclick = function() { o.clearHistory() };
+
+		panel.querySelector('div').appendChild(this.makeSettingsForm(this.options));
+		this.updateDisplay();
+
+		this.status_div = panel.querySelector('small');
+
+		// Position and hide.
+		panel.style.top = menuItem.offsetTop + menuItem.offsetHeight + 'px';
+		panel.style.left = Math.max(0, menuItem.offsetLeft + menuItem.offsetWidth - panel.offsetWidth) + 'px';
+		panel.style.display = 'none';
+		panel.style.opacity = 0;
+	},
+
+	makeSettingsForm: function(options)
+	{
+		function setType(input, type) {
+			if (type == 'number') {
+				input.type = 'number';
+				input.min = 0;
+				input.step = 'any';
+			} else {
+				input.type = 'checkbox';
+			}
+		}
+		var form = document.createDocumentFragment();
+		var ul = form.appendChild(document.createElement('ul'));
+
+		var o = this;
+		function change(e) { o.changeSetting(this); }
+
+		for (var i = 0; i < options.length; i++) {
+			var li = ul.appendChild(document.createElement('li'));
+
+			var opt = options[i];
+			var input = li.appendChild(document.createElement('input'));
+			input.id = 'dbu_' + opt.s;
+			setType(input, typeof(this.defaults[opt.s]));
+			input.onchange = change;
+
+			var label = li.appendChild(document.createElement('label'));
+			label.appendChild(document.createTextNode(opt.l));
+			label.htmlFor = input.id;
+
+			if (opt.c)
+				form.appendChild(this.makeSettingsForm(opt.c));
+		}
+		return form;
+	},
+
+	changeSetting: function(input) {
+		if (input.checkValidity && !input.checkValidity())
+			return;
+		var sname = input.id.substring(4);
+		function find(opts) {
+			if (!opts || !opts.length)
+				return null;
+			if (opts[0].s == sname)
+				return opts[0];
+			return find(opts[0].c) || find(opts.slice(1));
+		}
+		var sopts = find(this.options);
+		var value = input.type == 'checkbox' ? input.checked : input.value;
+
+		this.setConfig(sname, value);
+		this.updateDisplay();
+	},
+
+	// Enable/disable configuration options according to current settings.
+	updateDisplay: function() {
+		if (!window.localStorage)
+			return;
+		var o = this;
+		function update(opts, disabled) {
+			for (var i = 0; i < opts.length; i++) {
+				var e = document.getElementById('dbu_' + opts[i].s);
+				if (e.type == 'checkbox')
+					e.checked = o.getConfig(opts[i].s);
+				else
+					e.value = o.getConfig(opts[i].s);
+				e.disabled = disabled;
+				if (opts[i].c)
+					update(opts[i].c, disabled || !e.checked);
+			}
+		}
+		update(this.options, false);
+	},
+
+	initDatabase: function()
+	{
+		if (!window.openDatabase) {
+			this.error("Your browser does not support Web SQL database. Upgrade to Opera 10.50 or later.");
+			return;
+		}
+
+		try {
+			this.database = openDatabase('danbooruUp', '', 'Tag database', 15 * 1024 * 1024);
+			if (this.database.version != '1.0') {
+				this.createTables(this.database);
+				return true;
+			}
+		} catch (e) {
+			this.error('Could not open database, ' + e.message + '.');
+		}
+	},
+
+	createTables: function(db)
+	{
+		var o = this;
+		db.changeVersion('', '1.0', function(t) {
+			t.executeSql('CREATE TABLE IF NOT EXISTS config(name TEXT PRIMARY KEY, value)');
+			t.executeSql('CREATE TABLE IF NOT EXISTS tag(tag_id INTEGER PRIMARY KEY, tag_name TEXT NOT NULL UNIQUE, tag_count INTEGER NOT NULL DEFAULT 0, tag_type INTEGER NOT NULL DEFAULT 0, ambiguous INTEGER NOT NULL DEFAULT 0)');
+			t.executeSql('CREATE TABLE IF NOT EXISTS tag_history(th_id INTEGER PRIMARY KEY, tag_id INTEGER NOT NULL, ctx_id INTEGER NOT NULL)');
+			t.executeSql('CREATE TABLE IF NOT EXISTS tag_context(ctx_id INTEGER PRIMARY KEY, context TEXT NOT NULL UNIQUE, weight REAL DEFAULT 1)');
+			t.executeSql('CREATE TABLE IF NOT EXISTS spec_history(sh_id INTEGER PRIMARY KEY, spec TEXT NOT NULL, value TEXT NOT NULL, context TEXT NOT NULL)');
+
+			t.executeSql("INSERT OR IGNORE INTO config VALUES('last_update_attempt', 0)");
+		}, function(e) {
+			o.error('Failed to initialise database, ' + e.message + '.');
+		},
+		function() {
+			o.status('Database created, rerunning init.');
+			o.init(true);
+		});
+	},
+
+	clearTags: function()
+	{
+		if (!confirm('Delete all tags?')) {
+			this.status('Canceled reset.');
+			return;
+		}
+		var o = this;
+		this.database.transaction(function(t) {
+			t.executeSql('DELETE FROM tag');
+		}, null, function() { o.status("Tags deleted.") });
+	},
+
+	clearHistory: function()
+	{
+		if (!confirm("Clear search history?")) {
+			this.status("Canceled history clearing.");
+			return;
+		}
+		this.database.transaction(function(t) {
+			t.executeSql('DELETE FROM tag_history');
+			t.executeSql('DELETE FROM tag_context');
+			t.executeSql('DELETE FROM spec_history');
+		}, null, function() { o.status('History cleared'); });
+	},
+
+
+	checkForUpdate: function(interactive)
+	{
+		var force = this.getConfig('ForceUpdate');
+		if (force)
+			this.setConfig('ForceUpdate', false)
+
+		if (!force && !interactive) {
+			if (!(this.getConfig('Enable') && this.getConfig('EnableUpdates')))
+				return;
+			if (!(this.getConfig('LastUpdated') + this.getConfig('UpdateFrequency') * 60 * 60 * 1000 < new Date().getTime()))
+				return;
+		}
+		var o = this;
+		this.getConfigDB('last_update_attempt', function(last_attempt) {
+			var since_last = new Date().getTime() - last_attempt;
+
+			// An update can take some time, so we take care not to initiate a load of them at once.
+			// Uses a time value in the database as a time expiring lock.
+
+			if (since_last < 5 * 60 * 1000 && !(force || interactive &&
+					confirm("An update was attempted " + Math.round(since_last / 1000) + " seconds ago and may still be ongoing.\n" +
+						"Proceed with update anyway?"))) {
+				o.status("Recent update attempt, waiting.");
+				return;
+			}
+
+			o.database.transaction(function(t) {
+				t.executeSql("UPDATE config SET value = ? WHERE name = 'last_update_attempt' AND value = ?",
+					[new Date().getTime(), last_attempt],
+					function(t, r) {
+						// Initiate the update if we got the lock, else fail.
+						if (r.rowsAffected == 1) {
+							o.fetchTags();
+						} else {
+							o.status('Could not grab lock, aborting update.');
+						}
+					});
+			});
+		});
+	},
+
+	fetchTags: function()
+	{
+		this.status('Checking for tags...');
+		this.busy(true);
+
+		var o = this;
+
+		this.database.readTransaction(function (t) {
+			t.executeSql('SELECT MAX(tag_id) as max_id FROM tag', null, function(t, r) {
+				var max_id = r.rows[0].max_id;
+				var path = '/tag/index.json?limit=0';
+				if (max_id)
+					path += '&after_id=' + max_id;
+				var uri = document.location.protocol + '//' + document.location.host + path;
+
+				var request = new XMLHttpRequest();
+				request.open('GET', uri);
+
+				request.onreadystatechange = function(event) {
+					if (this.readyState == 3) {
+						o.status('Downloading...');
+					} else if (this.readyState == 4) {
+						if (this.status == 200) {
+							o.status('Parsing...');
+							// var time1 = new Date().getTime();
+							var tags = JSON.parse(this.responseText);
+							// console.log('got ' + tags.length + ' tags, parsed in ' +(new Date().getTime() - time1));
+							o.insertTags(tags);
+						} else {
+							o.error('Could not get tags. Status ' + this.status + '.');
+						}
+					}
+				};
+				o.setConfig('Aborts', o.getConfig('Aborts') + 1);
+
+				request.send();
+			});
+		});
+	},
+
+	insertTags: function(tags)
+	{
+		// Could possibly get a small speedup by dropping the tag_name index before inserting many tags,
+		// and a larger one by not using placeholders in the query.
+
+		if (!tags.length) {
+			this.status('No new tags.');
+			return;
+		}
+
+		var o = this;
+
+		this.status('Inserting tags...');
+		// var time = new Date().getTime();
+		this.database.transaction(function(t) {
+				o.batchify(t, 'INSERT OR IGNORE INTO tag(tag_id, tag_name, tag_count, tag_type, ambiguous)', 5,
+					tags.map(function(tag) {return [tag.id, tag.name, tag.count, tag.type, tag.ambiguous?1:0];}));
+		},
+		function(e) {
+			o.error('Database insertion failed due to error, ' + e.message + '.');
+			o.setConfig('Aborts', o.getConfig('Aborts') - 1000);
+			o.busy(false);
+		},
+		function() {
+			// console.log('Inserted in ' + (new Date().getTime() - time));
+			localStorage.danbooruUpLastUpdated = new Date().getTime();
+			o.setConfig('Aborts', o.getConfig('Aborts') - 1);
+			o.status('Downloaded ' + tags.length + ' tags.');
+			o.busy(false);
+		});
+	},
+
+	// Run the statement in the transaction using UNION ALL to insert multiple items per statement.
+	batchify: function(transaction, statement, ncolumns, data)
+	{
+		if (data.length == 0)
+			return;
+		var max_args = 200;
+		var base_args = statement.split('?').length - 1;
+		var step = Math.floor((max_args - base_args) / ncolumns);
+		var column = new Array(ncolumns + 1).join('?, ').slice(0,-2);
+		var tmp_statement = '';
+		var tmp_len = 0;
+		var a = [];
+		for (var i = 0; i < data.length; i += step) {
+			var chunk = data.slice(i, i + step);
+			if (chunk.length != tmp_len) {
+				tmp_statement = statement + ' SELECT ' + column + new Array(chunk.length).join('UNION ALL SELECT ' + column);
+				tmp_len = chunk.length;
+			}
+			transaction.executeSql(tmp_statement, a.concat.apply(a, chunk));
+		}
+	},
+
+	// Update the tag history.
+	// used_context is a list of context items, tag_context is a {tag: context} mapping and specifier is a {specifier: [value, context]} mapping.
+	updateTagHistory: function(used_context, tag_contexts, specifier_contexts)
+	{
+		function inClause(data) {
+			return 'IN (' + new Array(data.length + 1).join('?, ').slice(0,-2) + ')';
+		}
+
+		var o = this;
+
+		var tags = [];
+		for (tag in tag_contexts)
+			tags.push(tag);
+
+		var tag_ids = {}, context_ids = {};
+
+		// var tim = new Date().getTime();
+		function insertHistory(t) {
+			// Insert all combinations of tags and contexts into the tag history.
+			var tag_x_context = [];
+			for (var tag in tag_ids) {
+				var tag_id = tag_ids[tag];
+				tag_contexts[tag].forEach(function(ctx) { tag_x_context.push([tag_id, context_ids[ctx]]); });
+			}
+			o.batchify(t, 'INSERT INTO tag_history(tag_id, ctx_id)', 2, tag_x_context);
+
+			var spec_x_context = [];
+			for (var spec in specifier_contexts) {
+				var value = specifier_contexts[spec][0];
+				specifier_contexts[spec][1].forEach(function(ctx) { spec_x_context.push([spec, value, ctx]); });
+			}
+			o.batchify(t, 'INSERT INTO spec_history(spec, value, context)', 3, spec_x_context);
+
+			// Trim history, recalculate context weights, and remove unused contexts
+			t.executeSql('DELETE FROM tag_history WHERE th_id <= (SELECT max(th_id) - 10000 FROM tag_history)'); // Max history items is 10,000
+			t.executeSql('DELETE FROM spec_history WHERE sh_id <= (SELECT max(sh_id) - 2000 FROM spec_history)'); // Max spec history items is 2,000
+			t.executeSql('UPDATE tag_context SET weight = 1.0 / (SELECT count() from tag_history WHERE tag_history.ctx_id = tag_context.ctx_id)');
+			t.executeSql('DELETE FROM tag_context WHERE weight is NULL');
+		}
+
+		this.database.transaction(function(t) {
+			// Read tag ids and context ids, and insert any missing contexts.
+			t.executeSql('SELECT tag_id, tag_name FROM tag WHERE tag_name ' + inClause(tags), tags, function(t, r) {
+				for (var i = 0; i < r.rows.length; i++) {
+					var row = r.rows[i];
+					tag_ids[row.tag_name] = row.tag_id;
+				}
+			});
+			t.executeSql('SELECT ctx_id, context FROM tag_context WHERE context ' + inClause(used_context), used_context, function(t, r) {
+				for (var i = 0; i < r.rows.length; i++) {
+					var row = r.rows[i];
+					context_ids[row.context] = row.ctx_id;
+				}
+
+				var new_ctx_items = used_context.filter(function(ctx) { return !(ctx in context_ids); });
+
+				if (new_ctx_items.length == 0) {
+					insertHistory(t);
+				} else {
+					for (i = 0; i < new_ctx_items.length; i++) {
+						// Need own closure to store ctx for callback.
+						(function(ctx, is_last) {
+							t.executeSql('INSERT OR REPLACE INTO tag_context(context) VALUES(?)', [ctx], function(t, r) {
+								context_ids[ctx] = r.insertId;
+								if (is_last)
+									insertHistory(t);
+							});
+						})(new_ctx_items[i], i == new_ctx_items.length - 1);
+					}
+				}
+			});
+		},
+		function(e) {
+			o.error('Could not save context, ' + e.message + '.');
+			o.finished();
+		},
+		function() {
+			// console.log('ut ' + (new Date().getTime() - tim));
+			o.finished();
+		});
+	},
+
+	// Called right before submission to update the tag history.
+	onSubmit: function(search_type, used_context, tag_contexts, specifier_contexts)
+	{
+		if (!this.getConfig('KeepHistory'))
+			return false;
+
+		if ((search_type == 'post' || search_type == 'update') && this.getConfig('UpdateOnSubmit'))
+			this.setConfig('ForceUpdate', true);
+
+		this.updateTagHistory(used_context, tag_contexts, specifier_contexts);
+		return true;
+	},
+
+	// Called from attacher after requesting more time from onSubmit.
+	// Gives a callback that should be run when all commits are done.
+	onFinish: function(callback)
+	{
+		this.finish_callback = callback;
+		this.finish_waiters++;
+	},
+
+	// Called when onSubmit transactions completed.
+	finished: function()
+	{
+		this.finish_waiters--;
+		if (this.finish_waiters == 0)
+			this.finish_callback();
+	},
+
+	// Get a config value from the database
+	getConfigDB: function(name, callback)
+	{
+		this.database.readTransaction(function(t) {
+			t.executeSql('SELECT value FROM config WHERE name = ?', [name], function (t, r) {
+				if (r.rows.length == 0)
+					callback(null);
+				else
+					callback(r.rows[0].value);
+			});
+		});
+	},
+
+	// Get a config value from localStorage
+	getConfig: function(name)
+	{
+		var parsers = {
+			'number': parseFloat,
+			'boolean': function(x) {return x == 'true';},
+		}
+		return parsers[typeof(this.defaults[name])](localStorage['danbooruUp' + name])
+	},
+
+	setConfig: function(name, value)
+	{
+		localStorage['danbooruUp' + name] = value;
+	},
+
+	status: function(message)
+	{
+		if (!this.status_div)
+			return
+		var sd = this.status_div;
+		sd.style.color = 'black';
+		while (sd.firstChild)
+			sd.removeChild(sd.firstChild);
+		sd.appendChild(document.createTextNode(message));
+	},
+
+	error: function(message)
+	{
+		if (window.console && console.error)
+			console.error(message);
+		if (!this.status_div)
+			return
+		this.status(message);
+		this.status_div.style.color = 'red';
+	},
+
+	busy: function(is_busy)
+	{
+		if (is_busy)
+			this.menuItem.style.color='red';
+		else
+			this.menuItem.style.color='';
+	},
+}
+ENDIF /* DATABASE */
+
 var danbooruUpCompleter = {
+IF DATABASE
+	database: null,   // Set from onload function
+	update_context: null,   // Set from onload function
+ENDIF
+IF NOT_DATABASE
 	prev_result: [],
 	prev_tag: '',
 	prev_pos: 0,
+ENDIF
 	cur_tag: '',
+	cur_prefix: '',
+	cur_search_type: '',
 	cur_callback: null,
 	timer: null,
 
-	getSuggestions: function(tag, callback)
+	tag_prefix_re: /^$|^[-~]$|^ambiguous:|^(:?general|artist|char(?:acter)?|copy(?:right)?):/,
+
+	getSuggestions: function(tag, prefix, search_type, callback)
 	{
 		this.cur_callback = callback;
 		this.cur_tag = tag;
+		this.cur_prefix = prefix;
+		this.cur_search_type = search_type;
 		var o = this;
 		if (!this.timer)
 			this.timer = window.setTimeout(function() { o.doSearch(); }, 100);
@@ -56,6 +625,206 @@ var danbooruUpCompleter = {
 		this.timer = null;
 	},
 
+IF DATABASE
+	// Escape glob wildcards except '*', handle alternate search and add end wildcard
+	writeGlob: function(query)
+	{
+		// Only add wildcards if not present
+		if (query.indexOf('*') == -1) {
+			if (localStorage.danbooruUpAlternateSearching == 'true')
+				query = '*' + query.split(/(?:)/).join('*') + (query ? '*' : ''); // bob -> *b*o*b*
+			else
+				query = query + '*';
+		}
+		return query.replace(/[[?]/g, '[$&]'); // Escape '[' and '?' by putting them in single-character sets.
+	},
+
+	getContext: function(search_type)
+	{
+		if (search_type == 'post') {
+			var source = document.getElementById('post_source').value;
+			var match = source.match(/(?:.*:\/\/)?(.*?)\/(.*)/);
+			// Domain name except top level, and path name except file name.
+			if (match)
+				return ['__ALL__'].concat(match[1].split('.').slice(0,-1), match[2].split('/').slice(0,-1));
+			else
+				return ['__ALL__', '__POST__'];
+		} else if (search_type == 'update') {
+			var context = ['__ALL__', '__UPDATE__'];
+			// Grab first artist and copyright, if available.
+			var tags = document.getElementById('tag-sidebar');
+			var artist = tags.querySelector('.tag-type-artist > a:last-of-type');
+			var copy = tags.querySelector('.tag-type-copyright > a:last-of-type');
+			if (artist)
+				context.push(artist.textContent.replace(' ', '_'));
+			if (copy)
+				context.push(copy.textContent.replace(' ', '_'));
+			return context;
+		} else {
+			return ['__ALL__', '__SEARCH__'];
+		}
+	},
+
+	doSearch: function()
+	{
+		this.timer = null;
+
+		var limit = 100;
+		var query = this.cur_tag;
+		// var t = new Date().getTime();
+
+		var o = this;
+		function callback(result) {
+			// console.log('st ' + (new Date().getTime() - t));
+			o.cur_callback(query, result);
+		}
+
+		var tag = this.cur_tag.toLowerCase();
+		var prefix = this.cur_prefix.toLowerCase();
+
+		var is_tag = this.tag_prefix_re.test(prefix);
+
+		if (localStorage.danbooruUpKeepHistory == 'true') {
+			var context = this.getContext(this.cur_search_type);
+			var glob = this.writeGlob(query);
+			if (prefix !== '' && prefix.charAt(0) == '-') {
+				context.push('__NEG__');
+				prefix = prefix.slice(1);
+			}
+			if (is_tag)
+				this.historySearch(glob, context, limit, callback);
+			else
+				this.specSearch(glob, prefix, context, limit, callback);
+		} else {
+			if (is_tag)
+				this.tagSearch(this.writeGlob(query), limit, callback);
+			else
+				this.cur_callback(prefix, null);
+		}
+	},
+
+	// Search for tags ordered by tag history
+	historySearch: function(query, context, limit, callback)
+	{
+		this.database.readTransaction(function(t) {
+			t.executeSql('SELECT tag_name, tag_type, ambiguous, tag_count, SUM(weight) FROM tag NATURAL JOIN tag_history NATURAL JOIN tag_context ' +
+				'WHERE tag_name GLOB ? AND context IN (' + new Array(context.length + 1).join('?, ').slice(0,-2) + ') GROUP BY tag_id ' +
+				'UNION ALL SELECT tag_name, tag_type, ambiguous, tag_count, 0 FROM tag WHERE tag_name GLOB ? ' +
+				'ORDER BY SUM(weight) DESC, tag_count DESC, tag_name LIMIT ?',
+				[query].concat(context, query, limit * 2), // There may be duplicates in the join, so select 2*limit to get at least limit.
+				function(t, r) {
+					var seen = {};
+					var tags = [];
+					var rows = r.rows;
+					for (var i = 0; i < rows.length && tags.length < limit; i++) {
+						var tag = rows[i];
+						if (!(tag.tag_name in seen)) {
+							tags.push([tag.tag_name, tag.tag_type, tag.ambiguous]);
+							seen[tag.tag_name] = true;
+						}
+					}
+					callback(tags);
+				}
+			);
+		});
+	},
+
+	// Search for tags ordered by tag count
+	tagSearch: function(query, limit, callback)
+	{
+		this.database.readTransaction(function(t) {
+			t.executeSql('SELECT tag_name, tag_type, ambiguous FROM tag WHERE tag_name GLOB ? ORDER BY tag_count DESC, tag_name ASC LIMIT ?',
+				[query, limit],
+				function(t, r) {
+					// callback(Array.map(rows, function(tag) [tag.tag_name, tag.tag_count, tag.ambiguous]));
+					var tags = [];
+					var rows = r.rows;
+					for (var i = 0; i < rows.length; i++) {
+						var tag = rows[i];
+						tags.push([tag.tag_name, tag.tag_type, tag.ambiguous]);
+					}
+					callback(tags);
+				}
+			);
+		});
+	},
+
+	// Search search specifier history
+	specSearch: function(query, specifier, context, limit, callback) {
+		this.database.readTransaction(function(t) {
+			t.executeSql('SELECT value FROM spec_history WHERE ' +
+				'spec=? AND value glob ? AND context IN (' + new Array(context.length + 1).join('?, ').slice(0, -2) + ') ' +
+				'GROUP BY value ORDER BY count() DESC, value ASC LIMIT ?',
+				[specifier, query].concat(context, limit),
+				function(t, r) {
+					var values = [];
+					var rows = r.rows;
+					for (var i = 0; i < rows.length; i++) {
+						values.push([r.rows[i].value, 0, 0]);
+					}
+					callback(values);
+				}
+			);
+		});
+	},
+
+	// Add tag type info to a list of tag names.
+	enhanceTags: function(tags, callback)
+	{
+		if (tags.length == 0)
+			return [];
+
+		rich_tags = {};
+		this.database.readTransaction(function(t) {
+			t.executeSql('SELECT tag_name, tag_type, ambiguous FROM tag WHERE tag_name IN (' +
+					new Array(tags.length + 1).join('?, ').slice(0,-2) + ')', tags,
+				function(t, r) {
+					for (var i = 0; i < r.rows.length; i++) {
+						var tag = r.rows[i];
+						rich_tags[tag.tag_name] = [tag.tag_name, tag.tag_type, tag.ambiguous];
+					}
+				}
+			);
+		}, null, function() {
+			callback(tags.map(function(tag) {return rich_tags[tag] || [tag, 0, 0];}));
+		});
+	},
+
+	onSubmit: function(search_type, tags)
+	{
+		var context = this.getContext(search_type);
+		var context_n = context.concat('__NEG__');
+		if (search_type == 'update') {
+			var old_tags = {};
+			document.getElementById('post_old_tags').value.split(' ').forEach(function(tn) { old_tags[tn] = true; });
+			tags = tags.filter(function(tag) { return !(tag[0] in old_tags); });
+		}
+
+		var tag_ctxs = {};
+		var spec_ctxs = {};
+		for (var i = 0; i < tags.length; i++) {
+			var tag_name = tags[i][0].toLowerCase();
+			var prefix = tags[i][1];
+			var is_tag = true;
+			var tag_ctx = context;
+			if (prefix !== '') {
+				prefix = prefix.toLowerCase();
+				is_tag = this.tag_prefix_re.test(prefix);
+				if (prefix.charAt(0) == '-') {
+					tag_ctx = context_n;
+					prefix = prefix.slice(1);
+				}
+			}
+			if (is_tag)
+				tag_ctxs[tag_name] = tag_ctx;
+			else
+				spec_ctxs[prefix] = [tag_name, tag_ctx];
+		}
+
+		return this.update_context(search_type, context_n, tag_ctxs, spec_ctxs);
+	},
+ENDIF /* DATABASE */
+IF NOT_DATABASE
 	writeRegexp: function(query)
 	{
 		var re = query.replace(/[\][().?+{}|^$\\]/g, '\\$&');
@@ -70,6 +839,13 @@ var danbooruUpCompleter = {
 	{
 		this.timer = null;
 
+		// Check for unsupported prefix
+		var st = this.cur_search_type;
+		var pr = this.cur_prefix.toLowerCase();
+		if (st == 'search' && pr != '' && pr != '-' && pr != '~' || (st == 'update' || st == 'post') && /rating|parent|-?pool/.test(pr)) {
+			this.cur_callback(pr, null);
+			return;
+		}
 		var re = this.writeRegexp(this.cur_tag);
 		var ref = function(x) { return re.test(x) };
 
@@ -97,6 +873,29 @@ var danbooruUpCompleter = {
 		this.cur_callback(this.cur_tag, tags);
 	},
 
+	// Add tag type info to a list of tag names.
+	enhanceTags: function(tags, callback)
+	{
+		var tag_dict = {};
+		for (var i = 0; i < tags.length; i++)
+			tag_dict[tags[i]] = [tags[i], 0, 0];
+		for (var i = 0; i < danbooruUpACTagArray.length; i++) {
+			if (danbooruUpACTagArray[i][0] in tag_dict)
+				tag_dict[danbooruUpACTagArray[i][0]] = danbooruUpACTagArray[i];
+		}
+		var tags_new = [];
+		for (var i = 0; i < tags.length; i++)
+			tags_new.push(tag_dict[tags[i]]);
+		callback(tags_new);
+	},
+
+	onSubmit: function(search_type, tags)
+	{
+		// Do nothing.
+		return false;
+	},
+ENDIF /*NOT_DATABASE*/
+
 	getRelated: function(tag, callback)
 	{
 		// Will only work if the booru is running from the top level.
@@ -120,7 +919,7 @@ var danbooruUpCompleter = {
 						tags.push(node.getAttribute('name'));
 					}
 
-					callback(tag, o.enhanceTags(tags));
+					o.enhanceTags(tags, function(etags) { callback(tag, etags); });
 				} else {
 				}
 			}
@@ -128,29 +927,22 @@ var danbooruUpCompleter = {
 		request.send(null);
 	},
 
-	enhanceTags: function(tags)
-	{
-		var tag_dict = {};
-		for (var i = 0; i < tags.length; i++)
-			tag_dict[tags[i]] = [tags[i], 0, 0];
-		for (var i = 0; i < danbooruUpACTagArray.length; i++) {
-			if (danbooruUpACTagArray[i][0] in tag_dict)
-				tag_dict[danbooruUpACTagArray[i][0]] = danbooruUpACTagArray[i];
-		}
-		var tags_new = [];
-		for (var i = 0; i < tags.length; i++)
-			tags_new.push(tag_dict[tags[i]]);
-		return tags_new;
-	},
-
 	openBrowserTab: function(tag)
 	{
-		alert('Hey!');
+		// This is never called, browsers don't support middle/right click on list boxes.
 	}
 };
 
 
-window.addEventListener('DOMContentLoaded', function(e) {
+document.addEventListener('DOMContentLoaded', function(e) {
+IF DATABASE
+		danbooruUpDBUpdater.init();
+		danbooruUpCompleter.database = danbooruUpDBUpdater.database;
+		danbooruUpCompleter.update_context = function(st, uc, tc, sc) { return danbooruUpDBUpdater.onSubmit(st, uc, tc, sc); }
+		if (localStorage.danbooruUpEnable != 'true')
+			return;
+ENDIF
+
 		var script_arr = [];
 		$ONLOAD_SCRIPTS
 	},

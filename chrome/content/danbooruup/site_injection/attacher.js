@@ -1,14 +1,30 @@
 
 
-function danbooruUpACAttacher(id)
+function danbooruUpACAttacher(id, search_type)
 {
 	var el = document.getElementById(id);
 	if (!el)
 		return;
 
+	if (!search_type) {
+		if (id == 'post_tags')
+			search_type = document.getElementById('post_old_tags') ? 'update' : 'post';
+		else
+			search_type = 'search';
+	}
+
 	el.setAttribute('autocomplete', 'off');
-	new AutoCompleter(el, danbooruUpCompleter, danbooruACHTMLPopup);
-	//alert('Attached to ' + id);
+	var ac = new AutoCompleter(el, danbooruUpCompleter, danbooruACHTMLPopup, search_type);
+
+	var form = el;
+	while (form.tagName != 'FORM')
+		form = form.parentNode;
+	form.addEventListener('submit', function(ev) {
+		if (ac.onSubmit()) {
+			ev.preventDefault();
+			danbooruUpDBUpdater.onFinish(function() { form.submit(); });
+		}
+	}, false);
 }
 
 function inhibitForm(id) {
@@ -26,8 +42,12 @@ function inhibitForm(id) {
 			target = el.getElementsByTagName('textarea')[0];
 		}
 		if (target && target.danbooruUpAutoCompleter) {
+			// Inform autocompleter of submission and allow it to cancel action.
 			if (!target.danbooruUpAutoCompleter.onEnter()) {
-				submit.call(el);
+				if (target.danbooruUpAutoCompleter.onSubmit())
+					danbooruUpDBUpdater.onFinish(function() { submit.call(el); });
+				else
+					submit.call(el);
 			}
 		}
 	};
@@ -50,23 +70,23 @@ if (document.location.pathname == '/') {
 inhibitForm('edit-form');	// Post view and upload
 danbooruUpACAttacher('tags');	// Front and side
 danbooruUpACAttacher('post_tags');	// Post view and upload
-danbooruUpACAttacher('tag_name');	// Tag edit
-danbooruUpACAttacher('tag_alias_name');	// Tag alias
-danbooruUpACAttacher('tag_alias_alias');	// Tag alias
-danbooruUpACAttacher('tag_implication_predicate');	// Tag alias
-danbooruUpACAttacher('tag_implication_consequent');	// Tag alias
+danbooruUpACAttacher('tag_name', 'search_single');	// Tag edit
+danbooruUpACAttacher('tag_alias_name', 'search_single');	// Tag alias
+danbooruUpACAttacher('tag_alias_alias', 'search_single');	// Tag alias
+danbooruUpACAttacher('tag_implication_predicate', 'search_single');	// Tag alias
+danbooruUpACAttacher('tag_implication_consequent', 'search_single');	// Tag alias
 danbooruUpACAttacher('user_blacklisted_tags');	// Tag alias
 danbooruUpACAttacher('user_uploaded_tags');	// Tag alias
 
 if (document.location.href.match(/\/tag(\/|\?|$)/)) {	// Tag search
-	danbooruUpACAttacher('name');
+	danbooruUpACAttacher('name', 'search_single');
 }
 if (document.location.href.match(/\/tag_(alias|implication)(\/|\?|$)/)) {	// Tag alias/implication
-	danbooruUpACAttacher('query');
+	danbooruUpACAttacher('query', 'search_single');
 }
 if (document.location.href.match(/\/wiki(\/|$)/)) {
 	danbooruUpACAttacher('search-box');	// Wiki side bar
-	danbooruUpACAttacher('wiki_page_title');	// Wiki add
+	danbooruUpACAttacher('wiki_page_title', 'search_single');	// Wiki add
 }
 if (document.location.href.match(/\/tag_subscription(\/|$)/)) {
 	// User subscriptions. Tricky.

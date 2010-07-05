@@ -3,10 +3,13 @@
  * Should in theory have used XBL to extend a widget, but this is much easier.
  */
 
-var AutoCompleter = function(textfield, completer, createPopup)
+var AutoCompleter = function(textfield, completer, createPopup, search_type)
 {
 	this._textfield = textfield;
 	this._completer = completer;
+	// Search types: search, search_single, post, update
+	this._search_type = search_type;
+	this._tag_parser = this.tagParser.getParser(search_type);
 
 	this._textfield.danbooruUpAutoCompleter = this;
 
@@ -14,7 +17,7 @@ var AutoCompleter = function(textfield, completer, createPopup)
 	this._listbox = this._popup.listbox;
 
 	// The list box sometimes doesn't seem to acquire all its methods before it's been shown once...
-	this._popup.openPopup(this._textfield, 'after_start', 0, 0, false, false);
+	this._popup.openPopup();
 	this._popup.hidePopup();
 
 	var o = this;
@@ -41,6 +44,52 @@ AutoCompleter.prototype = {
 	ignoreKeypress: false,
 	ignoreEnter: false,
 	ctrlKey: false,
+	reject_prefix: null,
+
+	tagParser: {
+		searchParser: function(tag)
+		{
+			var search_re = /^(:?|user|fav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|-|~/i;
+			var match = search_re.exec(tag);
+			var prefix = match ? match[0] : '';
+			return [tag.slice(prefix.length), prefix];
+		},
+
+		searchSingleParser: function(tag)
+		{
+			return [tag, ''];
+		},
+
+		postParser: function(tag)
+		{
+			var post_re = /^ambiguous:|^(:?(:?ambiguous:)?(:?general|artist|char(?:acter)?|copy(?:right)?)):|^rating:|^parent:|^pool:/i;
+			var match = post_re.exec(tag);
+			var prefix = match ? match[0] : '';
+			return [tag.slice(prefix.length), prefix];
+		},
+
+		updateParser: function(tag)
+		{
+			var update_re = /^ambiguous:|^(:?(:?ambiguous:)?(:?general|artist|char(?:acter)?|copy(?:right)?)):|^rating:|^parent:|^-?pool:/i;
+			var match = update_re.exec(tag);
+			var prefix = match ? match[0] : '';
+			return [tag.slice(prefix.length), prefix];
+		},
+
+		getParser: function(search_type)
+		{
+			switch (search_type) {
+				case 'search':
+					return this.searchParser;
+				case 'search_single':
+					return this.searchSingleParser;
+				case 'post':
+					return this.postParser;
+				case 'update':
+					return this.updateParser;
+			}
+		},
+	},
 
 	// Listens on the list box for mouse events.
 	onClick: function(event)
@@ -49,7 +98,7 @@ AutoCompleter.prototype = {
 		var orgSource = this._popup.isClick(event);
 		if (!orgSource)
 			return;
-		
+
 		if (event.button == 2) {
 			this._completer.openBrowserTab(orgSource.value);
 		} else {
@@ -125,7 +174,7 @@ AutoCompleter.prototype = {
 					if (this._listbox.selectedIndex != -1) {
 						this._completer.getRelated(this._listbox.selectedItem.value, this._showRel);
 					} else {
-						let cur_tag = this.getTagAtCursor();
+						let cur_tag = this.getTagAtCursor()[0];
 						if (cur_tag)
 							this._completer.getRelated(cur_tag, this._showRel);
 					}
@@ -168,13 +217,13 @@ AutoCompleter.prototype = {
 						moved = false;
 						break;
 					}
-					let cur_tag = this.getTagAtCursor();
+					let cur_tag = this.getTagAtCursor()[0];
 					if (cur_tag)
 						this._completer.getRelated(cur_tag, this._showRel);
 					break;
 				case KeyEvent.DOM_VK_DOWN:
 					var tag = this.getTagAtCursor();
-					this._completer.getSuggestions(tag ? tag : '', this._showSugg);
+					this._completer.getSuggestions(tag[0], tag[1], this._search_type, this._showSugg);
 					this.openPopup();
 					break;
 				case KeyEvent.DOM_VK_SPACE:
@@ -208,19 +257,37 @@ AutoCompleter.prototype = {
 	// Listens on the text input field for input (= potential autocompletion task)
 	onInput: function(event)
 	{
+		// Don't start a search that will get canceled and cause an exception when submitting.
+		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN)
+			return;
 		var tag = this.getTagAtCursor();
-		if (tag) {
-			this._completer.getSuggestions(tag, this._showSugg);
+		if (tag[1].toLowerCase() !== this.reject_prefix && (tag[0] || tag[1])) {
+			this._completer.getSuggestions(tag[0], tag[1], this._search_type, this._showSugg);
 			this.openPopup()
 		} else if (this._popup.state == 'open') {
 			this._popup.timedHide();
 		}
 	},
 
+	// Give tags and search type to completer so it can update the tag history.
+	onSubmit: function()
+	{
+		var tags = this._textfield.value.replace(/^\s+|\s+$/g, '').split(/\s+/);
+		return this._completer.onSubmit(this._search_type, tags.map(this._tag_parser));
+	},
+
 	// Called by the completer to deliver requested suggestions.
 	showSuggestions: function(tag, suggestions)
 	{
 		var lb = this._listbox;
+		// Let the completer refuse to submit suggestions for a prefix by suggesting null.
+		if (suggestions === null) {
+			this.reject_prefix = tag;
+			this.hidePopup();
+			return;
+		} else {
+			this.reject_prefix = null;
+		}
 		var selected = (this._popup.state == 'open' && lb.selectedIndex != -1) ? lb.selectedItem.value : null;
 
 		var newSelectedIndex = this._popup.insertTags(suggestions, '', selected, this.tag_classes, -1);
@@ -235,7 +302,7 @@ AutoCompleter.prototype = {
 			lb.selectedItem = lb.getItemAtIndex(lb.selectedIndex);
 		} else if (suggestions.length > 0) {
 			// If not, but the first tag is a partial match, select it.
-			let cur_tag = this.getTagAtCursor();
+			let cur_tag = this.getTagAtCursor()[0];
 			if (suggestions[0][0].length >= cur_tag.length && cur_tag == suggestions[0][0].substr(0, cur_tag.length)) {
 				lb.selectedIndex = 0;
 				// Works around weirdness /w assigning to selectedIndex
@@ -283,74 +350,52 @@ AutoCompleter.prototype = {
 		}
 	},
 
-	// Make a document fragment with listitems for the given tags.
-	makeListitems: function(tags, indent, search)
-	{
-		var tc = this.tag_classes;
-		var frag = document.createDocumentFragment();
-		var searchRes = -1;
-		for (var i = 0; i < tags.length; i++) {
-				let x = tags[i];
-				let li = document.createElementNS('http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul', 'richlistitem');
-				li.value = x[0];
-				li.setAttribute('class', tc[x[1]] + (x[2] ? tc[2] : ''));
-				li.label = indent ? indent + x[0] : x[0];
-				let label = document.createElementNS('http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul', 'description');
-				label.appendChild(document.createTextNode(li.label));
-				li.appendChild(label);
-				frag.appendChild(li);
-				if (search === x[0] && searchRes === -1)
-					searchRes = i;
-		}
-
-		return [frag, searchRes];
-	},
-
 	getTagBoundsAtCursor: function()
 	{
-	      if (this._textfield.selectionStart != this._textfield.selectionEnd)
-		      return [-1, -1];
+		if (this._textfield.selectionStart != this._textfield.selectionEnd)
+			return [-1, -1];
 
-	      var v = this._textfield.value;
-	      var from = this._textfield.selectionStart;
-	      var to = from;
+		var v = this._textfield.value;
+		var from = this._textfield.selectionStart;
+		var to = from;
 
-	      while (from > 0 && /\S/.test(v[from-1]))
-		      from--;
-	      while (to < v.length && /\S/.test(v[to]))
-		      to++;
-	      var tagPrefix = this._popup.tag_prefix.exec(v.slice(from, to));
-	      if (tagPrefix) {
-		      from += tagPrefix[0].length;
-	      }
-	      return [from, to];
+		while (from > 0 && /\S/.test(v[from-1]))
+			from--;
+		while (to < v.length && /\S/.test(v[to]))
+			to++;
+		return [from, to];
 	},
 
-	// Get the tag the caret is currently positioned over, stripping tag prefixes, or an empty string.
+	// Get the tag the caret is currently positioned over and the tag prefix, as [tag, prefix]
 	getTagAtCursor: function()
 	{
 		var from, to;
-		[from, to] = this.getTagBoundsAtCursor();
+		// In memory of Opera's destructuring assignment support. 9.5 - 10.50
+		// [from, to] = this.getTagBoundsAtCursor();
+		var bounds = this.getTagBoundsAtCursor();
+		from = bounds[0]; to = bounds[1];
 		// Something is selected?
 		if (from === -1)
-		return '';
+			return ['', ''];
 
 		var value = this._textfield.value.slice(from, to);
-		if (this._popup.other_prefix.test(value))
-			return '';
-		else
-			return value;
+		return this._tag_parser(value);
 	},
 
 	// Replace the tag the caret is currently positioned over, keeping tag prefixes.
 	replaceCurrentTag: function(replacement)
 	{
 		var from, to;
-		[from, to] = this.getTagBoundsAtCursor();
+		var bounds = this.getTagBoundsAtCursor();
+		from = bounds[0]; to = bounds[1];
 		if (from === -1)
 			return;
-		replacement += ' ';
+		if (this._search_type != 'search_single')
+			replacement += ' ';
+
 		var v = this._textfield.value;
+		var current_tag = this._tag_parser(v.slice(from, to));
+		from += current_tag[1].length
 		this._textfield.value = v.slice(0, from) + replacement + v.slice(to);
 
 		// Update caret position

@@ -12,13 +12,10 @@ var danbooruACXULPopup = function(textfield) {
 
 	this.textfield.parentNode.appendChild(this.popup);
 
-	this.timer =  Components.classes['@mozilla.org/timer;1'].createInstance(Components.interfaces.nsITimer);
+	this.timer = Components.classes['@mozilla.org/timer;1'].createInstance(Components.interfaces.nsITimer);
 };
 
 danbooruACXULPopup.prototype = {
-	tag_prefix: /^(?:(?:general|artist|char(?:acter)?|copy(?:right)?|amb(?:iguous)?):)+/i,
-	other_prefix: /^(?:rating|parent|pool):/i,
-
 	get state() {
 		return this.popup.state;
 	},
@@ -31,7 +28,9 @@ danbooruACXULPopup.prototype = {
 
 	hidePopup: function()
 	{
-		this.popup.hidePopup();
+		// Avoid errors when closing dialog
+		if (this.popup && this.popup.hidePopup)
+			this.popup.hidePopup();
 	},
 
 	// Hide after a certain time if cancelHide or openPopup isn't called by then.
