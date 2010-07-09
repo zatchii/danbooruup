@@ -28,5 +28,5 @@ for (rule in style_arr) {
 
 // add the CSS
 var style = document.createElement("style");
-style.innerHTML = cssdec;
+style.appendChild(document.createTextNode(cssdec));
 document.getElementsByTagName("head")[0].appendChild(style);

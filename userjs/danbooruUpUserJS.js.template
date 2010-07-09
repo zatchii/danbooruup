@@ -3,6 +3,14 @@
 	// @include http://safebooru.donmai.us/*
 // ==/UserScript==
 
+(function() {
+
+// Drop privileges in Chrome
+if (typeof window.GM_xmlhttpRequest == "function") {
+	location.href = "javascript:(" + encodeURI(arguments.callee) + ")();";
+	return;
+}
+
 var style_arr = {
 	'0': '',
 	'1': 'color: #a00;',
@@ -17,7 +25,7 @@ var style_arr = {
 };
 
 if (!window.KeyEvent) {
-	var KeyEvent = {
+	window.KeyEvent = {
 		DOM_VK_RETURN: 13,
 		DOM_VK_CONTROL: 17,
 		DOM_VK_ESCAPE: 27,
@@ -92,22 +100,23 @@ var danbooruUpDBUpdater = {
 		if (!navbar)
 			return;
 
-		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em; -o-transition-duration: 0.2s; } ' +
+		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em;' + 
+			' -o-transition: opacity 0.2s; -webkit-transition: opacity 0.2s; } ' +
 			'#dbu_panel h3 { font-family: "verdana", sans-serif; font-size: 15px; font-weight: 400; margin-left: 1em;} ' +
 			'#dbu_panel ul { list-style: none; margin: 0} #dbu_panel li { margin: 0; margin-top: 0.2em; } ' +
 			'#dbu_panel label { font-weight: normal; margin-left: 0.2em; }' +
 			'#dbu_panel input[type=number] { width: 3em; }' +
 			'#dbu_status { height: 1.5em; }' +
-			'#dbu_button { -o-transition-duration: 0.5s; }';
+			'#dbu_button { -o-transition: color 0.5s; -webkit-transition: color 0.5s; }';
 
 		var style = document.createElement("style");
-		style.innerHTML = cssdec;
+		style.appendChild(document.createTextNode(cssdec));
 		document.getElementsByTagName("head")[0].appendChild(style);
 
 
 		// Make configure link
 		var menuItem = document.createElement('a');
-		menuItem.appendChild(document.createTextNode('\u232c'));
+		menuItem.appendChild(document.createTextNode('\u25ca'));
 		menuItem.href = '';
 		menuItem.id = 'dbu_button';
 		menuItem.addEventListener('click', function(e) {
@@ -202,7 +211,7 @@ var danbooruUpDBUpdater = {
 
 	// Enable/disable configuration options according to current settings.
 	updateDisplay: function() {
-		if (!window.localStorage)
+		if (!window.localStorage || !this.menuItem)
 			return;
 		var o = this;
 		function update(opts, disabled) {
@@ -384,13 +393,20 @@ var danbooruUpDBUpdater = {
 					tags.map(function(tag) {return [tag.id, tag.name, tag.count, tag.type, tag.ambiguous?1:0];}));
 		},
 		function(e) {
-			o.error('Database insertion failed due to error, ' + e.message + '.');
+			if (e.code == 4) { // QUOTA_ERR
+				alert('An update of the DanbooruUp tag database failed due to insufficient storage quota.\n' + 
+					'Please increase the local storage quota before enabling updates.');
+				o.setConfig('EnableUpdates', false);
+				o.setConfig('UpdateOnSubmit', false);
+				o.updateDisplay();
+			}
+			o.error('Database insertion failed due to error, ' + e.message + ' (' + e.code + ').');
 			o.setConfig('Aborts', o.getConfig('Aborts') - 1000);
 			o.busy(false);
 		},
 		function() {
 			// console.log('Inserted in ' + (new Date().getTime() - time));
-			localStorage.danbooruUpLastUpdated = new Date().getTime();
+			o.setConfig('LastUpdated', new Date().getTime());
 			o.setConfig('Aborts', o.getConfig('Aborts') - 1);
 			o.status('Downloaded ' + tags.length + ' tags.');
 			o.busy(false);
@@ -934,19 +950,28 @@ ENDIF /*NOT_DATABASE*/
 };
 
 
-document.addEventListener('DOMContentLoaded', function(e) {
+function danbooruUpInit()
+{
 IF DATABASE
-		danbooruUpDBUpdater.init();
-		danbooruUpCompleter.database = danbooruUpDBUpdater.database;
-		danbooruUpCompleter.update_context = function(st, uc, tc, sc) { return danbooruUpDBUpdater.onSubmit(st, uc, tc, sc); }
-		if (localStorage.danbooruUpEnable != 'true')
-			return;
+	danbooruUpDBUpdater.init();
+	danbooruUpCompleter.database = danbooruUpDBUpdater.database;
+	danbooruUpCompleter.update_context = function(st, uc, tc, sc) { return danbooruUpDBUpdater.onSubmit(st, uc, tc, sc); }
+	if (localStorage.danbooruUpEnable != 'true')
+		return;
 ENDIF
 
-		var script_arr = [];
-		$ONLOAD_SCRIPTS
-	},
-	false
-);
+	var script_arr = [];
+	$ONLOAD_SCRIPTS
+}
 
 
+$CLASSES
+
+
+if (document.readyState == 'complete' || !window.opera)
+	danbooruUpInit();
+else
+	document.addEventListener('DOMContentLoaded', function(e) { danbooruUpInit(); }, false);
+
+
+})();
