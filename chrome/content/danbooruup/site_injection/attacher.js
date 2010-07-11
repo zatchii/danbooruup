@@ -19,12 +19,7 @@ function danbooruUpACAttacher(id, search_type)
 	var form = el;
 	while (form.tagName != 'FORM')
 		form = form.parentNode;
-	form.addEventListener('submit', function(ev) {
-		if (ac.onSubmit()) {
-			ev.preventDefault();
-			danbooruUpDBUpdater.onFinish(function() { form.submit(); });
-		}
-	}, false);
+	form.addEventListener('submit', function(ev) { ac.onSubmit(); }, false);
 }
 
 function inhibitForm(id) {
@@ -44,10 +39,8 @@ function inhibitForm(id) {
 		if (target && target.danbooruUpAutoCompleter) {
 			// Inform autocompleter of submission and allow it to cancel action.
 			if (!target.danbooruUpAutoCompleter.onEnter()) {
-				if (target.danbooruUpAutoCompleter.onSubmit())
-					danbooruUpDBUpdater.onFinish(function() { submit.call(el); });
-				else
-					submit.call(el);
+				target.danbooruUpAutoCompleter.onSubmit();
+				submit.call(el);
 			}
 		}
 	};

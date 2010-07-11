@@ -273,7 +273,7 @@ AutoCompleter.prototype = {
 	onSubmit: function()
 	{
 		var tags = this._textfield.value.replace(/^\s+|\s+$/g, '').split(/\s+/);
-		return this._completer.onSubmit(this._search_type, tags.map(this._tag_parser));
+		this._completer.onSubmit(this._search_type, tags.map(this._tag_parser));
 	},
 
 	// Called by the completer to deliver requested suggestions.

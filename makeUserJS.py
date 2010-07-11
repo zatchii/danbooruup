@@ -34,6 +34,10 @@ def patchJS(js):
         # Hack to fix key events in autoCompleter.js
         onkeypat = re.compile(r'(\tonKeyDown[^}]*)}', re.DOTALL + re.MULTILINE)
         js = onkeypat.sub(r'\1\n\t\tthis.onKeyPress(event);\n\t}', js)
+
+        # Require updates to be enabled manually
+        js = js.replace("'EnableUpdates': true", "'EnableUpdates': false")
+        js = js.replace("'UpdateOnSubmit': true", "'UpdateOnSubmit': false")
         
         js = re.sub(r'rows\[(.)\]', r'rows.item(\1)', js);
 

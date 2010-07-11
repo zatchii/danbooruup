@@ -96,7 +96,6 @@ var danbooruUpCompleter = {
 		var query = [tagstr, this.getContextStr()].join(' ');
 
 		this.sendRequest(query, 'update');
-		return false;
 	},
 
 	sendRequest: function(tag, command)

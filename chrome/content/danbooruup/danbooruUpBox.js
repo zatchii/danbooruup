@@ -267,7 +267,6 @@ var completer = {
 	onSubmit: function(search_type, tags)
 	{
 		this.submitted_tags = tags;
-		return false;
 	},
 
 	openBrowserTab: function(tag)

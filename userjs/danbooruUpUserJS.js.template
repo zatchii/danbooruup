@@ -1,4 +1,7 @@
 // ==UserScript==
+	// @name DanbooruUp user script
+	// @description Tag field autocompleter for Danbooru.
+	// @version 0.3.6
 	// @include http://danbooru.donmai.us/*
 	// @include http://safebooru.donmai.us/*
 // ==/UserScript==
@@ -69,8 +72,6 @@ var danbooruUpDBUpdater = {
 
 	database: null,
 	status_div: null,
-	finish_callback: null,
-	finish_waiters: 0,
 
 	init: function(is_retry)
 	{
@@ -81,7 +82,11 @@ var danbooruUpDBUpdater = {
 		if (this.initDatabase())
 			return; // Wait for database to be initialised
 
+		if (!this.status_div)
+			return;
+
 		this.checkForUpdate(false);
+		this.doHistory();
 	},
 
 	initSettings: function()
@@ -342,11 +347,11 @@ var danbooruUpDBUpdater = {
 		var o = this;
 
 		this.database.readTransaction(function (t) {
-			t.executeSql('SELECT MAX(tag_id) as max_id FROM tag', null, function(t, r) {
+			t.executeSql('SELECT MAX(tag_id) AS max_id FROM tag', null, function(t, r) {
 				var max_id = r.rows[0].max_id;
 				var path = '/tag/index.json?limit=0';
 				if (max_id)
-					path += '&after_id=' + max_id;
+					path += '&after_id=' + (max_id + 1);
 				var uri = document.location.protocol + '//' + document.location.host + path;
 
 				var request = new XMLHttpRequest();
@@ -509,41 +514,50 @@ var danbooruUpDBUpdater = {
 		},
 		function(e) {
 			o.error('Could not save context, ' + e.message + '.');
-			o.finished();
 		},
 		function() {
 			// console.log('ut ' + (new Date().getTime() - tim));
-			o.finished();
 		});
 	},
 
 	// Called right before submission to update the tag history.
 	onSubmit: function(search_type, used_context, tag_contexts, specifier_contexts)
 	{
-		if (!this.getConfig('KeepHistory'))
-			return false;
 
 		if ((search_type == 'post' || search_type == 'update') && this.getConfig('UpdateOnSubmit'))
 			this.setConfig('ForceUpdate', true);
 
-		this.updateTagHistory(used_context, tag_contexts, specifier_contexts);
-		return true;
+		if (this.getConfig('KeepHistory')) {
+			// Put the item in session storage to be inserted on next page load by doHistory.
+			var history, history_str = sessionStorage.danbooruUpHistory;
+			if (history_str) {
+				history = JSON.parse(history_str);
+				// Stupid bug in Opera 10.60
+				if (typeof history == 'string')
+					history = JSON.parse(history);
+			} else {
+				history = [];
+			}
+			history.push([used_context, tag_contexts, specifier_contexts]);
+			sessionStorage.danbooruUpHistory = JSON.stringify(history);
+		}
 	},
 
-	// Called from attacher after requesting more time from onSubmit.
-	// Gives a callback that should be run when all commits are done.
-	onFinish: function(callback)
+	// Insert any history that has been queued from onSubmit.
+	doHistory: function()
 	{
-		this.finish_callback = callback;
-		this.finish_waiters++;
-	},
+		if (!sessionStorage.danbooruUpHistory)
+			return;
 
-	// Called when onSubmit transactions completed.
-	finished: function()
-	{
-		this.finish_waiters--;
-		if (this.finish_waiters == 0)
-			this.finish_callback();
+		var history = JSON.parse(sessionStorage.danbooruUpHistory);
+		// Stupid bug in Opera 10.60
+		if (typeof history == 'string')
+			history = JSON.parse(history);
+		for (var i = 0; i < history.length; i++) {
+			var h = history[i];
+			this.updateTagHistory(h[0], h[1], h[2]);
+		}
+		delete sessionStorage.danbooruUpHistory;
 	},
 
 	// Get a config value from the database
