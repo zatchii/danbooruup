@@ -260,6 +260,11 @@ AutoCompleter.prototype = {
 		// Don't start a search that will get canceled and cause an exception when submitting.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN)
 			return;
+		// Chrome seems to fire this event early, so ignore the tag that's still found after pressing space.
+		if (this.lastKeyCode == KeyEvent.DOM_VK_SPACE && this._popup.state == 'open') {
+			this._popup.timedHide();
+			return;
+		}
 		var tag = this.getTagAtCursor();
 		if (tag[1].toLowerCase() !== this.reject_prefix && (tag[0] || tag[1])) {
 			this._completer.getSuggestions(tag[0], tag[1], this._search_type, this._showSugg);
