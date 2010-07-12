@@ -123,6 +123,7 @@ var danbooruUpDBUpdater = {
 		menuItem.appendChild(document.createTextNode('\u25ca'));
 		menuItem.href = '';
 		menuItem.id = 'dbu_button';
+		menuItem.title = 'Autocompletion settings';
 		menuItem.addEventListener('click', function(e) {
 			panel.style.display = (panel.style.display == 'none' ? '' : 'none');
 			// Only fades in, not out since display:none is instant.
