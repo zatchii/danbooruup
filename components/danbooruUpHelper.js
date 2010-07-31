@@ -419,7 +419,7 @@ var danbooruUpHelperObject = {
 		sandbox.__proto__ = safeWin;
 		sandbox.GM_log = danbooruUpHitch(this, "log");
 
-		const TAGTYPE_COUNT = 5;
+		const TAGTYPE_COUNT = 8;
 		var prefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
 		for (let i=0, rule; i<TAGTYPE_COUNT; i++) {

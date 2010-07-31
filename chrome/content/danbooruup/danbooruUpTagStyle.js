@@ -2,7 +2,7 @@
 // applies custom CSS for tag types to XUL windows
 
 function danbooruAddTagTypeStyleSheet(getStyle, sidn) {
-	const TAGTYPE_COUNT = 5;
+	const TAGTYPE_COUNT = 8;
 	var selector = '.danbooru-autocomplete';
 	var column = ' description';
 	var sid = '';

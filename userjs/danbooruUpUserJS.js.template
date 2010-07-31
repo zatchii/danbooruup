@@ -4,6 +4,8 @@
 	// @version 0.3.6
 	// @include http://danbooru.donmai.us/*
 	// @include http://safebooru.donmai.us/*
+	// @include http://behoimi.org/*
+	// @include http://moe.imouto.org/*
 // ==/UserScript==
 
 (function() {
@@ -20,11 +22,17 @@ var style_arr = {
 	'2': 'background: #ddd;',
 	'3': 'color: #a0a;',
 	'4': 'color: #0a0;',
+	'5': 'color: #00b;',
+	'6': 'color: #983;',
+	'7': 'color: #aaa;',
 	'0.selected': '',
 	'1.selected': '',
 	'2.selected': '',
 	'3.selected': '',
 	'4.selected': '',
+	'5.selected': '',
+	'6.selected': '',
+	'7.selected': '',
 };
 
 if (!window.KeyEvent) {

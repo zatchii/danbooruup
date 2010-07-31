@@ -18,6 +18,12 @@
 			    name="extensions.danbooruUp.tagtype.3"		type="string" />
 		<preference id="pref.extensions.danbooruUp.tagtype.4"
 			    name="extensions.danbooruUp.tagtype.4"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.5"
+			    name="extensions.danbooruUp.tagtype.5"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.6"
+			    name="extensions.danbooruUp.tagtype.6"		type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.7"
+			    name="extensions.danbooruUp.tagtype.7"		type="string" />
 		<preference id="pref.extensions.danbooruUp.tagtype.0.selected"
 			    name="extensions.danbooruUp.tagtype.0.selected"	type="string" />
 		<preference id="pref.extensions.danbooruUp.tagtype.1.selected"
@@ -28,6 +34,12 @@
 			    name="extensions.danbooruUp.tagtype.3.selected"	type="string" />
 		<preference id="pref.extensions.danbooruUp.tagtype.4.selected"
 			    name="extensions.danbooruUp.tagtype.4.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.5.selected"
+			    name="extensions.danbooruUp.tagtype.5.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.6.selected"
+			    name="extensions.danbooruUp.tagtype.6.selected"	type="string" />
+		<preference id="pref.extensions.danbooruUp.tagtype.7.selected"
+			    name="extensions.danbooruUp.tagtype.7.selected"	type="string" />
 	</preferences>
 	<stringbundle id="bundleDanbooruOptions" src="chrome://danbooruup/locale/danbooruUp.properties"/>
 	<script type="application/x-javascript"><![CDATA[
@@ -106,6 +118,15 @@
 					</richlistitem>
 					<richlistitem value="4" searchlabel="&danbooruUpOptions.tagtype.4;" class="danbooru-tagtype-0 danbooru-tagtype-4">
 						<description>&danbooruUpOptions.tagtype.4;</description>
+					</richlistitem>
+					<richlistitem value="5" searchlabel="&danbooruUpOptions.tagtype.5;" class="danbooru-tagtype-0 danbooru-tagtype-5">
+						<description>&danbooruUpOptions.tagtype.5;</description>
+					</richlistitem>
+					<richlistitem value="6" searchlabel="&danbooruUpOptions.tagtype.6;" class="danbooru-tagtype-0 danbooru-tagtype-6">
+						<description>&danbooruUpOptions.tagtype.6;</description>
+					</richlistitem>
+					<richlistitem value="7" searchlabel="&danbooruUpOptions.tagtype.7;" class="danbooru-tagtype-0 danbooru-tagtype-7">
+						<description>&danbooruUpOptions.tagtype.7;</description>
 					</richlistitem>
 				</richlistbox>
 			</vbox>

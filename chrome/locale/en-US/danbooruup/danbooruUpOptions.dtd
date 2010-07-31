@@ -29,6 +29,9 @@
 <!ENTITY danbooruUpOptions.tagtype.2			"Ambiguous">
 <!ENTITY danbooruUpOptions.tagtype.3			"Copyright">
 <!ENTITY danbooruUpOptions.tagtype.4			"Character">
+<!ENTITY danbooruUpOptions.tagtype.5			"Custom 1">
+<!ENTITY danbooruUpOptions.tagtype.6			"Custom 2">
+<!ENTITY danbooruUpOptions.tagtype.7			"Custom 3">
 <!ENTITY danbooruUpOptions.tagtype.default		"Default">
 <!ENTITY danbooruUpOptions.tagtype.selected		"Selected">
 
