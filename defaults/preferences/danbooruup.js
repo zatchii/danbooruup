@@ -2,6 +2,7 @@
 pref("extensions.danbooruUp.postadduri", "http://danbooru.donmai.us/post/create.xml");
 pref("extensions.danbooruUp.postadduri.selected", 0);
 pref("extensions.danbooruUp.fileurlsource", false);
+pref("extensions.danbooruUp.noforward", true);
 pref("extensions.danbooruUp.checkMD5BeforeUpload", true);
 pref("extensions.danbooruUp.updateTagsOnDuplicate", true);
 pref("extensions.danbooruUp.updateuri", "http://danbooru.donmai.us/tag/index.xml");

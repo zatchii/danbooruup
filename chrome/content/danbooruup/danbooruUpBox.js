@@ -32,9 +32,9 @@ function init()
 	}
 
 	document.getElementById('source').value = source;
-	document.getElementById('nextSrcBtn').disabled = true;
-	if (window.locations.length == 1 && source)
-		document.getElementById('prevSrcBtn').disabled = true;
+	doSwitchSource(0);
+
+	document.getElementById('noForward').checked = prefService.getBoolPref('extensions.danbooruUp.noforward');
 
 	if (prefService.getBoolPref('extensions.danbooruUp.autocomplete.enabled') && completer.tagService) {
 		var context = ['__ALL__'];
@@ -50,42 +50,44 @@ function init()
 			.getService(Components.interfaces.nsIPrefService).getBranch("extensions.danbooruUp.tagtype.");
 		setTimeout(function() {danbooruAddTagTypeStyleSheet(function(style) {return stylePrefs.getCharPref(style)});}, 100);
 	}
+
 }
 
-function doSwitchSource(forward) {
+function doSwitchSource(dir) {
 	var srcFld = document.getElementById('source');
-	for(var i=0; i<window.locations.length; i++) {
-		if(window.locations[i] == srcFld.value)
+	for (var i = 0; i < window.locations.length; i++) {
+		if (window.locations[i] == srcFld.value)
 			break;
 	}
-	if((i==0 && !forward) || (i==window.locations.length-1 && forward)) return;
-	if(i == window.locations.length) {	// user-modifed value
-		srcFld.value = window.locations[window.locations.length-1];
-		document.getElementById('nextSrcBtn').disabled = true;
-		if(window.locations.length == 1)
-		{
-			document.getElementById('prevSrcBtn').disabled = true;
-		}
+
+	i += dir;
+	if (dir && (i < 0 || i >= window.locations.length))
+		return;
+
+	var prev_b = document.getElementById('prevSrcBtn');
+	var next_b = document.getElementById('nextSrcBtn');
+	if (i == 0) {
+		prev_b.disabled = true;
+		next_b.disabled = window.locations.length <= 1;
+	} else if (i >= window.locations.length - 1) {
+		prev_b.disabled = i == 0;
+		next_b.disabled = true;
 	} else {
-		i += (forward ? 1 : -1);
+		prev_b.disabled = false;
+		next_b.disabled = false;
+	}
+
+	if (dir && i < window.locations.length)
 		srcFld.value = window.locations[i];
-		if (i==0) {
-			document.getElementById('prevSrcBtn').disabled = true;
-			document.getElementById('nextSrcBtn').disabled = false;
-		} else if (i==window.locations.length-1) {
-			document.getElementById('prevSrcBtn').disabled = false;
-			document.getElementById('nextSrcBtn').disabled = true;
-		} else {
-			document.getElementById('prevSrcBtn').disabled = false;
-			document.getElementById('nextSrcBtn').disabled = false;
-		}
-	}
+
+	if (i == window.locations.length - 1 && srcFld.value.match(/^http:\/\//))
+		document.getElementById('noForward').disabled = false;
+	else
+		document.getElementById('noForward').disabled = true;
 }
+
 function onSourceInput() {
-	if(window.locations.length == 1)
-	{
-		document.getElementById('prevSrcBtn').disabled = false;
-	}
+	doSwitchSource(0);
 	return false;
 }
 
@@ -114,6 +116,10 @@ function doOK()
 		needupdate = prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.afterdialog") && needupdate;
 	}
 
+	var noForward = document.getElementById('noForward');
+	if (!noForward.disabled)
+		prefService.setBoolPref('extensions.danbooruUp.noforward', noForward.checked);
+
 	helpersvc.startUpload(
 			window.arguments[0].imageURI,
 			document.getElementById('source').value,
@@ -122,6 +128,7 @@ function doOK()
 			ml.label,
 			window.arguments[0].imageLocation,
 			window.arguments[0].wind,
+			!noForward.disabled && noForward.checked,
 			needupdate
 		);
 	window.arguments[0].imageLocation = null;

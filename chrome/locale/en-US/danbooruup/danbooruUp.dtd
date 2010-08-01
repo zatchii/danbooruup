@@ -11,14 +11,17 @@
 <!ENTITY danbooru-box-title-label "Title:">
 <!ENTITY danbooru-box-title-accesskey "i">
 <!ENTITY danbooru-box-rating-label "Rating:">
-<!ENTITY danbooru-box-explicit-accesskey "E">
 <!ENTITY danbooru-box-explicit-label "Explicit">
-<!ENTITY danbooru-box-questionable-accesskey "Q">
+<!ENTITY danbooru-box-explicit-accesskey "E">
 <!ENTITY danbooru-box-questionable-label "Questionable">
-<!ENTITY danbooru-box-safe-accesskey "S">
+<!ENTITY danbooru-box-questionable-accesskey "Q">
 <!ENTITY danbooru-box-safe-label "Safe">
+<!ENTITY danbooru-box-safe-accesskey "S">
 <!ENTITY danbooru-box-danbooru-label "Danbooru:">
 <!ENTITY danbooru-box-danbooru-accesskey "d">
+<!ENTITY danbooru-box-noforward-label "Don't forward file">
+<!ENTITY danbooru-box-noforward-accesskey "f">
+<!ENTITY danbooru-box-noforward-tooltip "Let Danbooru download the file from the source instead of forwarding it via the local machine.">
 <!ENTITY danbooru-box-switch-source-tooltip "Switch between document referrer, document location and image location">
 <!ENTITY danbooru-box-switch-tab-tooltip "Switch to original tab">
 <!ENTITY danbooru-box-artist-search-tooltip "Search for artist tag">

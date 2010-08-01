@@ -35,10 +35,10 @@
 		<textbox id="source" flex="1" oninput="return onSourceInput();"/>
 		<toolbarbutton
 			id="prevSrcBtn"
-			tooltiptext="&danbooru-box-switch-source-tooltip;" onclick="return doSwitchSource(false);"/>
+			tooltiptext="&danbooru-box-switch-source-tooltip;" onclick="return doSwitchSource(-1);"/>
 		<toolbarbutton
 			id="nextSrcBtn"
-			tooltiptext="&danbooru-box-switch-source-tooltip;" onclick="return doSwitchSource(true);"/>
+			tooltiptext="&danbooru-box-switch-source-tooltip;" onclick="return doSwitchSource(1);"/>
 	</hbox>
 	<textbox id="tags"
 		newlines="stripsurroundingwhitespace"
@@ -52,6 +52,7 @@
 			</hbox>
 		</radiogroup>
 		<spacer flex="1"/>
+		<checkbox id="noForward" accesskey="&danbooru-box-noforward-accesskey;" label="&danbooru-box-noforward-label;" tooltiptext="&danbooru-box-noforward-tooltip;"/>
 		<toolbarbutton image="chrome://danbooruup/skin/glass-trimmed.png" id="artistSearch" tooltiptext="&danbooru-box-artist-search-tooltip;" onclick="return doArtistSearch();"/>
 		<toolbarbutton image="chrome://danbooruup/skin/Weblink.png" tooltiptext="&danbooru-box-switch-tab-tooltip;" onclick="return doSwitchTab();"/>
 	</hbox>

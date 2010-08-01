@@ -119,7 +119,7 @@ function addProgressToNotification(notification)
 /*
  * retrieves an image and constructs the multipart POST data
  */
-function danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aTab, aLocal, aLocation, aUpdateTags)
+function danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aTab, aLocal, aLocation, aNoForward, aUpdateTags)
 {
 	this.mRealSource = aRealSource;
 	this.mSource = aSource;
@@ -130,6 +130,7 @@ function danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aTab, aLo
 	this.mDest = aDest;
 	this.mTab = aTab;
 	this.mLocation = aLocation;
+	this.mNoForward = aNoForward;
 	this.mUpdateTags = aUpdateTags;
 	//this.mChannel = aChannel;
 
@@ -186,7 +187,7 @@ danbooruUploader.prototype = {
 		var fieldSource		= fieldPrefix + "source" + fieldSuffix;
 		var fieldTags		= fieldPrefix + "tags" + fieldSuffix;
 		var fieldRating		= fieldPrefix + "rating" + fieldSuffix;
-		var fieldMD5		= fieldPrefix + "md5" + fieldSuffix;
+		var fieldMD5		= "md5";
 
 		var postDS	= Components.classes["@mozilla.org/io/multiplex-input-stream;1"]
 				.createInstance(Components.interfaces.nsIMultiplexInputStream)
@@ -342,10 +343,13 @@ danbooruUploader.prototype = {
 		postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldMD5
 			+ "\"\r\n\r\n" + outMD5Hex + "\r\n";
 
-		postChunk += "--" + boundary + "\r\n" +
-			"Content-Transfer-Encoding: binary\r\n"+
-			"Content-Disposition: form-data; name=\"" + fieldFile + "\"; filename=\"" + fn + "\"\r\n"+
-			"Content-Type: " + conttype + "\r\n\r\n";
+
+		if (!this.mNoForward) {
+			postChunk += "--" + boundary + "\r\n" +
+				"Content-Transfer-Encoding: binary\r\n"+
+				"Content-Disposition: form-data; name=\"" + fieldFile + "\"; filename=\"" + fn + "\"\r\n"+
+				"Content-Type: " + conttype + "\r\n\r\n";
+		}
 
 		// the beginning -- text fields
 		var strIS = Components.classes["@mozilla.org/io/string-input-stream;1"]
@@ -353,16 +357,20 @@ danbooruUploader.prototype = {
 		strIS.setData(postChunk, -1);
 		postDS.appendStream(strIS);
 
-		// the middle -- binary data
-		this.mInStr.init(this.mStorage.newInputStream(0), 8192);
-		postDS.appendStream(this.mInStr);
+		// the middle -- binary data. Only if file forwarding not disabled.
+		if (!this.mNoForward) {
+			this.mInStr.init(this.mStorage.newInputStream(0), 8192);
+			postDS.appendStream(this.mInStr);
+
+			endPostChunk += "\r\n";
+		}
 
 		// the end
 		var endIS = Components.classes["@mozilla.org/io/string-input-stream;1"]
 					.createInstance(Components.interfaces.nsIStringInputStream);
 
 		// required Tags field goes at the end
-		endPostChunk = "\r\n--" + boundary + "\r\nContent-Transfer-Encoding: 8bit\r\nContent-Disposition: form-data; name=\"" + fieldTags
+		endPostChunk += "--" + boundary + "\r\nContent-Transfer-Encoding: 8bit\r\nContent-Disposition: form-data; name=\"" + fieldTags
 			+ "\"\r\n\r\n" + (this.mTags ? encoder.Convert(this.mTags) : '') + "\r\n";
 
 		endPostChunk += "\r\n--" + boundary + "--\r\n";

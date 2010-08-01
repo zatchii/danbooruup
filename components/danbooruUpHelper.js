@@ -256,14 +256,14 @@ var danbooruUpHelperObject = {
 	//
 	//
 	//
-	startUpload: function(aRealSource, aSource, aTags, aRating, aDest, aLocation, aWind, aUpdate)
+	startUpload: function(aRealSource, aSource, aTags, aRating, aDest, aLocation, aWind, aNoForward, aUpdate)
 	{
 		var uploader;
 		var imgChannel	= ioService.newChannelFromURI(aRealSource);
 
 		if (aRealSource.scheme == "file") {
 			imgChannel.QueryInterface(Components.interfaces.nsIFileChannel);
-			uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, true, aWind.linkedBrowser.contentDocument.location, aUpdate);
+			uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, true, aWind.linkedBrowser.contentDocument.location, false, aUpdate);
 			// add entry to the observer
 			obService.addObserver(uploader, "danbooru-down", false);
 			imgChannel.asyncOpen(uploader, imgChannel);
@@ -279,7 +279,7 @@ var danbooruUpHelperObject = {
 			// don't need to bother with Uploader's array transfer
 			var listener = Components.classes["@mozilla.org/network/simple-stream-listener;1"]
 				.createInstance(Components.interfaces.nsISimpleStreamListener);
-			uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, false, aWind.linkedBrowser.contentDocument.location, aUpdate);
+			uploader = new danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aWind, false, aWind.linkedBrowser.contentDocument.location, aNoForward, aUpdate);
 
 			// add entry to the observer
 			obService.addObserver(uploader, "danbooru-down", false);
