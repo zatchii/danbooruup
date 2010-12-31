@@ -4,53 +4,54 @@ const danbooruPromptWrapper = {
 	alert : function(dlgTitle, text)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.alert(dlgTitle, text);
+			this.defaultPrompt.alert(null, dlgTitle, text);
 	},
 	alertCheck : function(dlgTitle, text, checkBoxLabel, checkObj)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.alertCheck(dlgTitle, text, checkBoxLabel, checkObj);
+			this.defaultPrompt.alertCheck(null, dlgTitle, text, checkBoxLabel, checkObj);
 	},
 	confirm : function(dlgTitle, text)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.confirm(dlgTitle, text);
+			this.defaultPrompt.confirm(null, dlgTitle, text);
 	},
 	confirmCheck : function(dlgTitle, text, checkBoxLabel, checkObj)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.confirmCheck(dlgTitle, text, checkBoxLabel, checkObj);
+			this.defaultPrompt.confirmCheck(null, dlgTitle, text, checkBoxLabel, checkObj);
 	},
 	confirmEx : function(dlgTitle, text, btnFlags, btn0Title, btn1Title, btn2Title, checkBoxLabel, checkVal)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.confirmEx(dlgTitle, text, btnFlags, btn0Title, btn1Title, btn2Title, checkBoxLabel, checkVal);
+			this.defaultPrompt.confirmEx(null, dlgTitle, text, btnFlags, btn0Title, btn1Title, btn2Title, checkBoxLabel, checkVal);
 	},
 	select : function(dlgTitle, text, count, selectList, outSelection)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.select(dlgTitle, text, count, selectList, outSelection);
+			this.defaultPrompt.select(null, dlgTitle, text, count, selectList, outSelection);
 	},
 	prompt : function(dlgTitle, label, inputvalueObj, checkBoxLabel, checkObj)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.prompt(dlgTitle, label, inputvalueObj, checkBoxLabel, checkObj);
+			this.defaultPrompt.prompt(null, dlgTitle, label, inputvalueObj, checkBoxLabel, checkObj);
 	},
 	promptPassword : function(dlgTitle, label, pwObj, checkBoxLabel, savePWObj)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.promptPassword(dlgTitle, label, pwObj, checkBoxLabel, savePWObj);
+			this.defaultPrompt.promptPassword(null, dlgTitle, label, pwObj, checkBoxLabel, savePWObj);
 	},
 	promptUsernameAndPassword : function(dlgTitle, label, userObj, pwObj, savePWLabel, savePWObj)
 	{
 		if (this.mInteractive)
-			this.defaultPrompt.promptUsernameAndPassword(dlgTitle, label, userObj, pwObj, savePWLabel, savePWObj);
+			this.defaultPrompt.promptUsernameAndPassword(null, dlgTitle, label, userObj, pwObj, savePWLabel, savePWObj);
 	}
 };
 
 function AddDanbooruPromptWrapper(dest)
 {
-	dest.defaultPrompt = Components.classes["@mozilla.org/network/default-prompt;1"].createInstance(Components.interfaces.nsIPrompt);
+	//dest.defaultPrompt = Components.classes["@mozilla.org/network/default-prompt;1"].createInstance(Components.interfaces.nsIPrompt);
+	dest.defaultPrompt = Components.classes["@mozilla.org/embedcomp/prompt-service;1"].createInstance(Components.interfaces.nsIPromptService);
 	for(var w in danbooruPromptWrapper)
 	{
 		dest[w] = danbooruPromptWrapper[w];

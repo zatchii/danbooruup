@@ -121,6 +121,9 @@ var danbooruUpHelperObject = {
 		//this.log("observing"+"\n"+aSubject + "\n" + aTopic + "\n" + aData);
 		switch (aTopic) {
 		case "app-startup":
+		case "profile-after-change":
+			// app-startup is for 3.X and registered during module registration
+			// profile-after-change is for 4.X and is registered in the manifest.
 			// cat. "app-startup"/topic "app-startup" is too soon, since we
 			// need to open the DB file in the profile directory
 			//
@@ -542,7 +545,7 @@ var danbooruUpHelperObject = {
 }
 
 // Component registration
-var HelperModule = new Object();
+var HelperModule = new Object(); // No longer used in Firefox 4
 
 HelperModule.registerSelf = function(compMgr, fileSpec, location, type)
 {
@@ -598,8 +601,16 @@ HelperFactory.createInstance = function(outer, iid)
 	return danbooruUpHelperObject;
 }
 
-// XPCOM Registration Function -- called by Firefox
+// XPCOM Registration Function -- called by Firefox 3
 function NSGetModule(compMgr, fileSpec)
 {
 	return HelperModule;
+}
+
+// called by Firefox 4
+function NSGetFactory(cid)
+{
+	if (!cid.equals(DANBOORUUPHELPER_CID))
+		throw Components.results.NS_ERROR_FACTORY_NOT_REGISTERED;
+	return HelperFactory;
 }

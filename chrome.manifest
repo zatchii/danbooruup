@@ -2,10 +2,21 @@ overlay	chrome://browser/content/browser.xul	chrome://danbooruup/content/danboor
 overlay	chrome://navigator/content/navigator.xul	chrome://danbooruup/content/danbooruUp.xul
 overlay	chrome://browser/content/metaData.xul	chrome://danbooruup/content/danbooruUpMeta.xul
 overlay	chrome://danbooru/content/toolbar.xul	chrome://danbooruup/content/danbooruToolbar.xul
-content	danbooruup	jar:chrome/danbooruup.jar!/content/danbooruup/	xpcnativewrappers=yes
+content	danbooruup	jar:chrome/danbooruup.jar!/content/danbooruup/
 skin	danbooruup	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup/
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-win/	os=WINNT
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-lnx/	os=Linux
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-lnx/	os=FreeBSD
 skin	danbooruup-css	classic/1.0	jar:chrome/danbooruup.jar!/skin/classic/danbooruup-mac/	os=Darwin
 locale	danbooruup	en-US	jar:chrome/danbooruup.jar!/locale/en-US/danbooruup/
+
+# Component registration for Firefox 4
+
+interfaces components/danbooruac.xpt
+
+component {d989b279-ba03-4b12-adac-925c7f0c4b9d} components/danbooruUpHelper.js
+contract @unbuffered.info/danbooru/helper-service;1 {d989b279-ba03-4b12-adac-925c7f0c4b9d}
+category profile-after-change danbooruHelperService @unbuffered.info/danbooru/helper-service;1
+
+component {4d39eff7-397a-4a14-be57-b5e472760ecd} components/danbooruTagHistoryService.js
+contract @unbuffered.info/danbooru/taghistory-service;1 {4d39eff7-397a-4a14-be57-b5e472760ecd}

@@ -103,7 +103,7 @@ var danbooruUpDBUpdater = {
 			return;
 		for (d in this.defaults) {
 			if (localStorage['danbooruUp' + d] === undefined)
-				localStorage['danbooruUp' + d] = this.defaults[d]
+				localStorage['danbooruUp' + d] = this.defaults[d];
 		}
 	},
 

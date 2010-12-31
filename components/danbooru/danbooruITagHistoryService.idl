@@ -36,8 +36,10 @@
  * ***** END LICENSE BLOCK ***** */
 
 #include "nsISupports.idl"
-#include "nsIInterfaceRequestor.idl"
 #include "danbooruISearchCallback.idl"
+
+interface nsIVariant;
+interface nsIInterfaceRequestor;
 
 [scriptable, uuid(4d39eff7-397a-4a14-be57-b5e472760ecd)]
 interface danbooruITagHistoryService : nsISupports

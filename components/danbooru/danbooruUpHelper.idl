@@ -1,7 +1,8 @@
 #include "nsISupports.idl"
-#include "nsIURI.idl"
-#include "nsIInterfaceRequestor.idl"
 #include "danbooruITagHistoryService.idl"
+
+interface nsIURI;
+interface nsIInterfaceRequestor;
 
 [scriptable, uuid(af37695d-9d42-4795-88df-d2208816f201)]
 interface danbooruIHelperService : nsISupports

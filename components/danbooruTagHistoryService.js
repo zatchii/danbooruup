@@ -52,6 +52,9 @@ const prefService	= Cc['@mozilla.org/preferences-service;1'].getService(Ci.nsIPr
 const observerService	= Cc['@mozilla.org/observer-service;1'].getService(Ci.nsIObserverService);
 const threadManager	= Cc['@mozilla.org/thread-manager;1'].getService(Ci.nsIThreadManager);
 
+const appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
+const versionChecker = Cc["@mozilla.org/xpcom/version-comparator;1"].getService(Ci.nsIVersionComparator);
+
 function __log(msg)
 {
 	if (threadManager.isMainThread)
@@ -61,23 +64,47 @@ function __log(msg)
 	return msg;
 }
 
-const bgThread = threadManager.newThread(0);
+// Check for Gecko >= 2.0
+const isFF4 = versionChecker.compare(appInfo.platformVersion, "1.*") > 0;
 
-function bgDispatch(fun, callback)
-{
-	var n_callback = function() {
-		var args = arguments;
-		threadManager.mainThread.dispatch({ run: function() {callback.apply(null, args);} }, threadManager.mainThread.DISPATCH_NORMAL);
+var bgThread;
+
+if (!isFF4) {
+	bgThread = threadManager.newThread(0);
+
+	function bgDispatch(fun, callback)
+	{
+		var n_callback = function() {
+			var args = arguments;
+			threadManager.mainThread.dispatch({ run: function() {callback.apply(null, args);} }, threadManager.mainThread.DISPATCH_NORMAL);
+		}
+		bgThread.dispatch({ run: function() { fun(n_callback); } }, bgThread.DISPATCH_NORMAL);
 	}
-	bgThread.dispatch({ run: function() { fun(n_callback); } }, bgThread.DISPATCH_NORMAL);
-}
 
-// Kind of pointless ATM... Considered making all db access from same thread.
-function bgDispatchSync(fun)
-{
-	var r = {};
-	bgThread.dispatch({ run: function() { r.result = fun(); } }, bgThread.DISPATCH_SYNC);
-	return r.result;
+	// Kind of pointless ATM... Considered making all db access from same thread.
+	function bgDispatchSync(fun)
+	{
+		var r = {};
+		bgThread.dispatch({ run: function() { r.result = fun(); } }, bgThread.DISPATCH_SYNC);
+		return r.result;
+	}
+
+} else {
+	/*
+	 * In Firefox 4, JS objects can not be passed between threads.
+	 * For now, just cludge the thread support with dummy functions.
+	 * It would probably be better to remove the threading and switch to asynchronous DB calls.
+	 */
+
+	function bgDispatch(fun, callback)
+	{
+		fun(callback);
+	}
+
+	function bgDispatchSync(fun)
+	{
+		return fun();
+	}
 }
 
 // Testing.
@@ -169,13 +196,13 @@ var tagHistoryService = {
 
 	get rowCount()
 	{
-		var res = this.dbGetSimple(kRowCount, 'getInt32')
+		var res = this.dbGetSimple(kRowCount, 'getInt32');
 		return res;
 	},
 
 	get maxID()
 	{
-		var res = this.dbGetSimple(kMaxID, 'getInt32')
+		var res = this.dbGetSimple(kMaxID, 'getInt32');
 		return res;
 	},
 
@@ -530,7 +557,6 @@ var tagHistoryService = {
 			var found_tags = 0;
 			// Insert history items
 			stmt = db.createStatement(kTagHistoryInsert);
-			// for (i = 0; i < tagIds.length; i++) {
 			for (var tag in tagIds) {
 				found_tags++;
 				let tag_id = tagIds[tag];
@@ -591,6 +617,7 @@ var tagHistoryService = {
 	}
 };
 
+// No longer used in Firefox 4
 var TagHistoryModule = {
 	registerSelf: function(compMgr, fileSpec, location, type)
 	{
@@ -629,8 +656,16 @@ var TagHistoryFactory = {
 	}
 };
 
-// XPCOM Registration Function -- called by Firefox
+// XPCOM Registration Function -- called by Firefox 3
 function NSGetModule(compMgr, fileSpec)
 {
 	return TagHistoryModule;
+}
+
+// called by Firefox 4
+function NSGetFactory(cid)
+{
+	if (!cid.equals(DANBOORU_TAGHISTORYSERVICE_CID))
+		throw Components.results.NS_ERROR_FACTORY_NOT_REGISTERED;
+	return TagHistoryFactory;
 }

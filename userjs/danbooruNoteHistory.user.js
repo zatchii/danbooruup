@@ -16,9 +16,11 @@
 	  return;
 	}
 
-	usernames = {};
-	temp_names = {};
+	var usernames = {};
+	var temp_names = {};
 	function get_user_name(id) {
+		if (window.localStorage && localStorage['dbnh_user_' + id])
+			return localStorage['dbnh_user_' + id];
 		if (id in usernames)
 			return usernames[id];
 		var node = document.createTextNode('User ' + id);
@@ -28,6 +30,8 @@
 			temp_names[id] = [node];
 			send_json_request('user/index.json?id=' + id, function(user) {
 				usernames[id] = user[0].name;
+				if (window.localStorage)
+					window.localStorage['dbnh_user_' + id] = user[0].name
 				temp_names[id].forEach(function(textNode) {
 					textNode.data = user[0].name;
 				});
