@@ -19,7 +19,7 @@
 <!ENTITY danbooru-box-safe-accesskey "S">
 <!ENTITY danbooru-box-danbooru-label "Danbooru:">
 <!ENTITY danbooru-box-danbooru-accesskey "d">
-<!ENTITY danbooru-box-noforward-label "Don't forward file">
+<!ENTITY danbooru-box-noforward-label "From source">
 <!ENTITY danbooru-box-noforward-accesskey "f">
 <!ENTITY danbooru-box-noforward-tooltip "Let Danbooru download the file from the source instead of forwarding it via the local machine.">
 <!ENTITY danbooru-box-switch-source-tooltip "Switch between document referrer, document location and image location">

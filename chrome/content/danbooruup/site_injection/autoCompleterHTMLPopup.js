@@ -125,7 +125,7 @@ danbooruACHTMLPopup.prototype = {
 	{
 		try {
 			// Send a escape keypress.
-			evt = document.createEvent("KeyboardEvent");
+			var evt = document.createEvent("KeyboardEvent");
 			evt.initKeyEvent('keypress', false, false, window, false, false, false, false, KeyEvent.DOM_VK_ESCAPE, 0);
 			textfield.dispatchEvent(evt);
 		} catch (e) {

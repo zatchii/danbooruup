@@ -396,7 +396,7 @@ var tagHistoryService = {
 	updateTagListFromURI: function(uri, notification)
 	{
 		if (this._dbBusy || !this._acPrefs.getBoolPref('enabled'))
-			throw {result: Components.results.NS_ERROR_NOT_AVAILABLE};
+			throw Components.results.NS_ERROR_NOT_AVAILABLE;
 		this._dbBusy = true;
 
 		// XMLHttpRequest seems reluctant to participate in any form of threading.

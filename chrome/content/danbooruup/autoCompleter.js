@@ -25,7 +25,6 @@ var AutoCompleter = function(textfield, completer, createPopup, search_type)
 	this._showRel = function(tag, related) { o.showRelated(tag, related); };
 	this._textfield.addEventListener('keypress', function(event) { o.onKeyPress(event); }, false);
 	this._textfield.addEventListener('keydown', function(event) { o.onKeyDown(event); }, false);
-	this._textfield.addEventListener('keyup', function(event) { o.onKeyUp(event); }, false);
 	this._textfield.addEventListener('input', function(event) { o.onInput(event); }, false);
 	this._textfield.addEventListener('blur', function(event) { o._popup.timedHide(); }, false);
 	this._textfield.addEventListener('focus', function(event) { o._popup.cancelHide(); }, false);
@@ -46,13 +45,12 @@ AutoCompleter.prototype = {
 	],
 	ignoreKeypress: false,
 	ignoreEnter: false,
-	ctrlKey: false,
 	reject_prefix: null,
 
 	tagParser: {
 		searchParser: function(tag)
 		{
-			var search_re = /^(:?|user|fav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|-|~/i;
+			var search_re = /^(:?|user|fav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|^-|^~/i;
 			var match = search_re.exec(tag);
 			var prefix = match ? match[0] : '';
 			return [tag.slice(prefix.length), prefix];
@@ -117,14 +115,6 @@ AutoCompleter.prototype = {
 	onKeyDown: function(event)
 	{
 		this.lastKeyCode = event.keyCode;
-		if (event.keyCode == KeyEvent.DOM_VK_CONTROL)
-			this.ctrlKey = true;
-	},
-
-	onKeyUp: function(event)
-	{
-		if (event.keyCode == KeyEvent.DOM_VK_CONTROL)
-			this.ctrlKey = false;
 	},
 
 	onKeyPress: function(event)
@@ -243,18 +233,6 @@ AutoCompleter.prototype = {
 			event.preventDefault();
 			event.stopPropagation();
 		}
-	},
-
-	// Used when the enter press is intercepted elsewhere.
-	// Returns true if the default action should be stopped.
-	onEnter: function()
-	{
-		this.lastKeyCode = KeyEvent.DOM_VK_RETURN;
-		ev = { stop: false, keyCode: KeyEvent.DOM_VK_RETURN, ctrlKey: this.ctrlKey,
-			preventDefault: function() { this.stop = true; }, stopPropagation: function() {}
-		};
-		this.onKeyPress(ev);
-		return ev.stop;
 	},
 
 	// Listens on the text input field for input (= potential autocompletion task)

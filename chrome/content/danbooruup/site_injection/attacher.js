@@ -26,25 +26,28 @@ function inhibitForm(id) {
 	var el = document.getElementById(id);
 	if (!el)
 		return;
-	// There's some javascript trickery going on that takes our enter key,
-	// so do some trickery on our own.
-	submit = el.submit;
-	var stopf = function() {
-		var target = null;
-		try {
-			target = stopf.caller.arguments[0].target;
-		} catch (e) { 
-			target = el.getElementsByTagName('textarea')[0];
+	// Capture enter keypresses on the parent element to prevent site scripts
+	// from interferring with the enter key.
+	el.parentNode.addEventListener('keydown', function(ev) {
+		if (ev.originalTarget == el &&
+				ev.keyCode == KeyEvent.DOM_VK_RETURN &&
+				el.danbooruUpAutoCompleter) {
+			// Acts on event and stops propagation if appropriate.
+			el.danbooruUpAutoCompleter.onKeyDown(ev);
+			el.danbooruUpAutoCompleter.onKeyPress(ev);
 		}
-		if (target && target.danbooruUpAutoCompleter) {
-			// Inform autocompleter of submission and allow it to cancel action.
-			if (!target.danbooruUpAutoCompleter.onEnter()) {
-				target.danbooruUpAutoCompleter.onSubmit();
-				submit.call(el);
-			}
-		}
-	};
-	el.submit = stopf;
+	}, true);
+
+	// Override the submit function as well, in case the form is submitted with javascript.
+	var form = el;
+	while (form.tagName != 'FORM')
+		form = form.parentNode;
+	var submit = form.submit;
+	form.submit = function() {
+		if (el.danbooruUpAutoCompleter)
+			el.danbooruUpAutoCompleter.onSubmit();
+		submit.call(form);
+	}
 	//alert('tried to inhibit ' + id);
 }
 
@@ -60,7 +63,7 @@ if (document.location.pathname == '/') {
 	} catch (e) { };
 }
 
-inhibitForm('edit-form');	// Post view and upload
+inhibitForm('post_tags');	// Post view and upload
 danbooruUpACAttacher('tags');	// Front and side
 danbooruUpACAttacher('post_tags');	// Post view and upload
 danbooruUpACAttacher('tag_name', 'search_single');	// Tag edit

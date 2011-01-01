@@ -241,12 +241,11 @@ var danbooruUpHelperObject = {
 		try {
 			this.tagService.updateTagListFromURI(locationURL.spec, aListener);
 		} catch (e) {
-			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
+			if (e == Components.results.NS_ERROR_NOT_AVAILABLE)
 			{
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
-			}
-			else {
+			} else {
 				this._updating = false;
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
