@@ -1,0 +1,127 @@
+// Communicates with the unprivileged scripts via DOM events.
+var danbooruUpDOMProxyUpper = {
+	config: null,
+
+	init: function()
+	{
+		var o = this;
+		// Set up a listener for requests.
+		document.addEventListener('DanbooruUpRequest', function(e) {
+			var message = JSON.parse(e.target.innerText);
+			switch (message.action) {
+				case 'HistorySearch':
+				case 'SpecSearch':
+				case 'TagSearch':
+				case 'EnhanceTags':
+					danbooruUpMessageProxyLower.sendTagRequest(message);
+					break;
+				case 'UpdateTagHistory':
+					danbooruUpMessageProxyLower.sendRequest(message);
+					break;
+				case 'ForceUpdate':
+					this.config.setConfig('ForceUpdate', true);
+					break;
+				default:
+					console.error('Unknown DOM request ' + message.name);
+			}
+		}, false);
+	},
+
+	sendAnswer: function(action, data)
+	{
+		var element = document.documentElement.appendChild(document.createElement('div'));
+		element.innerText = JSON.stringify({action: action, data: data});
+		var evt = document.createEvent('Event');
+		evt.initEvent('DanbooruUpAnswer', true, true);
+		element.dispatchEvent(evt);
+		element.parentNode.removeChild(element);
+	},
+	
+	sendConfig: function()
+	{
+		this.sendAnswer('SetConfig', {
+			AlternateSearching: this.config.getConfig('AlternateSearching'),
+			KeepHistory: this.config.getConfig('KeepHistory'),
+			Enable: this.config.getConfig('Enable')
+		});
+	}
+};
+
+// Communicates with the extension background page via requests.
+var danbooruUpMessageProxyLower = {
+	loaded: false,
+
+	init: function()
+	{
+		var o = this;
+		var port = chrome.extension.connect();
+		port.onMessage.addListener(function (message) {
+			if (message.action == 'ConfigChange') {
+				o.config[message.name] = message.value;
+				danbooruUpGui.updateDisplay();
+				danbooruUpDOMProxyUpper.sendConfig();
+			}
+			if (message.action == 'SetStatus') {
+				danbooruUpGui.busy(message.busy);
+				if (message.status[0] == 'error')
+					danbooruUpGui.error(message.status[1]);
+				else
+					danbooruUpGui.status(message.status[1]);
+			}
+		})
+	},
+
+	sendTagRequest: function(message)
+	{
+		chrome.extension.sendRequest(message, function(answer) {
+			danbooruUpDOMProxyUpper.sendAnswer('SearchResult', answer);
+		});
+	},
+
+	sendRequest: function(message)
+	{
+		chrome.extension.sendRequest(message);
+	},
+
+	// Config functions
+	config: {},
+	
+	getConfig: function(name)
+	{
+		return this.config[name];
+	},
+
+	setConfig: function(name, value)
+	{
+		chrome.extension.sendRequest({action: 'SetConfig', name: name, value: value});
+	},
+
+	// Requests configuration settings from the background process.
+	// Stores a local copy and forwards to unprivileged page on receipt.
+	requestConfig: function(callback)
+	{
+		var o = this;
+		chrome.extension.sendRequest({action:'RequestConfig'}, function(result) {
+			o.config = result;
+			o.loaded = true;
+			danbooruUpDOMProxyUpper.sendConfig();
+			if (callback)
+				callback();
+		});
+	},
+
+	// Database functions
+	checkForUpdate: function(interactive) {
+		chrome.extension.sendRequest({action: 'CheckForUpdate', interactive: interactive});
+	},
+
+	clearTags: function() {
+		chrome.extension.sendRequest({action: 'ClearTags'});
+	},
+
+	clearHistory: function() {
+		chrome.extension.sendRequest({action: 'ClearHistory'});
+	}
+};
+
+danbooruUpDOMProxyUpper.config = danbooruUpMessageProxyLower;

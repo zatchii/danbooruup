@@ -1,0 +1,80 @@
+// Communicate with the privileged content script via DOM events.
+var danbooruUpDOMProxyLower = {
+	callback: null,
+	config: {},
+
+	// Set up event listener
+	init: function()
+	{
+		var o = this;
+		document.addEventListener('DanbooruUpAnswer', function(e) {
+				var message = JSON.parse(e.target.innerText);
+				switch (message.action) {
+					case 'SetConfig':
+						o.config = message.data;
+						AutoCompleter.prototype.disabled = !o.config.Enable;
+						break;
+					case 'SearchResult':
+						if (o.callback)
+							o.callback(message.data);
+						break;
+					default:
+						console.error('Unknown DOM answer ' + message.action);
+				}
+		}, false);
+	},
+
+
+	sendRequest: function(action, data)
+	{
+		var element = document.documentElement.appendChild(document.createElement('div'));
+		// Prototype apparently breaks JSON.stringify.
+		element.innerText = (Object.toJSON || JSON.stringify)({action: action, data: data});
+		var evt = document.createEvent('Event');
+		evt.initEvent('DanbooruUpRequest', true, true);
+		element.dispatchEvent(evt);
+		element.parentNode.removeChild(element);
+	},
+	
+	// Config functions
+	getConfig: function(name)
+	{
+		return this.config[name];
+	},
+
+	setConfig: function(name, value)
+	{
+		// Should only be called with name='ForceUpdate' value='true'
+		this.sendRequest('ForceUpdate', {});
+	},
+
+	// DB functions
+	tagSearch: function(glob, limit, callback)
+	{
+		this.callback = callback;
+		this.sendRequest('TagSearch', {glob: glob, limit: limit});
+	},
+
+	historySearch: function(glob, context, limit, callback)
+	{
+		this.callback = callback;
+		this.sendRequest('HistorySearch', {glob: glob, context: context, limit: limit});
+	},
+
+	specSearch: function(glob, prefix, context, limit, callback)
+	{
+		this.callback = callback;
+		this.sendRequest('SpecSearch', {glob: glob, prefix: prefix, context: context, limit: limit});
+	},
+
+	enhanceTags: function(tags, callback)
+	{
+		this.callback = callback;
+		this.sendRequest('EnhanceTags', {tags: tags});
+	},
+
+	updateTagHistory: function(used_context, tag_contexts, specifier_contexts)
+	{
+		this.sendRequest('UpdateTagHistory', {used_context: used_context, tag_contexts: tag_contexts, specifier_contexts: specifier_contexts});
+	}
+};

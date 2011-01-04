@@ -1,0 +1,140 @@
+var site_uri = 'http://danbooru.donmai.us';
+
+// Proxy for GUI events
+var danbooruUpGuiProxy = {
+	loaded: true,
+	current_status: ['status', ''],
+	is_busy: false,
+
+	status: function(message)
+	{
+		this.current_status = ['status', message];
+		this.sendStatus();
+	},
+
+	error: function(message)
+	{
+		this.current_status = ['error', message];
+		this.sendStatus();
+	},
+
+	busy: function(is_busy)
+	{
+		this.is_busy = is_busy;
+		this.sendStatus();
+	},
+
+	sendStatus: function()
+	{
+		broadcast({
+			action: 'SetStatus',
+			status: this.current_status,
+			busy: this.is_busy
+		});
+	}
+};
+
+danbooruUpDBUpdater.config = danbooruUpConfig;
+danbooruUpDBUpdater.gui = danbooruUpGuiProxy;
+
+danbooruUpConfig.init();
+danbooruUpDBUpdater.init();
+
+var con_counter = 0;
+var connection_pool = {};
+
+function connection(port)
+{
+	var id = con_counter++;
+	connection_pool[id] = port;
+	port.onDisconnect.addListener(function(port) {
+		delete connection_pool[id];
+	});
+}
+
+function broadcast(message)
+{
+	for (var id in connection_pool)
+		connection_pool[id].postMessage(message);
+}
+
+chrome.extension.onConnect.addListener(function(port) {
+	new connection(port);
+});
+
+// Listen for and process requests from content scripts.
+chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
+	if (!sender) return;
+	switch (request.action) {
+		case 'TagSearch':
+			danbooruUpDBUpdater.tagSearch(
+				request.data.glob,
+				request.data.limit,
+				sendResponse);
+			break;
+		case 'HistorySearch':
+			danbooruUpDBUpdater.historySearch(
+				request.data.glob,
+				request.data.context,
+				request.data.limit,
+				sendResponse);
+			break;
+		case 'SpecSearch':
+			danbooruUpDBUpdater.specSearch(
+				request.data.glob,
+				request.data.prefix,
+				request.data.context,
+				request.data.limit,
+				sendResponse);
+			break;
+		case 'EnhanceTags':
+			danbooruUpDBUpdater.enhanceTags(
+				request.data.tags,
+				sendResponse);
+			break;
+		case 'UpdateTagHistory':
+			danbooruUpDBUpdater.updateTagHistory(
+				request.data.used_context,
+				request.data.tag_contexts,
+				request.data.specifier_contexts,
+				sendResponse);
+			break;
+
+		case 'CheckForUpdate':
+			danbooruUpDBUpdater.checkForUpdate(request.interactive);
+			break;
+		case 'ClearTags':
+			danbooruUpDBUpdater.clearTags();
+			break;
+		case 'ClearHistory':
+			danbooruUpDBUpdater.clearHistory();
+			break;
+
+		case 'RequestConfig':
+			sendResponse(danbooruUpConfig.getConfigDict());
+			break;
+		case 'SetConfig':
+			danbooruUpConfig.setConfig(request.name, request.value);
+			broadcast({
+				action: 'ConfigChange',
+				name: request.name,
+				value: danbooruUpConfig.getConfig(request.name)});
+			break;
+		default:
+			console.error('Unknown request ' + request.action);
+	}
+});
+
+// Add a context menu item to images.
+
+function uploadURL(urlinfo, tab)
+{
+	var pageuri = site_uri + '/post/upload?url=' + encodeURIComponent(urlinfo.srcUrl);
+	chrome.windows.create({url: pageuri, width: 860});
+}
+
+chrome.contextMenus.create({
+	'title': 'Upload to Danbooru',
+	'contexts': ['image'],
+	'onclick': uploadURL
+});

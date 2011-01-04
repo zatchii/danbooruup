@@ -19,7 +19,7 @@ var danbooruACHTMLPopup = function(textfield) {
 // XULify HTML selects to be more like listboxes.
 function danbooruACExtendSelect()
 {
-	var pt = HTMLSelectElement.prototype;
+	var pt = window.HTMLSelectElement.prototype;
 	pt.getNumberOfVisibleRows = function() {
 		return this.size;
 	};

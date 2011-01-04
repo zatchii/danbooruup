@@ -9,7 +9,7 @@
 	windowtype = "danbooru:UploadBox"
 	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
 	buttons="accept,cancel"
-	width="500px"
+	width="550px"
 	height="175px"
 	persist="screenX screenY width height"
 	onload="init();"

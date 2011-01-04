@@ -20,8 +20,12 @@ opt_parser.add_option('-d', '--database', action='store_true',
         help="use Web SQL Database to store tags")
 opt_parser.add_option('-c', '--chrome', action='store_true',
         help="patch for Chrome")
+opt_parser.add_option('-e', '--extension', action='store_true',
+        help="Make Chrome extension")
 options, args = opt_parser.parse_args()
 
+if options.extension:
+    assert options.chrome and options.database, "Extension format requires the Chrome and database options."
 
 ###
 print "Loading scripts..."
@@ -35,9 +39,10 @@ def patchJS(js):
         onkeypat = re.compile(r'(\tonKeyDown[^}]*)}', re.DOTALL + re.MULTILINE)
         js = onkeypat.sub(r'\1\n\t\tthis.onKeyPress(event);\n\t}', js)
 
-        # Require updates to be enabled manually
-        js = js.replace("'EnableUpdates': true", "'EnableUpdates': false")
-        js = js.replace("'UpdateOnSubmit': true", "'UpdateOnSubmit': false")
+        if not options.extension:
+            # Require updates to be enabled manually
+            js = js.replace("'EnableUpdates': true", "'EnableUpdates': false")
+            js = js.replace("'UpdateOnSubmit': true", "'UpdateOnSubmit': false")
         
         js = re.sub(r'rows\[(.)\]', r'rows.item(\1)', js);
 
@@ -54,18 +59,34 @@ def loadJS(path):
         print "Could not open {0}".format(filepath)
         sys.exit(1)
 
+# Pick a class from the script, returning the class, and the script sans it.
+def pick_class(classname, script):
+    classpat = re.compile(r'^var {0} = {{.*?^}};$'.format(classname), re.DOTALL + re.MULTILINE)
+    return classpat.search(script).group(0), classpat.sub('', script)
+
+
 def patch_template(template):
-    # Lots of wrong with this, like that it won't nest
+    # Lots of wrong with this
     condition = ['DATABASE'] if options.database else ['NOT_DATABASE']
-    for c in condition:
-        ifpat = re.compile(r'\n?^IF {0}(.*?)^ENDIF.*?$\n?'.format(c), re.DOTALL + re.MULTILINE)
-        # print re.findall(r'^IF {0}(.*)^ENDIF.*$'.format(c), template, re.DOTALL + re.MULTILINE)
-        template = ifpat.sub(r'\1', template)
-    ifpat = re.compile(r'^IF .*?^ENDIF.*?$\n?', re.DOTALL + re.MULTILINE)
-    template = ifpat.sub('', template)
+    condition.append('EXTENSION' if options.extension else 'NOT_EXTENSION')
+    # Manual nesting
+    for level in (1, 0):
+        for c in condition:
+            ifpat = re.compile(r'\n?^{0}IF {1}(.*?)^{0}ENDIF.*?$\n?'.format('#' * level, c), re.DOTALL + re.MULTILINE)
+            template = ifpat.sub(r'\1', template)
+        ifpat = re.compile(r'^{0}IF .*?^{0}ENDIF.*?$\n?'.format('#' * level), re.DOTALL + re.MULTILINE)
+        template = ifpat.sub('', template)
 
     template = template.replace('$ONLOAD_SCRIPTS', '\n'.join(js_onload))
     template = template.replace('$CLASSES', '\n'.join(js_files))
+
+    if options.extension:
+        _, template = pick_class('danbooruUpDBUpdater', template)
+        _, template = pick_class('danbooruUpConfig', template)
+        guiclass, template = pick_class('danbooruUpGui', template)
+        template = template.replace('$PRIVILEGED_CLASSES', guiclass + '\n' + loadJS(['userjs', 'chromeext', 'privileged.js.template']))
+        template = template.replace('$UNPRIVILEGED_CLASSES', loadJS(['userjs', 'chromeext', 'unprivileged.js.template']))
+
     return template
 
 
@@ -118,11 +139,21 @@ if not options.database:
 
 
 ###
-print "Writing out file..."
-with open(options.outfile, 'w') as of:
-    of.write(patch_template(js_template))
+if options.extension:
+    with open('userjs/chromeext/inject.js', 'w') as of:
+        of.write(patch_template(js_template))
+    with open('userjs/chromeext/background.js', 'w') as of:
+        dbclass, template = pick_class('danbooruUpDBUpdater', js_template)
+        confclass, template = pick_class('danbooruUpConfig', js_template)
+        of.write(dbclass + '\n' + confclass + '\n')
+        of.write(loadJS(['userjs', 'chromeext', 'background.js.template']))
 
-    if not options.database:
-        of.write('danbooruUpACTagArray = ')
-        json.dump(tags, of)
-        of.write(';\n\n');
+else:
+    print "Writing out file..."
+    with open(options.outfile, 'w') as of:
+        of.write(patch_template(js_template))
+
+        if not options.database:
+            of.write('danbooruUpACTagArray = ')
+            json.dump(tags, of)
+            of.write(';\n\n');

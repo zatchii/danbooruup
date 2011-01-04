@@ -29,7 +29,7 @@ function inhibitForm(id) {
 	// Capture enter keypresses on the parent element to prevent site scripts
 	// from interferring with the enter key.
 	el.parentNode.addEventListener('keydown', function(ev) {
-		if (ev.originalTarget == el &&
+		if (ev.target == el &&
 				ev.keyCode == KeyEvent.DOM_VK_RETURN &&
 				el.danbooruUpAutoCompleter) {
 			// Acts on event and stops propagation if appropriate.

@@ -1,10 +1,12 @@
 // ==UserScript==
 	// @name DanbooruUp user script
 	// @description Tag field autocompleter for Danbooru.
-	// @version 0.3.6
+	// @version 0.3.7
 	// @match http://danbooru.donmai.us/*
 	// @match http://safebooru.donmai.us/*
+	// @match http://behoimi.org/*
 // ==/UserScript==
+
 
 (function() {
 
@@ -20,11 +22,17 @@ var style_arr = {
 	'2': 'background: #ddd;',
 	'3': 'color: #a0a;',
 	'4': 'color: #0a0;',
+	'5': 'color: #00b;',
+	'6': 'color: #983;',
+	'7': 'color: #aaa;',
 	'0.selected': '',
 	'1.selected': '',
 	'2.selected': '',
 	'3.selected': '',
 	'4.selected': '',
+	'5.selected': '',
+	'6.selected': '',
+	'7.selected': '',
 };
 
 if (!window.KeyEvent) {
@@ -42,8 +50,15 @@ if (!window.KeyEvent) {
 		DOM_VK_HELP: 6
 	};
 }
+var KeyEvent = window.KeyEvent;
 
-var danbooruUpDBUpdater = {
+
+var site_uri = document.location.protocol + '//' + document.location.host;
+
+// Handles configuration.
+var danbooruUpConfig = {
+	loaded: false,
+
 	defaults: {
 		'Enable': true,
 		'EnableUpdates': false,
@@ -56,199 +71,75 @@ var danbooruUpDBUpdater = {
 		'Aborts': 0,
 	},
 
-	options: [
-		{s: 'Enable', l: 'Enable tag autocompletion',
-			c: [
-				{s: 'AlternateSearching', l: 'Alternate searching (abc -> *a*b*c*)'},
-				{s: 'KeepHistory', l:'Use search history'},
-				{s: 'UpdateOnSubmit', l: 'Update after post submission'},
-				{s: 'EnableUpdates', l: 'Periodic updates',
-					c: [
-					 {s: 'UpdateFrequency', l: 'Hours between updates'}
-				]},
-		]},
-	],
-
-	database: null,
-	status_div: null,
-
-	init: function(is_retry)
-	{
-		if (!is_retry) {
-			this.initSettings();
-			this.initGui();
-		}
-		if (this.initDatabase())
-			return; // Wait for database to be initialised
-
-		if (!this.status_div)
-			return;
-
-		this.checkForUpdate(false);
-		this.doHistory();
-	},
-
-	initSettings: function()
+	init: function()
 	{
 		if (!window.localStorage)
 			return;
 		for (d in this.defaults) {
-			if (localStorage['danbooruUp' + d] === undefined)
-				localStorage['danbooruUp' + d] = this.defaults[d]
+			if (window.localStorage['danbooruUp' + d] === undefined)
+				window.localStorage['danbooruUp' + d] = this.defaults[d];
 		}
+		this.loaded = true;
 	},
 
-	initGui: function()
+	// Get a config value from localStorage
+	getConfig: function(name)
 	{
-		var navbar = document.getElementById('navbar') || document.getElementById('links');
-		if (!navbar)
-			return;
-
-		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em;' + 
-			' -o-transition: opacity 0.2s; -webkit-transition: opacity 0.2s; } ' +
-			'#dbu_panel h3 { font-family: "verdana", sans-serif; font-size: 15px; font-weight: 400; margin-left: 1em;} ' +
-			'#dbu_panel ul { list-style: none; margin: 0} #dbu_panel li { margin: 0; margin-top: 0.2em; } ' +
-			'#dbu_panel label { font-weight: normal; margin-left: 0.2em; }' +
-			'#dbu_panel input[type=number] { width: 3em; }' +
-			'#dbu_status { height: 1.5em; }' +
-			'#dbu_button { -o-transition: color 0.5s; -webkit-transition: color 0.5s; }';
-
-		var style = document.createElement("style");
-		style.appendChild(document.createTextNode(cssdec));
-		document.getElementsByTagName("head")[0].appendChild(style);
-
-
-		// Make configure link
-		var menuItem = document.createElement('a');
-		menuItem.appendChild(document.createTextNode('\u25ca'));
-		menuItem.href = '';
-		menuItem.id = 'dbu_button';
-		menuItem.title = 'Autocompletion settings';
-		menuItem.addEventListener('click', function(e) {
-			panel.style.display = (panel.style.display == 'none' ? '' : 'none');
-			// Only fades in, not out since display:none is instant.
-			panel.style.opacity = (panel.style.opacity == 1 ? 0 : 1);
-			e.preventDefault();
-		}, false);
-		if (navbar.id == 'navbar')
-			navbar.insertBefore(document.createElement('li'), navbar.lastElementChild).appendChild(menuItem);
-		else
-			navbar.insertBefore(menuItem, navbar.lastElementChild);
-		this.menuItem = menuItem;
-
-		// Make panel
-		var o = this;
-		var panel = document.querySelector('body').appendChild(document.createElement('div'));
-		panel.id = 'dbu_panel';
-		panel.innerHTML = '<h3>Autocompletion settings</h3> <div></div>' +
-			'<input type="button" value="Update now"/> <input type="button" value="Clear tags"/> <input type="button" value="Clear history"/> <div><small id="dbu_status"/></div>';
-
-		var buttons = panel.querySelectorAll('input');
-		buttons[0].onclick = function() { o.checkForUpdate(true) };
-		buttons[1].onclick = function() { o.clearTags() };
-		buttons[2].onclick = function() { o.clearHistory() };
-
-		panel.querySelector('div').appendChild(this.makeSettingsForm(this.options));
-		this.updateDisplay();
-
-		this.status_div = panel.querySelector('small');
-
-		// Position and hide.
-		panel.style.top = menuItem.offsetTop + menuItem.offsetHeight + 'px';
-		panel.style.left = Math.max(0, menuItem.offsetLeft + menuItem.offsetWidth - panel.offsetWidth) + 'px';
-		panel.style.display = 'none';
-		panel.style.opacity = 0;
+		var parsers = {
+			'number': parseFloat,
+			'boolean': function(x) {return x == 'true';},
+		}
+		return parsers[typeof(this.defaults[name])](window.localStorage['danbooruUp' + name])
 	},
 
-	makeSettingsForm: function(options)
+	setConfig: function(name, value)
 	{
-		function setType(input, type) {
-			if (type == 'number') {
-				input.type = 'number';
-				input.min = 0;
-				input.step = 'any';
-			} else {
-				input.type = 'checkbox';
-			}
-		}
-		var form = document.createDocumentFragment();
-		var ul = form.appendChild(document.createElement('ul'));
-
-		var o = this;
-		function change(e) { o.changeSetting(this); }
-
-		for (var i = 0; i < options.length; i++) {
-			var li = ul.appendChild(document.createElement('li'));
-
-			var opt = options[i];
-			var input = li.appendChild(document.createElement('input'));
-			input.id = 'dbu_' + opt.s;
-			setType(input, typeof(this.defaults[opt.s]));
-			input.onchange = change;
-
-			var label = li.appendChild(document.createElement('label'));
-			label.appendChild(document.createTextNode(opt.l));
-			label.htmlFor = input.id;
-
-			if (opt.c)
-				form.appendChild(this.makeSettingsForm(opt.c));
-		}
-		return form;
+		window.localStorage['danbooruUp' + name] = value;
 	},
 
-	changeSetting: function(input) {
-		if (input.checkValidity && !input.checkValidity())
-			return;
-		var sname = input.id.substring(4);
-		function find(opts) {
-			if (!opts || !opts.length)
-				return null;
-			if (opts[0].s == sname)
-				return opts[0];
-			return find(opts[0].c) || find(opts.slice(1));
-		}
-		var sopts = find(this.options);
-		var value = input.type == 'checkbox' ? input.checked : input.value;
+	getConfigDict: function()
+	{
+		var c = {};
+		for (d in this.defaults)
+			c[d] = this.getConfig(d);
+		return c;
+	}
+};
 
-		this.setConfig(sname, value);
-		this.updateDisplay();
-	},
+// Handles DB access.
+var danbooruUpDBUpdater = {
+	loaded: false,
+	database: null,
+	config: null, // Set from onload function
+	gui: null, // Set from onload function
 
-	// Enable/disable configuration options according to current settings.
-	updateDisplay: function() {
-		if (!window.localStorage || !this.menuItem)
+	init: function()
+	{
+		if (this.initDatabase())
+			return; // Wait for database to be initialised
+
+		if (!this.gui.loaded)
 			return;
-		var o = this;
-		function update(opts, disabled) {
-			for (var i = 0; i < opts.length; i++) {
-				var e = document.getElementById('dbu_' + opts[i].s);
-				if (e.type == 'checkbox')
-					e.checked = o.getConfig(opts[i].s);
-				else
-					e.value = o.getConfig(opts[i].s);
-				e.disabled = disabled;
-				if (opts[i].c)
-					update(opts[i].c, disabled || !e.checked);
-			}
-		}
-		update(this.options, false);
+
+		this.checkForUpdate(false);
+		this.loaded = true;
 	},
 
 	initDatabase: function()
 	{
 		if (!window.openDatabase) {
-			this.error("Your browser does not support Web SQL database. Upgrade to Opera 10.50 or later.");
+			this.gui.error("Your browser does not support Web SQL database. Upgrade to Opera 10.50 or later.");
 			return;
 		}
 
 		try {
-			this.database = openDatabase('danbooruUp', '', 'Tag database', 15 * 1024 * 1024);
+			this.database = window.openDatabase('danbooruUp', '', 'Tag database', 15 * 1024 * 1024);
 			if (this.database.version != '1.0') {
 				this.createTables(this.database);
 				return true;
 			}
 		} catch (e) {
-			this.error('Could not open database, ' + e.message + '.');
+			this.gui.error('Could not open database, ' + e.message + '.');
 		}
 	},
 
@@ -264,50 +155,51 @@ var danbooruUpDBUpdater = {
 
 			t.executeSql("INSERT OR IGNORE INTO config VALUES('last_update_attempt', 0)");
 		}, function(e) {
-			o.error('Failed to initialise database, ' + e.message + '.');
+			o.gui.error('Failed to initialise database, ' + e.message + '.');
 		},
 		function() {
-			o.status('Database created, rerunning init.');
-			o.init(true);
+			o.gui.status('Database created, rerunning init.');
+			o.init();
 		});
 	},
 
 	clearTags: function()
 	{
 		if (!confirm('Delete all tags?')) {
-			this.status('Canceled reset.');
+			this.gui.status('Canceled reset.');
 			return;
 		}
 		var o = this;
 		this.database.transaction(function(t) {
 			t.executeSql('DELETE FROM tag');
-		}, null, function() { o.status("Tags deleted.") });
+		}, null, function() { o.gui.status("Tags deleted.") });
 	},
 
 	clearHistory: function()
 	{
 		if (!confirm("Clear search history?")) {
-			this.status("Canceled history clearing.");
+			this.gui.status("Canceled history clearing.");
 			return;
 		}
+		var o = this;
 		this.database.transaction(function(t) {
 			t.executeSql('DELETE FROM tag_history');
 			t.executeSql('DELETE FROM tag_context');
 			t.executeSql('DELETE FROM spec_history');
-		}, null, function() { o.status('History cleared'); });
+		}, null, function() { o.gui.status('History cleared'); });
 	},
 
 
 	checkForUpdate: function(interactive)
 	{
-		var force = this.getConfig('ForceUpdate');
+		var force = this.config.getConfig('ForceUpdate');
 		if (force)
-			this.setConfig('ForceUpdate', false)
+			this.config.setConfig('ForceUpdate', false)
 
 		if (!force && !interactive) {
-			if (!(this.getConfig('Enable') && this.getConfig('EnableUpdates')))
+			if (!(this.config.getConfig('Enable') && this.config.getConfig('EnableUpdates')))
 				return;
-			if (!(this.getConfig('LastUpdated') + this.getConfig('UpdateFrequency') * 60 * 60 * 1000 < new Date().getTime()))
+			if (!(this.config.getConfig('LastUpdated') + this.config.getConfig('UpdateFrequency') * 60 * 60 * 1000 < new Date().getTime()))
 				return;
 		}
 		var o = this;
@@ -320,7 +212,7 @@ var danbooruUpDBUpdater = {
 			if (since_last < 5 * 60 * 1000 && !(force || interactive &&
 					confirm("An update was attempted " + Math.round(since_last / 1000) + " seconds ago and may still be ongoing.\n" +
 						"Proceed with update anyway?"))) {
-				o.status("Recent update attempt, waiting.");
+				o.gui.status("Recent update attempt, waiting.");
 				return;
 			}
 
@@ -332,7 +224,7 @@ var danbooruUpDBUpdater = {
 						if (r.rowsAffected == 1) {
 							o.fetchTags();
 						} else {
-							o.status('Could not grab lock, aborting update.');
+							o.gui.status('Could not grab lock, aborting update.');
 						}
 					});
 			});
@@ -341,8 +233,8 @@ var danbooruUpDBUpdater = {
 
 	fetchTags: function()
 	{
-		this.status('Checking for tags...');
-		this.busy(true);
+		this.gui.status('Checking for tags...');
+		this.gui.busy(true);
 
 		var o = this;
 
@@ -352,27 +244,27 @@ var danbooruUpDBUpdater = {
 				var path = '/tag/index.json?limit=0';
 				if (max_id)
 					path += '&after_id=' + (max_id + 1);
-				var uri = document.location.protocol + '//' + document.location.host + path;
+				var uri = site_uri + path;
 
-				var request = new XMLHttpRequest();
+				var request = new window.XMLHttpRequest();
 				request.open('GET', uri);
 
 				request.onreadystatechange = function(event) {
 					if (this.readyState == 3) {
-						o.status('Downloading...');
+						o.gui.status('Downloading...');
 					} else if (this.readyState == 4) {
 						if (this.status == 200) {
-							o.status('Parsing...');
+							o.gui.status('Parsing...');
 							// var time1 = new Date().getTime();
 							var tags = JSON.parse(this.responseText);
 							// console.log('got ' + tags.length + ' tags, parsed in ' +(new Date().getTime() - time1));
 							o.insertTags(tags);
 						} else {
-							o.error('Could not get tags. Status ' + this.status + '.');
+							o.gui.error('Could not get tags. Status ' + this.status + '.');
 						}
 					}
 				};
-				o.setConfig('Aborts', o.getConfig('Aborts') + 1);
+				o.config.setConfig('Aborts', o.config.getConfig('Aborts') + 1);
 
 				request.send();
 			});
@@ -385,14 +277,14 @@ var danbooruUpDBUpdater = {
 		// and a larger one by not using placeholders in the query.
 
 		if (!tags.length) {
-			this.status('No new tags.');
-			this.busy(false);
+			this.gui.status('No new tags.');
+			this.gui.busy(false);
 			return;
 		}
 
 		var o = this;
 
-		this.status('Inserting tags...');
+		this.gui.status('Inserting tags...');
 		// var time = new Date().getTime();
 		this.database.transaction(function(t) {
 				o.batchify(t, 'INSERT OR IGNORE INTO tag(tag_id, tag_name, tag_count, tag_type, ambiguous)', 5,
@@ -402,20 +294,20 @@ var danbooruUpDBUpdater = {
 			if (e.code == 4) { // QUOTA_ERR
 				alert('An update of the DanbooruUp tag database failed due to insufficient storage quota.\n' + 
 					'Please increase the local storage quota before enabling updates.');
-				o.setConfig('EnableUpdates', false);
-				o.setConfig('UpdateOnSubmit', false);
+				o.config.setConfig('EnableUpdates', false);
+				o.config.setConfig('UpdateOnSubmit', false);
 				o.updateDisplay();
 			}
-			o.error('Database insertion failed due to error, ' + e.message + ' (' + e.code + ').');
-			o.setConfig('Aborts', o.getConfig('Aborts') - 1000);
-			o.busy(false);
+			o.gui.error('Database insertion failed due to error, ' + e.message + ' (' + e.code + ').');
+			o.config.setConfig('Aborts', o.config.getConfig('Aborts') - 1000);
+			o.gui.busy(false);
 		},
 		function() {
 			// console.log('Inserted in ' + (new Date().getTime() - time));
-			o.setConfig('LastUpdated', new Date().getTime());
-			o.setConfig('Aborts', o.getConfig('Aborts') - 1);
-			o.status('Downloaded ' + tags.length + ' tags.');
-			o.busy(false);
+			o.config.setConfig('LastUpdated', new Date().getTime());
+			o.config.setConfig('Aborts', o.config.getConfig('Aborts') - 1);
+			o.gui.status('Downloaded ' + tags.length + ' tags.');
+			o.gui.busy(false);
 		});
 	},
 
@@ -448,6 +340,9 @@ var danbooruUpDBUpdater = {
 		function inClause(data) {
 			return 'IN (' + new Array(data.length + 1).join('?, ').slice(0,-2) + ')';
 		}
+		// Check for update while we're at it.
+		// Hack to drive update checks in the Chrome extension.
+		this.checkForUpdate(false);
 
 		var o = this;
 
@@ -514,51 +409,11 @@ var danbooruUpDBUpdater = {
 			});
 		},
 		function(e) {
-			o.error('Could not save context, ' + e.message + '.');
+			o.gui.error('Could not save context, ' + e.message + '.');
 		},
 		function() {
 			// console.log('ut ' + (new Date().getTime() - tim));
 		});
-	},
-
-	// Called right before submission to update the tag history.
-	onSubmit: function(search_type, used_context, tag_contexts, specifier_contexts)
-	{
-
-		if ((search_type == 'post' || search_type == 'update') && this.getConfig('UpdateOnSubmit'))
-			this.setConfig('ForceUpdate', true);
-
-		if (this.getConfig('KeepHistory')) {
-			// Put the item in session storage to be inserted on next page load by doHistory.
-			var history, history_str = sessionStorage.danbooruUpHistory;
-			if (history_str) {
-				history = JSON.parse(history_str);
-				// Stupid bug in Opera 10.60
-				if (typeof history == 'string')
-					history = JSON.parse(history);
-			} else {
-				history = [];
-			}
-			history.push([used_context, tag_contexts, specifier_contexts]);
-			sessionStorage.danbooruUpHistory = JSON.stringify(history);
-		}
-	},
-
-	// Insert any history that has been queued from onSubmit.
-	doHistory: function()
-	{
-		if (!sessionStorage.danbooruUpHistory)
-			return;
-
-		var history = JSON.parse(sessionStorage.danbooruUpHistory);
-		// Stupid bug in Opera 10.60
-		if (typeof history == 'string')
-			history = JSON.parse(history);
-		for (var i = 0; i < history.length; i++) {
-			var h = history[i];
-			this.updateTagHistory(h[0], h[1], h[2]);
-		}
-		delete sessionStorage.danbooruUpHistory;
 	},
 
 	// Get a config value from the database
@@ -574,156 +429,7 @@ var danbooruUpDBUpdater = {
 		});
 	},
 
-	// Get a config value from localStorage
-	getConfig: function(name)
-	{
-		var parsers = {
-			'number': parseFloat,
-			'boolean': function(x) {return x == 'true';},
-		}
-		return parsers[typeof(this.defaults[name])](localStorage['danbooruUp' + name])
-	},
-
-	setConfig: function(name, value)
-	{
-		localStorage['danbooruUp' + name] = value;
-	},
-
-	status: function(message)
-	{
-		if (!this.status_div)
-			return
-		var sd = this.status_div;
-		sd.style.color = 'black';
-		while (sd.firstChild)
-			sd.removeChild(sd.firstChild);
-		sd.appendChild(document.createTextNode(message));
-	},
-
-	error: function(message)
-	{
-		if (window.console && console.error)
-			console.error(message);
-		if (!this.status_div)
-			return
-		this.status(message);
-		this.status_div.style.color = 'red';
-	},
-
-	busy: function(is_busy)
-	{
-		if (is_busy)
-			this.menuItem.style.color='red';
-		else
-			this.menuItem.style.color='';
-	},
-}
-
-var danbooruUpCompleter = {
-	database: null,   // Set from onload function
-	update_context: null,   // Set from onload function
-	cur_tag: '',
-	cur_prefix: '',
-	cur_search_type: '',
-	cur_callback: null,
-	timer: null,
-
-	tag_prefix_re: /^$|^[-~]$|^ambiguous:|^(:?general|artist|char(?:acter)?|copy(?:right)?):/,
-
-	getSuggestions: function(tag, prefix, search_type, callback)
-	{
-		this.cur_callback = callback;
-		this.cur_tag = tag;
-		this.cur_prefix = prefix;
-		this.cur_search_type = search_type;
-		var o = this;
-		if (!this.timer)
-			this.timer = window.setTimeout(function() { o.doSearch(); }, 100);
-	},
-
-	abortSuggestion: function()
-	{
-		if (this.timer)
-			window.clearTimeout(this.timer);
-		this.timer = null;
-	},
-
-	// Escape glob wildcards except '*', handle alternate search and add end wildcard
-	writeGlob: function(query)
-	{
-		// Only add wildcards if not present
-		if (query.indexOf('*') == -1) {
-			if (localStorage.danbooruUpAlternateSearching == 'true')
-				query = '*' + query.split(/(?:)/).join('*') + (query ? '*' : ''); // bob -> *b*o*b*
-			else
-				query = query + '*';
-		}
-		return query.replace(/[[?]/g, '[$&]'); // Escape '[' and '?' by putting them in single-character sets.
-	},
-
-	getContext: function(search_type)
-	{
-		if (search_type == 'post') {
-			var source = document.getElementById('post_source').value;
-			var match = source.match(/(?:.*:\/\/)?(.*?)\/(.*)/);
-			// Domain name except top level, and path name except file name.
-			if (match)
-				return ['__ALL__'].concat(match[1].split('.').slice(0,-1), match[2].split('/').slice(0,-1));
-			else
-				return ['__ALL__', '__POST__'];
-		} else if (search_type == 'update') {
-			var context = ['__ALL__', '__UPDATE__'];
-			// Grab first artist and copyright, if available.
-			var tags = document.getElementById('tag-sidebar');
-			var artist = tags.querySelector('.tag-type-artist > a:last-of-type');
-			var copy = tags.querySelector('.tag-type-copyright > a:last-of-type');
-			if (artist)
-				context.push(artist.textContent.replace(' ', '_'));
-			if (copy)
-				context.push(copy.textContent.replace(' ', '_'));
-			return context;
-		} else {
-			return ['__ALL__', '__SEARCH__'];
-		}
-	},
-
-	doSearch: function()
-	{
-		this.timer = null;
-
-		var limit = 100;
-		var query = this.cur_tag;
-		// var t = new Date().getTime();
-
-		var o = this;
-		function callback(result) {
-			// console.log('st ' + (new Date().getTime() - t));
-			o.cur_callback(query, result);
-		}
-
-		var tag = this.cur_tag.toLowerCase();
-		var prefix = this.cur_prefix.toLowerCase();
-
-		var is_tag = this.tag_prefix_re.test(prefix);
-
-		if (localStorage.danbooruUpKeepHistory == 'true') {
-			var context = this.getContext(this.cur_search_type);
-			var glob = this.writeGlob(query);
-			if (prefix !== '' && prefix.charAt(0) == '-') {
-				context.push('__NEG__');
-				prefix = prefix.slice(1);
-			}
-			if (is_tag)
-				this.historySearch(glob, context, limit, callback);
-			else
-				this.specSearch(glob, prefix, context, limit, callback);
-		} else {
-			if (is_tag)
-				this.tagSearch(this.writeGlob(query), limit, callback);
-			else
-				this.cur_callback(prefix, null);
-		}
-	},
+	// Search functions
 
 	// Search for tags ordered by tag history
 	historySearch: function(query, context, limit, callback)
@@ -793,8 +499,10 @@ var danbooruUpCompleter = {
 	// Add tag type info to a list of tag names.
 	enhanceTags: function(tags, callback)
 	{
-		if (tags.length == 0)
-			return [];
+		if (tags.length == 0) {
+			callback([]);
+			return;
+		}
 
 		rich_tags = {};
 		this.database.readTransaction(function(t) {
@@ -811,7 +519,309 @@ var danbooruUpCompleter = {
 			callback(tags.map(function(tag) {return rich_tags[tag] || [tag, 0, 0];}));
 		});
 	},
+};
 
+// Makes the settings panel
+var danbooruUpGui = {
+	config: null, // Set from onload function
+	status_div: null,
+	loaded: false,
+
+	options: [
+		{s: 'Enable', l: 'Enable tag autocompletion',
+			c: [
+				{s: 'AlternateSearching', l: 'Alternate searching (abc -> *a*b*c*)'},
+				{s: 'KeepHistory', l:'Use search history'},
+				{s: 'UpdateOnSubmit', l: 'Update after post submission'},
+				{s: 'EnableUpdates', l: 'Periodic updates',
+					c: [
+					 {s: 'UpdateFrequency', l: 'Hours between updates'}
+				]},
+		]},
+	],
+
+
+	init: function()
+	{
+		var navbar = document.getElementById('navbar') || document.getElementById('links');
+		if (!navbar)
+			return;
+
+		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em;' + 
+			' -o-transition: opacity 0.2s; -webkit-transition: opacity 0.2s; } ' +
+			'#dbu_panel h3 { font-family: "verdana", sans-serif; font-size: 15px; font-weight: 400; margin-left: 1em;} ' +
+			'#dbu_panel ul { list-style: none; margin: 0} #dbu_panel li { margin: 0; margin-top: 0.2em; } ' +
+			'#dbu_panel label { font-weight: normal; margin-left: 0.2em; }' +
+			'#dbu_panel input[type=number] { width: 3em; }' +
+			'#dbu_status { height: 1.5em; }' +
+			'#dbu_button { -o-transition: color 0.5s; -webkit-transition: color 0.5s; }';
+
+		var style = document.createElement("style");
+		style.appendChild(document.createTextNode(cssdec));
+		document.getElementsByTagName("head")[0].appendChild(style);
+
+
+		// Make configure link
+		var menuItem = document.createElement('a');
+		menuItem.appendChild(document.createTextNode('\u25ca'));
+		menuItem.href = '';
+		menuItem.id = 'dbu_button';
+		menuItem.title = 'Autocompletion settings';
+		menuItem.addEventListener('click', function(e) {
+			panel.style.display = (panel.style.display == 'none' ? '' : 'none');
+			// Only fades in, not out since display:none is instant.
+			panel.style.opacity = (panel.style.opacity == 1 ? 0 : 1);
+			e.preventDefault();
+		}, false);
+		if (navbar.id == 'navbar')
+			navbar.insertBefore(document.createElement('li'), navbar.lastElementChild).appendChild(menuItem);
+		else
+			navbar.insertBefore(menuItem, navbar.lastElementChild);
+		this.menuItem = menuItem;
+
+		// Make panel
+		var o = this;
+		var panel = document.querySelector('body').appendChild(document.createElement('div'));
+		panel.id = 'dbu_panel';
+		panel.innerHTML = '<h3>Autocompletion settings</h3> <div></div>' +
+			'<input type="button" value="Update now"/> <input type="button" value="Clear tags"/> <input type="button" value="Clear history"/> <div><small id="dbu_status"/></div>';
+
+		var buttons = panel.querySelectorAll('input');
+		buttons[0].onclick = function() { o.db_service.checkForUpdate(true) };
+		buttons[1].onclick = function() { o.db_service.clearTags() };
+		buttons[2].onclick = function() { o.db_service.clearHistory() };
+
+		panel.querySelector('div').appendChild(this.makeSettingsForm(this.options));
+		this.updateDisplay();
+
+		this.status_div = panel.querySelector('small');
+		this.loaded = this.status_div;
+
+		// Position and hide.
+		panel.style.top = menuItem.offsetTop + menuItem.offsetHeight + 'px';
+		panel.style.left = Math.max(0, menuItem.offsetLeft + menuItem.offsetWidth - panel.offsetWidth) + 'px';
+		panel.style.display = 'none';
+		panel.style.opacity = 0;
+	},
+
+	makeSettingsForm: function(options)
+	{
+		function setType(input, type) {
+			if (type == 'number') {
+				input.type = 'number';
+				input.min = 0;
+				input.step = 'any';
+			} else {
+				input.type = 'checkbox';
+			}
+		}
+		var form = document.createDocumentFragment();
+		var ul = form.appendChild(document.createElement('ul'));
+
+		var o = this;
+		function change(e) { o.changeSetting(this); }
+
+		for (var i = 0; i < options.length; i++) {
+			var li = ul.appendChild(document.createElement('li'));
+
+			var opt = options[i];
+			var input = li.appendChild(document.createElement('input'));
+			input.id = 'dbu_' + opt.s;
+			//setType(input, typeof(this.config.defaults[opt.s]));
+			setType(input, typeof(this.config.getConfig(opt.s)));
+			input.onchange = change;
+
+			var label = li.appendChild(document.createElement('label'));
+			label.appendChild(document.createTextNode(opt.l));
+			label.htmlFor = input.id;
+
+			if (opt.c)
+				form.appendChild(this.makeSettingsForm(opt.c));
+		}
+		return form;
+	},
+
+	changeSetting: function(input)
+	{
+		if (input.checkValidity && !input.checkValidity())
+			return;
+		var sname = input.id.substring(4);
+		function find(opts) {
+			if (!opts || !opts.length)
+				return null;
+			if (opts[0].s == sname)
+				return opts[0];
+			return find(opts[0].c) || find(opts.slice(1));
+		}
+		var sopts = find(this.options);
+		var value = input.type == 'checkbox' ? input.checked : input.value;
+
+		this.config.setConfig(sname, value);
+		this.updateDisplay();
+		if (sname == 'Enable')
+			AutoCompleter.prototype.disabled = !value;
+	},
+
+	// Enable/disable configuration options according to current settings.
+	updateDisplay: function()
+	{
+		if (!this.config.loaded || !this.menuItem)
+			return;
+		var o = this;
+		function update(opts, disabled) {
+			for (var i = 0; i < opts.length; i++) {
+				var e = document.getElementById('dbu_' + opts[i].s);
+				if (e.type == 'checkbox')
+					e.checked = o.config.getConfig(opts[i].s);
+				else
+					e.value = o.config.getConfig(opts[i].s);
+				e.disabled = disabled;
+				if (opts[i].c)
+					update(opts[i].c, disabled || !e.checked);
+			}
+		}
+		update(this.options, false);
+	},
+
+
+	status: function(message)
+	{
+		if (!this.status_div)
+			return
+		var sd = this.status_div;
+		sd.style.color = 'black';
+		while (sd.firstChild)
+			sd.removeChild(sd.firstChild);
+		sd.appendChild(document.createTextNode(message));
+	},
+
+	error: function(message)
+	{
+		if (window.console && console.error)
+			console.error(message);
+		if (!this.status_div)
+			return
+		this.status(message);
+		this.status_div.style.color = 'red';
+	},
+
+	busy: function(is_busy)
+	{
+		if (is_busy)
+			this.menuItem.style.color='red';
+		else
+			this.menuItem.style.color='';
+	},
+};
+
+var danbooruUpCompleter = {
+	db_service: null,   // Set from onload function
+	config: null, // Set from onload function
+	cur_tag: '',
+	cur_prefix: '',
+	cur_search_type: '',
+	cur_callback: null,
+	timer: null,
+
+	tag_prefix_re: /^$|^[-~]$|^ambiguous:|^(:?general|artist|char(?:acter)?|copy(?:right)?):/,
+
+	getSuggestions: function(tag, prefix, search_type, callback)
+	{
+		this.cur_callback = callback;
+		this.cur_tag = tag;
+		this.cur_prefix = prefix;
+		this.cur_search_type = search_type;
+		var o = this;
+		if (!this.timer)
+			this.timer = window.setTimeout(function() { o.doSearch(); }, 100);
+	},
+
+	abortSuggestion: function()
+	{
+		if (this.timer)
+			window.clearTimeout(this.timer);
+		this.timer = null;
+	},
+
+	// Escape glob wildcards except '*', handle alternate search and add end wildcard
+	writeGlob: function(query)
+	{
+		// Only add wildcards if not present
+		if (query.indexOf('*') == -1) {
+			if (this.config.getConfig('AlternateSearching'))
+				query = '*' + query.split(/(?:)/).join('*') + (query ? '*' : ''); // bob -> *b*o*b*
+			else
+				query = query + '*';
+		}
+		return query.replace(/[[?]/g, '[$&]'); // Escape '[' and '?' by putting them in single-character sets.
+	},
+
+	getContext: function(search_type)
+	{
+		if (search_type == 'post') {
+			var source = document.getElementById('post_source').value;
+			var match = source.match(/(?:.*:\/\/)?(.*?)\/(.*)/);
+			// Domain name except top level, and path name except file name.
+			if (match)
+				return ['__ALL__'].concat(match[1].split('.').slice(0,-1), match[2].split('/').slice(0,-1));
+			else
+				return ['__ALL__', '__POST__'];
+		} else if (search_type == 'update') {
+			var context = ['__ALL__', '__UPDATE__'];
+			// Grab first artist and copyright, if available.
+			var tags = document.getElementById('tag-sidebar');
+			var artist = tags.querySelector('.tag-type-artist > a:last-of-type');
+			var copy = tags.querySelector('.tag-type-copyright > a:last-of-type');
+			if (artist)
+				context.push(artist.textContent.replace(' ', '_'));
+			if (copy)
+				context.push(copy.textContent.replace(' ', '_'));
+			return context;
+		} else {
+			return ['__ALL__', '__SEARCH__'];
+		}
+	},
+
+	// TODO: Moving this logic up would simplify things for the extension case.
+	doSearch: function()
+	{
+		this.timer = null;
+
+		var limit = 100;
+		var query = this.cur_tag;
+		// var t = new Date().getTime();
+
+		var o = this;
+		function callback(result) {
+			// console.log('st ' + (new Date().getTime() - t));
+			o.cur_callback(query, result);
+		}
+
+		var tag = this.cur_tag.toLowerCase();
+		var prefix = this.cur_prefix.toLowerCase();
+
+		var is_tag = this.tag_prefix_re.test(prefix);
+
+		if (this.config.getConfig('KeepHistory')) {
+			var context = this.getContext(this.cur_search_type);
+			var glob = this.writeGlob(query);
+			if (prefix !== '' && prefix.charAt(0) == '-') {
+				context.push('__NEG__');
+				prefix = prefix.slice(1);
+			}
+			if (is_tag)
+				this.db_service.historySearch(glob, context, limit, callback);
+			else
+				this.db_service.specSearch(glob, prefix, context, limit, callback);
+		} else {
+			if (is_tag)
+				this.db_service.tagSearch(this.writeGlob(query), limit, callback);
+			else
+				this.cur_callback(prefix, null);
+		}
+	},
+
+	// Called right before submission to update the tag history.
 	onSubmit: function(search_type, tags)
 	{
 		var context = this.getContext(search_type);
@@ -843,8 +853,48 @@ var danbooruUpCompleter = {
 				spec_ctxs[prefix] = [tag_name, tag_ctx];
 		}
 
-		return this.update_context(search_type, context_n, tag_ctxs, spec_ctxs);
+		this.delayedSubmit(search_type, context_n, tag_ctxs, spec_ctxs);
 	},
+
+	// Store submit history in session storage to next page load.
+	// Reduces the chance of the DB operation being cut off.
+	delayedSubmit: function(search_type, used_context, tag_contexts, specifier_contexts)
+	{
+
+		if ((search_type == 'post' || search_type == 'update') && this.config.getConfig('UpdateOnSubmit'))
+			this.config.setConfig('ForceUpdate', true);
+
+		if (this.config.getConfig('KeepHistory')) {
+			// Put the item in session storage to be inserted on next page load by doHistory.
+			var history, history_str = window.sessionStorage.danbooruUpHistory;
+			if (history_str) {
+				history = JSON.parse(history_str);
+			} else {
+				history = [];
+			}
+			history.push([used_context, tag_contexts, specifier_contexts]);
+			window.sessionStorage.danbooruUpHistory = (Object.toJSON || JSON.stringify)(history);
+		}
+	},
+
+	// Insert any history that has been queued from delayedSubmit.
+	doHistory: function()
+	{
+		if (!window.sessionStorage.danbooruUpHistory)
+			return;
+
+		var history = JSON.parse(window.sessionStorage.danbooruUpHistory);
+		for (var i = 0; i < history.length; i++) {
+			var h = history[i];
+			this.db_service.updateTagHistory(h[0], h[1], h[2]);
+		}
+		delete window.sessionStorage.danbooruUpHistory;
+	},
+
+	enhanceTags: function(tags, callback) {
+		this.db_service.enhanceTags(tags, callback);
+	},
+
 
 	getRelated: function(tag, callback)
 	{
@@ -852,7 +902,7 @@ var danbooruUpCompleter = {
 		var uri = document.location.protocol + '//' + document.location.host + '/tag/related.xml';
 		uri += '?tags=' + encodeURIComponent(tag);
 
-		var request = new XMLHttpRequest();
+		var request = new window.XMLHttpRequest();
 		request.open('GET', uri);
 
 		var o = this;
@@ -886,11 +936,21 @@ var danbooruUpCompleter = {
 
 function danbooruUpInit()
 {
-	danbooruUpDBUpdater.init();
-	danbooruUpCompleter.database = danbooruUpDBUpdater.database;
-	danbooruUpCompleter.update_context = function(st, uc, tc, sc) { return danbooruUpDBUpdater.onSubmit(st, uc, tc, sc); }
-	if (localStorage.danbooruUpEnable != 'true')
+	danbooruUpGui.config = danbooruUpConfig;
+	danbooruUpDBUpdater.config = danbooruUpConfig;
+	danbooruUpCompleter.config = danbooruUpConfig;
+	danbooruUpDBUpdater.gui = danbooruUpGui;
+	danbooruUpGui.db_service = danbooruUpDBUpdater;
+	danbooruUpCompleter.db_service = danbooruUpDBUpdater;
+
+	danbooruUpConfig.init();
+	danbooruUpGui.init();
+
+	if (window.localStorage.danbooruUpEnable != 'true')
 		return;
+	danbooruUpDBUpdater.init();
+	if (danbooruUpDBUpdater.loaded)
+		danbooruUpCompleter.doHistory();
 
 	var script_arr = [];
 	
@@ -954,25 +1014,28 @@ function inhibitForm(id) {
 	var el = document.getElementById(id);
 	if (!el)
 		return;
-	// There's some javascript trickery going on that takes our enter key,
-	// so do some trickery on our own.
-	submit = el.submit;
-	var stopf = function() {
-		var target = null;
-		try {
-			target = stopf.caller.arguments[0].target;
-		} catch (e) { 
-			target = el.getElementsByTagName('textarea')[0];
+	// Capture enter keypresses on the parent element to prevent site scripts
+	// from interferring with the enter key.
+	el.parentNode.addEventListener('keydown', function(ev) {
+		if (ev.target == el &&
+				ev.keyCode == KeyEvent.DOM_VK_RETURN &&
+				el.danbooruUpAutoCompleter) {
+			// Acts on event and stops propagation if appropriate.
+			el.danbooruUpAutoCompleter.onKeyDown(ev);
+			el.danbooruUpAutoCompleter.onKeyPress(ev);
 		}
-		if (target && target.danbooruUpAutoCompleter) {
-			// Inform autocompleter of submission and allow it to cancel action.
-			if (!target.danbooruUpAutoCompleter.onEnter()) {
-				target.danbooruUpAutoCompleter.onSubmit();
-				submit.call(el);
-			}
-		}
-	};
-	el.submit = stopf;
+	}, true);
+
+	// Override the submit function as well, in case the form is submitted with javascript.
+	var form = el;
+	while (form.tagName != 'FORM')
+		form = form.parentNode;
+	var submit = form.submit;
+	form.submit = function() {
+		if (el.danbooruUpAutoCompleter)
+			el.danbooruUpAutoCompleter.onSubmit();
+		submit.call(form);
+	}
 	//alert('tried to inhibit ' + id);
 }
 
@@ -988,7 +1051,7 @@ if (document.location.pathname == '/') {
 	} catch (e) { };
 }
 
-inhibitForm('edit-form');	// Post view and upload
+inhibitForm('post_tags');	// Post view and upload
 danbooruUpACAttacher('tags');	// Front and side
 danbooruUpACAttacher('post_tags');	// Post view and upload
 danbooruUpACAttacher('tag_name', 'search_single');	// Tag edit
@@ -1049,7 +1112,6 @@ var AutoCompleter = function(textfield, completer, createPopup, search_type)
 	this._showRel = function(tag, related) { o.showRelated(tag, related); };
 	this._textfield.addEventListener('keypress', function(event) { o.onKeyPress(event); }, false);
 	this._textfield.addEventListener('keydown', function(event) { o.onKeyDown(event); }, false);
-	this._textfield.addEventListener('keyup', function(event) { o.onKeyUp(event); }, false);
 	this._textfield.addEventListener('input', function(event) { o.onInput(event); }, false);
 	this._textfield.addEventListener('blur', function(event) { o._popup.timedHide(); }, false);
 	this._textfield.addEventListener('focus', function(event) { o._popup.cancelHide(); }, false);
@@ -1064,16 +1126,19 @@ AutoCompleter.prototype = {
 		'danbooru-tagtype-2',
 		'danbooru-tagtype-0 danbooru-tagtype-3',
 		'danbooru-tagtype-0 danbooru-tagtype-4',
+		'danbooru-tagtype-0 danbooru-tagtype-5',
+		'danbooru-tagtype-0 danbooru-tagtype-6',
+		'danbooru-tagtype-0 danbooru-tagtype-7',
 	],
 	ignoreKeypress: false,
 	ignoreEnter: false,
-	ctrlKey: false,
 	reject_prefix: null,
+	disabled: false,
 
 	tagParser: {
 		searchParser: function(tag)
 		{
-			var search_re = /^(:?|user|fav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|-|~/i;
+			var search_re = /^(:?|user|fav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|^-|^~/i;
 			var match = search_re.exec(tag);
 			var prefix = match ? match[0] : '';
 			return [tag.slice(prefix.length), prefix];
@@ -1138,21 +1203,13 @@ AutoCompleter.prototype = {
 	onKeyDown: function(event)
 	{
 		this.lastKeyCode = event.keyCode;
-		if (event.keyCode == KeyEvent.DOM_VK_CONTROL)
-			this.ctrlKey = true;
 	
 		this.onKeyPress(event);
 	},
 
-	onKeyUp: function(event)
-	{
-		if (event.keyCode == KeyEvent.DOM_VK_CONTROL)
-			this.ctrlKey = false;
-	},
-
 	onKeyPress: function(event)
 	{
-		if (this.ignoreKeypress)
+		if (this.ignoreKeypress || this.disabled)
 			return;
 		// Ignore enter events that come in too quick succession.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN && this.ignoreEnter > new Date()) {
@@ -1268,25 +1325,15 @@ AutoCompleter.prototype = {
 		}
 	},
 
-	// Used when the enter press is intercepted elsewhere.
-	// Returns true if the default action should be stopped.
-	onEnter: function()
-	{
-		this.lastKeyCode = KeyEvent.DOM_VK_RETURN;
-		ev = { stop: false, keyCode: KeyEvent.DOM_VK_RETURN, ctrlKey: this.ctrlKey,
-			preventDefault: function() { this.stop = true; }, stopPropagation: function() {}
-		};
-		this.onKeyPress(ev);
-		return ev.stop;
-	},
-
 	// Listens on the text input field for input (= potential autocompletion task)
 	onInput: function(event)
 	{
+		if (this.disabled)
+			return;
 		// Don't start a search that will get canceled and cause an exception when submitting.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN)
 			return;
-		// Chrome seems to fire this event early, so we still get a tag after the first space.
+		// Chrome seems to fire this event early, so ignore the tag that's still found after pressing space.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_SPACE && this._popup.state == 'open') {
 			this._popup.timedHide();
 			return;
@@ -1303,6 +1350,8 @@ AutoCompleter.prototype = {
 	// Give tags and search type to completer so it can update the tag history.
 	onSubmit: function()
 	{
+		if (this.disabled)
+			return;
 		var tags = this._textfield.value.replace(/^\s+|\s+$/g, '').split(/\s+/);
 		this._completer.onSubmit(this._search_type, tags.map(this._tag_parser));
 	},
@@ -1477,7 +1526,7 @@ var danbooruACHTMLPopup = function(textfield) {
 // XULify HTML selects to be more like listboxes.
 function danbooruACExtendSelect()
 {
-	var pt = HTMLSelectElement.prototype;
+	var pt = window.HTMLSelectElement.prototype;
 	pt.getNumberOfVisibleRows = function() {
 		return this.size;
 	};
@@ -1583,7 +1632,7 @@ danbooruACHTMLPopup.prototype = {
 	{
 		try {
 			// Send a escape keypress.
-			evt = document.createEvent("KeyboardEvent");
+			var evt = document.createEvent("KeyboardEvent");
 			evt.initKeyEvent('keypress', false, false, window, false, false, false, false, KeyEvent.DOM_VK_ESCAPE, 0);
 			textfield.dispatchEvent(evt);
 		} catch (e) {

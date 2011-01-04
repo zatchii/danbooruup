@@ -46,6 +46,7 @@ AutoCompleter.prototype = {
 	ignoreKeypress: false,
 	ignoreEnter: false,
 	reject_prefix: null,
+	disabled: false,
 
 	tagParser: {
 		searchParser: function(tag)
@@ -119,7 +120,7 @@ AutoCompleter.prototype = {
 
 	onKeyPress: function(event)
 	{
-		if (this.ignoreKeypress)
+		if (this.ignoreKeypress || this.disabled)
 			return;
 		// Ignore enter events that come in too quick succession.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN && this.ignoreEnter > new Date()) {
@@ -238,6 +239,8 @@ AutoCompleter.prototype = {
 	// Listens on the text input field for input (= potential autocompletion task)
 	onInput: function(event)
 	{
+		if (this.disabled)
+			return;
 		// Don't start a search that will get canceled and cause an exception when submitting.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN)
 			return;
@@ -258,6 +261,8 @@ AutoCompleter.prototype = {
 	// Give tags and search type to completer so it can update the tag history.
 	onSubmit: function()
 	{
+		if (this.disabled)
+			return;
 		var tags = this._textfield.value.replace(/^\s+|\s+$/g, '').split(/\s+/);
 		this._completer.onSubmit(this._search_type, tags.map(this._tag_parser));
 	},

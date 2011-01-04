@@ -1,0 +1,19 @@
+{
+	"name": "DanbooruUp",
+	"version": "0.3.8",
+	"description": "Tag completion for the Danbooru web site.",
+	"background_page": "background.html",
+	"icons": {
+		"16": "icon.ico"
+	},
+	"permissions": [
+		"http://danbooru.donmai.us/*",
+		"unlimitedStorage",
+		"contextMenus",
+		"tabs"
+	],
+	"content_scripts": [{
+		"matches": ["http://danbooru.donmai.us/*"],
+		"js": ["inject.js"]
+	}]
+}
