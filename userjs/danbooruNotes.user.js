@@ -123,12 +123,14 @@
 
 	if (window.opera) {
 		document.addEventListener('DOMContentLoaded', function() {
+				if (!document.getElementById('image')) return;
 				document.getElementById('image').addEventListener('mousemove', onMouseMove, false);
 				document.getElementById('note-container').addEventListener('mousemove', onMouseMove, false);
 			},
 			false
 		);
 	} else {
+		if (!document.getElementById('image')) return;
 		document.getElementById('image').addEventListener('mousemove', onMouseMove, false);
 		document.getElementById('note-container').addEventListener('mousemove', onMouseMove, false);
 	}

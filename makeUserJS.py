@@ -39,6 +39,10 @@ def patchJS(js):
         onkeypat = re.compile(r'(\tonKeyDown[^}]*)}', re.DOTALL + re.MULTILINE)
         js = onkeypat.sub(r'\1\n\t\tthis.onKeyPress(event);\n\t}', js)
 
+        # Remove selection check in getTagBoundsAtCursor due to weirdness in Chrome 10
+        selstartpat = re.compile(r'\t\tif \(this\._textfield.selectionStart.*\[-1, -1\];', re.DOTALL + re.MULTILINE)
+        js = selstartpat.sub('', js)
+
         if not options.extension:
             # Require updates to be enabled manually
             js = js.replace("'EnableUpdates': true", "'EnableUpdates': false")

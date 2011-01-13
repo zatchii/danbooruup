@@ -1,7 +1,7 @@
 // ==UserScript==
 	// @name DanbooruUp user script
 	// @description Tag field autocompleter for Danbooru.
-	// @version 0.3.7
+	// @version 0.3.8
 	// @match http://danbooru.donmai.us/*
 	// @match http://safebooru.donmai.us/*
 	// @match http://behoimi.org/*
@@ -1432,8 +1432,7 @@ AutoCompleter.prototype = {
 
 	getTagBoundsAtCursor: function()
 	{
-		if (this._textfield.selectionStart != this._textfield.selectionEnd)
-			return [-1, -1];
+
 
 		var v = this._textfield.value;
 		var from = this._textfield.selectionStart;
