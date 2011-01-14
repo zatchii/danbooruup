@@ -18,13 +18,19 @@ ENDIF
 // Drop privileges in Chrome
 IF EXTENSION
 if (chrome.extension) {
+	var el = document.createElement('script');
+	el.type = 'text/javascript';
+	el.innerHTML = "(" + arguments.callee + ")();";
+	document.head.appendChild(el);
+	return;
+}
 ENDIF
 IF NOT_EXTENSION
 if (typeof window.GM_xmlhttpRequest == "function") {
-ENDIF
 	location.href = "javascript:(" + encodeURI(arguments.callee) + ")();";
 	return;
 }
+ENDIF
 
 var style_arr = {
 	'0': '',

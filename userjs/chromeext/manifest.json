@@ -1,6 +1,6 @@
 {
 	"name": "DanbooruUp",
-	"version": "0.3.8.1",
+	"version": "0.3.8.2",
 	"description": "Tag completion for the Danbooru web site.",
 	"background_page": "background.html",
 	"icons": {
