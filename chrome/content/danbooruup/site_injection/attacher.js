@@ -69,10 +69,10 @@ danbooruUpACAttacher('post_tags');	// Post view and upload
 danbooruUpACAttacher('tag_name', 'search_single');	// Tag edit
 danbooruUpACAttacher('tag_alias_name', 'search_single');	// Tag alias
 danbooruUpACAttacher('tag_alias_alias', 'search_single');	// Tag alias
-danbooruUpACAttacher('tag_implication_predicate', 'search_single');	// Tag alias
-danbooruUpACAttacher('tag_implication_consequent', 'search_single');	// Tag alias
-danbooruUpACAttacher('user_blacklisted_tags');	// Tag alias
-danbooruUpACAttacher('user_uploaded_tags');	// Tag alias
+danbooruUpACAttacher('tag_implication_predicate', 'search_single');	// Tag implication
+danbooruUpACAttacher('tag_implication_consequent', 'search_single');	// Tag implication
+danbooruUpACAttacher('user_blacklisted_tags');	// User prefs
+danbooruUpACAttacher('user_uploaded_tags');	// User prefs
 
 if (document.location.href.match(/\/tag(\/|\?|$)/)) {	// Tag search
 	danbooruUpACAttacher('name', 'search_single');

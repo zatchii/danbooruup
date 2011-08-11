@@ -22,6 +22,7 @@
 	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/autoCompleterXULPopup.js"/>
 	<script type="application/javascript;version=1.7" src="chrome://danbooruup/content/autoCompleter.js"/>
 
+<notification id="rewrite_notification" label="&danbooru-box-rewrite-notification;" image="chrome://danbooruup/skin/danbooru-attention.gif" hidden="true"/>
 <grid>
 <columns>
 <column>

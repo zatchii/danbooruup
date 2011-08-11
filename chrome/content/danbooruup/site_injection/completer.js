@@ -115,6 +115,16 @@ var danbooruUpCompleter = {
 	openBrowserTab: function(tag)
 	{
 		// This is never called, browsers don't support middle/right click on list boxes.
+	},
+
+	prefCompleteWithTab: function()
+	{
+		return danbooruUpACPrefs.completeWithTab;
+	},
+
+	prefSuggestPrefixes: function()
+	{
+		return danbooruUpACPrefs.suggestPrefixes;
 	}
 };
 

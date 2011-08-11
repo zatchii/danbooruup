@@ -53,6 +53,12 @@
 <!ENTITY danbooruUpOptions.enableAC.site.tooltip	"Adds autocomplete to text fields on danbooru site pages.">
 <!ENTITY danbooruUpOptions.altSearch.label		"Alternate searching (abc -> *a*b*c*)">
 <!ENTITY danbooruUpOptions.altSearch.accesskey		"A">
+<!ENTITY danbooruUpOptions.suggestPrefixes.label	"Suggest prefixes">
+<!ENTITY danbooruUpOptions.suggestPrefixes.accesskey	"F">
+<!ENTITY danbooruUpOptions.suggestPrefixes.tooltip	"Autocomplete prefixes like rating: and favorites:">
+<!ENTITY danbooruUpOptions.completeWithTab.label	"Complete with tab">
+<!ENTITY danbooruUpOptions.completeWithTab.accesskey	"M">
+<!ENTITY danbooruUpOptions.completeWithTab.tooltip	"Does not select a tag by default, but lets you press tab to complete the suggested tag.">
 <!ENTITY danbooruUpOptions.threadedSearch.label		"Search in background thread">
 <!ENTITY danbooruUpOptions.threadedSearch.accesskey	"B">
 <!ENTITY danbooruUpOptions.threadedSearch.tooltip	"Doing queries in a separate thread makes the user interface more responsive, but introduces myriad ways for poor programming to crash the browser. Try disabling this if you experience instabilities.">

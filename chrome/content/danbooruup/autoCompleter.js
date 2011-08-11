@@ -48,10 +48,34 @@ AutoCompleter.prototype = {
 	reject_prefix: null,
 	disabled: false,
 
+	search_prefixes: [
+		'user:',
+		'ordfav:',
+		'rating:',
+		'-rating:',
+		'source:',
+		'width:',
+		'height:',
+		'score:',
+		'mpixels:',
+		'filesize:',
+		'date:',
+		'gentags:',
+		'arttags:',
+		'chartags:',
+		'copytags:',
+		'status:',
+		'approver:',
+		'order:',
+		'parent:',
+		'unlocked:',
+		'pool:',
+	],
+
 	tagParser: {
 		searchParser: function(tag)
 		{
-			var search_re = /^(:?|user|fav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|^-|^~/i;
+			var search_re = /^(:?|user|fav|fastfav|ordfav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|^-|^~/i;
 			var match = search_re.exec(tag);
 			var prefix = match ? match[0] : '';
 			return [tag.slice(prefix.length), prefix];
@@ -89,8 +113,20 @@ AutoCompleter.prototype = {
 					return this.postParser;
 				case 'update':
 					return this.updateParser;
+				default:
+					return this.searchParser;
 			}
 		},
+	},
+
+	// Get a list of prefixes the query is a prefix of.
+	getPrefixes: function(query)
+	{
+		if (!(/^[a-z]+$/).test(query))
+			return [];
+		query_re = new RegExp('^' + query);
+		return this.search_prefixes.filter(function(x) {return query_re.test(x);})
+			.map(function(x) {return [x, 0, 0];});
 	},
 
 	// Listens on the list box for mouse events.
@@ -104,8 +140,14 @@ AutoCompleter.prototype = {
 		if (event.button == 2) {
 			this._completer.openBrowserTab(orgSource.value);
 		} else {
-			this.replaceCurrentTag(orgSource.value);
-			if (!event.ctrlKey)
+			var isPrefix = this.search_prefixes.indexOf(orgSource.value) != -1;
+
+			this.replaceCurrentTag(orgSource.value, isPrefix);
+
+			if (isPrefix)
+				this.doTagSearch();
+
+			if (!event.ctrlKey && !isPrefix)
 				this.hidePopup();
 			else
 				this._popup.openPopup();
@@ -173,11 +215,36 @@ AutoCompleter.prototype = {
 							this._completer.getRelated(cur_tag, this._showRel);
 					}
 					break;
+				case KeyEvent.DOM_VK_TAB:
+					// Complete with first suggested item.
+					// Ignore tab if complete-with-tab is off.
+					if (!this._completer.prefCompleteWithTab()) {
+						moved = false;
+						break;
+					}
+					// Select first item if nothing selected
+					if (lb.selectedIndex == -1 && lb.itemCount > 0) {
+						lb.selectedIndex = 0;
+					}
 
+					// FALLTHROUGH!
 				case KeyEvent.DOM_VK_RETURN:
-					if (lb.selectedIndex != -1)
-						this.replaceCurrentTag(lb.selectedItem.value);
-					if (!event.ctrlKey) {
+					var isPrefix = false;
+
+					if (lb.selectedIndex != -1) {
+						if (this.search_prefixes.indexOf(lb.selectedItem.value) != -1)
+							isPrefix = true;
+
+						this.replaceCurrentTag(lb.selectedItem.value, isPrefix);
+
+						if (isPrefix)
+							this.doTagSearch();
+					}
+					else if (this._completer.prefCompleteWithTab())
+						// If complete-with-tab is on, do default action if nothing is selected.
+						moved = false;
+
+					if (!event.ctrlKey && !isPrefix) {
 						lb.selectedIndex = -1;
 						this.hidePopup();
 					}
@@ -216,9 +283,7 @@ AutoCompleter.prototype = {
 						this._completer.getRelated(cur_tag, this._showRel);
 					break;
 				case KeyEvent.DOM_VK_DOWN:
-					var tag = this.getTagAtCursor();
-					this._completer.getSuggestions(tag[0], tag[1], this._search_type, this._showSugg);
-					this.openPopup();
+					this.doTagSearch();
 					break;
 				case KeyEvent.DOM_VK_SPACE:
 					// Abort a autocomplete that may not have fired yet.
@@ -244,6 +309,9 @@ AutoCompleter.prototype = {
 		// Don't start a search that will get canceled and cause an exception when submitting.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN)
 			return;
+		// Don't start a new search when closing the popup.
+		if (this.lastKeyCode == KeyEvent.DOM_VK_ESCAPE)
+			return;
 		// Chrome seems to fire this event early, so ignore the tag that's still found after pressing space.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_SPACE && this._popup.state == 'open') {
 			this._popup.timedHide();
@@ -256,6 +324,13 @@ AutoCompleter.prototype = {
 		} else if (this._popup.state == 'open') {
 			this._popup.timedHide();
 		}
+	},
+
+	doTagSearch: function(event)
+	{
+		var tag = this.getTagAtCursor();
+		this._completer.getSuggestions(tag[0], tag[1], this._search_type, this._showSugg);
+		this.openPopup();
 	},
 
 	// Give tags and search type to completer so it can update the tag history.
@@ -279,10 +354,16 @@ AutoCompleter.prototype = {
 		} else {
 			this.reject_prefix = null;
 		}
+
+		if (this._search_type == 'search' &&
+				this._completer.prefSuggestPrefixes() &&
+				this.getTagAtCursor()[1] == '') {
+			suggestions = this.getPrefixes(tag).concat(suggestions);
+		}
+
 		var selected = (this._popup.state == 'open' && lb.selectedIndex != -1) ? lb.selectedItem.value : null;
 
 		var newSelectedIndex = this._popup.insertTags(suggestions, '', selected, this.tag_classes, -1);
-		//N
 
 		this.openPopup();
 		if (newSelectedIndex != -1) {
@@ -291,8 +372,9 @@ AutoCompleter.prototype = {
 			lb.ensureIndexIsVisible(lb.selectedIndex);
 			// Works around weirdness /w assigning to selectedIndex
 			lb.selectedItem = lb.getItemAtIndex(lb.selectedIndex);
-		} else if (suggestions.length > 0) {
+		} else if (suggestions.length > 0 && !this._completer.prefCompleteWithTab()) {
 			// If not, but the first tag is a partial match, select it.
+			// But only if not in complete-with-tab mode.
 			let cur_tag = this.getTagAtCursor()[0];
 			if (suggestions[0][0].length >= cur_tag.length && cur_tag == suggestions[0][0].substr(0, cur_tag.length)) {
 				lb.selectedIndex = 0;
@@ -374,14 +456,14 @@ AutoCompleter.prototype = {
 	},
 
 	// Replace the tag the caret is currently positioned over, keeping tag prefixes.
-	replaceCurrentTag: function(replacement)
+	replaceCurrentTag: function(replacement, isPrefix)
 	{
 		var from, to;
 		var bounds = this.getTagBoundsAtCursor();
 		from = bounds[0]; to = bounds[1];
 		if (from === -1)
 			return;
-		if (this._search_type != 'search_single')
+		if (this._search_type != 'search_single' && !isPrefix)
 			replacement += ' ';
 
 		var v = this._textfield.value;

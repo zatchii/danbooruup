@@ -3,7 +3,6 @@
 	// @description Tag field autocompleter for Danbooru.
 	// @version 0.3.8
 	// @include http://danbooru.donmai.us/*
-	// @include http://safebooru.donmai.us/*
 	// @include http://behoimi.org/*
 // ==/UserScript==
 
@@ -53,6 +52,7 @@ var style_arr = {
 
 if (!window.KeyEvent) {
 	window.KeyEvent = {
+		DOM_VK_TAB: 9,
 		DOM_VK_RETURN: 13,
 		DOM_VK_CONTROL: 17,
 		DOM_VK_ESCAPE: 27,
@@ -82,6 +82,8 @@ var danbooruUpConfig = {
 		'UpdateFrequency': 24,
 		'UpdateOnSubmit': true,
 		'AlternateSearching': false,
+		'SuggestPrefixes': false,
+		'CompleteWithTab': false,
 		'LastUpdated': 0,
 		'ForceUpdate': false,
 		'KeepHistory': true,
@@ -548,6 +550,8 @@ var danbooruUpGui = {
 		{s: 'Enable', l: 'Enable tag autocompletion',
 			c: [
 				{s: 'AlternateSearching', l: 'Alternate searching (abc -> *a*b*c*)'},
+				{s: 'SuggestPrefixes', l: 'Suggest prefixes'},
+				{s: 'CompleteWithTab', l: 'Complete with tab'},
 				{s: 'KeepHistory', l:'Use search history'},
 				{s: 'UpdateOnSubmit', l: 'Update after post submission'},
 				{s: 'EnableUpdates', l: 'Periodic updates',
@@ -923,6 +927,16 @@ IF DATABASE
 		this.db_service.enhanceTags(tags, callback);
 	},
 
+	prefCompleteWithTab: function()
+	{
+		return this.config.getConfig('CompleteWithTab');
+	},
+
+	prefSuggestPrefixes: function()
+	{
+		return this.config.getConfig('SuggestPrefixes');
+	},
+
 ENDIF /* DATABASE */
 IF NOT_DATABASE
 	writeRegexp: function(query)
@@ -992,6 +1006,16 @@ IF NOT_DATABASE
 	onSubmit: function(search_type, tags)
 	{
 		// Do nothing.
+		return false;
+	},
+
+	prefCompleteWithTab: function()
+	{
+		return false;
+	},
+
+	prefSuggestPrefixes: function()
+	{
 		return false;
 	},
 ENDIF /*NOT_DATABASE*/

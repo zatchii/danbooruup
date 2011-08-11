@@ -40,6 +40,8 @@ var danbooruUpDOMProxyUpper = {
 	sendConfig: function()
 	{
 		this.sendAnswer('SetConfig', {
+			CompleteWithTab: this.config.getConfig('CompleteWithTab'),
+			SuggestPrefixes: this.config.getConfig('SuggestPrefixes'),
 			AlternateSearching: this.config.getConfig('AlternateSearching'),
 			KeepHistory: this.config.getConfig('KeepHistory'),
 			Enable: this.config.getConfig('Enable')

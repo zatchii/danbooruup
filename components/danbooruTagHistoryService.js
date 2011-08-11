@@ -310,12 +310,12 @@ var tagHistoryService = {
 	},
 
 	// Search for tags matching the query, placing tags previously used in the given context first.
-	searchTags: function(query, prefix, context, limit, alternate, db, callback)
+	searchTags: function(aquery, prefix, context, limit, alternate, db, callback)
 	{
 		var res = [];
 		var seen = {};
 
-		query = query.toLowerCase();
+		var query = aquery.toLowerCase();
 		if (alternate)
 			query = this.alternateQuery(query);
 		else if (query.indexOf('*') == -1)
@@ -367,7 +367,7 @@ var tagHistoryService = {
 		dump(time3 - time2);
 		*/
 
-		callback('', res);
+		callback(aquery, res);
 	},
 
 	searchSpecs: function(query, prefix, context, limit, db, callback)
@@ -417,8 +417,12 @@ var tagHistoryService = {
 		var db = this.db;
 		request.addEventListener('load', function(event) {
 				if ((isLocal || this.status == 200) && this.responseXML.documentElement.tagName == 'tags') {
-					var xml = this.responseXML;
-					tagHistoryService.updateTagListFromXML(xml, db, notification);
+					try {
+						var xml = this.responseXML;
+						tagHistoryService.updateTagListFromXML(xml, db, notification);
+					} finally {
+						tagHistoryService._dbBusy = false;
+					}
 
 				} else {
 					observerService.notifyObservers(this, 'danbooru-update-failed', null);
@@ -437,15 +441,15 @@ var tagHistoryService = {
 
 	updateTagListFromXML: function(xmlDom, db, progressSink)
 	{
-		var thread = threadManager.currentThread;
-		var rootEl = xmlDom.documentElement;
-		var nnodes = rootEl.childNodes.length;
 		var stmt = db.createStatement(kTagInsert);
-		db.beginTransaction();
-		var tagCount = 0;
-		var i = 0;
-		// var time = (new Date()).getTime();
 		try {
+			var thread = threadManager.currentThread;
+			var rootEl = xmlDom.documentElement;
+			var nnodes = rootEl.childNodes.length;
+			db.beginTransaction();
+			var tagCount = 0;
+			var i = 0;
+			// var time = (new Date()).getTime();
 			for (var node = rootEl.firstChild; node; node = node.nextSibling) {
 				i++;
 				if (node.nodeType != 1)
@@ -473,7 +477,6 @@ var tagHistoryService = {
 			throw e;
 		} finally {
 			stmt.finalize();
-			this._dbBusy = false;
 			// __log('Insert time ');
 			// __log((new Date()).getTime() - time);
 			observerService.notifyObservers(new supsInt32(tagCount), 'danbooru-update-done', null);

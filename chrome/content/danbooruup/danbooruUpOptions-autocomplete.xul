@@ -20,6 +20,8 @@
 		var pref = document.getElementById("pref.extensions.danbooruUp.autocomplete.enabled");
 		var elements = [	"enableSiteAC",
 		    "altSearch",
+		    "suggestPrefixes",
+		    "completeWithTab",
 		    "threadedSearch",
 		    "resultLimit",
 		    "updateURL",
@@ -90,6 +92,10 @@
 			    name="extensions.danbooruUp.autocomplete.site.enabled"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.altsearch"
 			    name="extensions.danbooruUp.autocomplete.altsearch"			type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.suggestprefixes"
+			    name="extensions.danbooruUp.autocomplete.suggestprefixes"		type="bool" />
+		<preference id="pref.extensions.danbooruUp.autocomplete.completewithtab"
+			    name="extensions.danbooruUp.autocomplete.completewithtab"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.threaded"
 			    name="extensions.danbooruUp.autocomplete.threaded"			type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.limit"
@@ -130,6 +136,16 @@
 			  preference="pref.extensions.danbooruUp.autocomplete.altsearch"
 			  label="&danbooruUpOptions.altSearch.label;"
 			  accesskey="&danbooruUpOptions.altSearch.accesskey;"/>
+		<checkbox id="suggestPrefixes"
+			  preference="pref.extensions.danbooruUp.autocomplete.suggestprefixes"
+			  label="&danbooruUpOptions.suggestPrefixes.label;"
+			  accesskey="&danbooruUpOptions.suggestPrefixes.accesskey;"
+			  tooltiptext="&danbooruUpOptions.suggestPrefixes.tooltip;"/>
+		<checkbox id="completeWithTab"
+			  preference="pref.extensions.danbooruUp.autocomplete.completewithtab"
+			  label="&danbooruUpOptions.completeWithTab.label;"
+			  accesskey="&danbooruUpOptions.completeWithTab.accesskey;"
+			  tooltiptext="&danbooruUpOptions.completeWithTab.tooltip;"/>
 		<checkbox id="threadedSearch" 
 			  preference="pref.extensions.danbooruUp.autocomplete.threaded"
 			  label="&danbooruUpOptions.threadedSearch.label;"

@@ -385,18 +385,8 @@ var danbooruUpHelperObject = {
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
 				// 
-				if (true || winUri.filePath.match(/\/post\/(list|view|show|add|upload)(\/|\.html(\?|$)|\?|$)/) ||
-					winUri.filePath.match(/\/post(\/index(\.html)?|\/|$)/) ||
-					winUri.filePath.match(/\/user(\/edit(\.html)?|\/|$)/) ||
-					winUri.filePath.match(/\/tag(\/mass_edit|\/rename|\/edit|_alias|_implication)(\/|$)/)) {
-					this.inject(href, unsafeWin);
-					return;
-				}
-				if ((new XPCNativeWrapper(unsafeWin)).document.getElementById("static-index"))
-				{
-					this.inject(href, unsafeWin);
-					return;
-				}
+				this.inject(href, unsafeWin);
+				return;
 			} catch(x) {__log(x);}
 		}
 		return;
@@ -421,17 +411,21 @@ var danbooruUpHelperObject = {
 		sandbox.__proto__ = safeWin;
 		sandbox.GM_log = danbooruUpHitch(this, "log");
 
+		var acPrefs = {completeWithTab: this._branch.getBoolPref('autocomplete.completewithtab'),
+			suggestPrefixes: this._branch.getBoolPref('autocomplete.suggestprefixes')
+		};
+
 		const TAGTYPE_COUNT = 8;
-		var prefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
+		var stylePrefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
 		for (let i=0, rule; i<TAGTYPE_COUNT; i++) {
 			// rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
 			// rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
-			rule = prefs.getCharPref(i);
+			rule = stylePrefs.getCharPref(i);
 			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ btoa(rule) +"');", sandbox);
-			//rule = prefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
+			//rule = stylePrefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
 			//rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
-			rule = prefs.getCharPref(i + '.selected');
+			rule = stylePrefs.getCharPref(i + '.selected');
 			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ btoa(rule) +"');", sandbox);
 		}
 
@@ -472,6 +466,7 @@ var danbooruUpHelperObject = {
 				sandbox.script_arr.push(this.script_src[i]);
 				// Components.utils.evalInSandbox(this.script_src[i], sandbox);
 			}
+			sandbox.script_arr.push("window.danbooruUpACPrefs = " + acPrefs.toSource() + ';');
 
 			// load in the inserter script
 			Components.utils.evalInSandbox(this.script_ins, sandbox);

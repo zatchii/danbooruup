@@ -6,6 +6,17 @@ var danbooruUpMsg	= Components.classes['@mozilla.org/intl/stringbundle;1']
 				.getService(Components.interfaces.nsIStringBundleService)
 				.createBundle('chrome://danbooruup/locale/danbooruUp.properties');
 
+// Rewrite Pixiv thumbnail URLs.
+function rewrite_url(url)
+{
+	var match = /^(.*?\.pixiv\.net\/img\/.+?\/.+?)_[ms](.+)$/.exec(url);
+	if (match)
+		url = match[1] + match[2];
+
+	return url;
+}
+
+
 function init()
 {
 	var ml = document.getElementById('danbooru');
@@ -17,6 +28,14 @@ function init()
 
 	var source = '';
 	if ('arguments' in window) {
+		// Check and fix Pixiv thumbnail URLs
+		var imgurl = window.arguments[0].imageURI.spec;
+		var newurl = rewrite_url(imgurl);
+		if (imgurl != newurl) {
+			window.arguments[0].imageURI.spec = newurl;
+			document.getElementById('rewrite_notification').hidden = false;
+		}
+
 		window.locations = [window.arguments[0].imageLocation.spec];
 
 		if(!window.arguments[0].imageLocation.equals(window.arguments[0].imageURI))
@@ -291,5 +310,15 @@ var completer = {
 		uri.query = "tags=" + encodeURIComponent(tag);
 
 		br.getBrowser().selectedTab = br.getBrowser().addTab(uri.spec);
+	},
+
+	prefCompleteWithTab: function()
+	{
+		return prefService.getBoolPref('extensions.danbooruUp.autocomplete.completewithtab');
+	},
+
+	prefSuggestPrefixes: function()
+	{
+		return prefService.getBoolPref('extensions.danbooruUp.autocomplete.suggestprefixes');
 	},
 };
