@@ -10,11 +10,6 @@
 <!ENTITY danbooruUpOptions.checkMD5BeforeUpload.accesskey	"k">
 <!ENTITY danbooruUpOptions.updateTagsOnDuplicate.label		"Update tags on duplicate">
 <!ENTITY danbooruUpOptions.updateTagsOnDuplicate.accesskey	"U">
-<!ENTITY danbooruUpOptions.hashing.label		"Image Hashing (in Properties window)">
-<!ENTITY danbooruUpOptions.hashingMD5.label		"MD5">
-<!ENTITY danbooruUpOptions.hashingMD5.accesskey		"M">
-<!ENTITY danbooruUpOptions.hashingSHA1.label		"SHA-1">
-<!ENTITY danbooruUpOptions.hashingSHA1.accesskey	"H">
 <!ENTITY danbooruUpOptions.notifications.label		"Notifications">
 <!ENTITY danbooruUpOptions.suppressComponentAlert.label	"Suppress missing component alert dialog">
 

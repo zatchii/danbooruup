@@ -35,15 +35,6 @@
 			  preference="pref.extensions.danbooruUp.updateTagsOnDuplicate"
 			  class="indent"/>
 	<groupbox>
-		<caption label="&danbooruUpOptions.hashing.label;"/>
-		<checkbox id="checkMD5"
-			  preference="pref.extensions.danbooruUp.hashing.md5"
-			  label="&danbooruUpOptions.hashingMD5.label;"/>
-		<checkbox id="checkSHA1"
-			  preference="pref.extensions.danbooruUp.hashing.sha1"
-			  label="&danbooruUpOptions.hashingSHA1.label;"/>
-	</groupbox>
-	<groupbox>
 		<caption label="&danbooruUpOptions.notifications.label;"/>
 		<checkbox id="checkSuppressComponentAlert"
 			  preference="pref.extensions.danbooruUp.suppressComponentAlert"

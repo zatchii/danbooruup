@@ -22,8 +22,6 @@ pref("extensions.danbooruUp.autocomplete.update.ontimer", false);
 pref("extensions.danbooruUp.autocomplete.update.interval", 120);
 pref("extensions.danbooruUp.autocomplete.update.lastupdate", 0);
 pref("extensions.danbooruUp.tooltipcrop", "default");
-pref("extensions.danbooruUp.hashing.md5", true);
-pref("extensions.danbooruUp.hashing.sha1", true);
 pref("extensions.danbooruUp.tagtype.0", "");
 pref("extensions.danbooruUp.tagtype.1", "color: #a00;");
 pref("extensions.danbooruUp.tagtype.2", "background: #ddd;");
