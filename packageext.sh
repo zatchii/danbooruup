@@ -6,14 +6,14 @@ set -e
 
 #echo 'Packaging Chrome...'
 #rm -f danbooruup.crx
-#zip -Xj danbooruup.crx userjs/chromeext/{background.html,background.js,inject.js,manifest.json,icon.ico}
+#zip -Xj danbooruup.crx userjs/chromeext/{background.html,background.js,inject.js,manifest.json,icon*.png}
 rm -rf userjs/chromebuild
 mkdir userjs/chromebuild
-cp userjs/chromeext/{background.html,background.js,inject.js,manifest.json,icon.ico} userjs/chromebuild/
+cp userjs/chromeext/{background.html,background.js,inject.js,manifest.json,icon*.png} userjs/chromebuild/
 
 echo 'Packaging Opera...'
 rm -f danbooruup.oex
-(cd userjs/operaext; zip -X ../../danbooruup.oex config.xml index.html icon.png includes/danbooruUpUserJS.js)
+(cd userjs/operaext; zip -X ../../danbooruup.oex config.xml index.html icon*.png includes/danbooruUpUserJS.js)
 
 echo
 echo Versions

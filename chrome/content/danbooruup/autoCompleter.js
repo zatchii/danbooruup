@@ -52,7 +52,6 @@ AutoCompleter.prototype = {
 		'user:',
 		'ordfav:',
 		'rating:',
-		'-rating:',
 		'source:',
 		'width:',
 		'height:',
@@ -355,10 +354,11 @@ AutoCompleter.prototype = {
 			this.reject_prefix = null;
 		}
 
-		if (this._search_type == 'search' &&
-				this._completer.prefSuggestPrefixes() &&
-				this.getTagAtCursor()[1] == '') {
-			suggestions = this.getPrefixes(tag).concat(suggestions);
+		if (this._search_type == 'search' && this._completer.prefSuggestPrefixes()) {
+			var prefix = this.getTagAtCursor()[1];
+			if (['', '-'].indexOf(prefix) !== -1) {
+				suggestions = this.getPrefixes(tag).concat(suggestions);
+			}
 		}
 
 		var selected = (this._popup.state == 'open' && lb.selectedIndex != -1) ? lb.selectedItem.value : null;

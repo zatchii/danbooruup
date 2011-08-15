@@ -1,7 +1,7 @@
 // ==UserScript==
 	// @name DanbooruUp user script
 	// @description Tag field autocompleter for Danbooru.
-	// @version 0.3.8
+	// @version 0.4.0
 	// @include http://danbooru.donmai.us/*
 	// @include http://behoimi.org/*
 // ==/UserScript==

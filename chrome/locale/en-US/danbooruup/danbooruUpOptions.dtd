@@ -50,7 +50,7 @@
 <!ENTITY danbooruUpOptions.altSearch.accesskey		"A">
 <!ENTITY danbooruUpOptions.suggestPrefixes.label	"Suggest prefixes">
 <!ENTITY danbooruUpOptions.suggestPrefixes.accesskey	"F">
-<!ENTITY danbooruUpOptions.suggestPrefixes.tooltip	"Autocomplete prefixes like rating: and favorites:">
+<!ENTITY danbooruUpOptions.suggestPrefixes.tooltip	"Autocomplete prefixes like rating: and user:">
 <!ENTITY danbooruUpOptions.completeWithTab.label	"Complete with tab">
 <!ENTITY danbooruUpOptions.completeWithTab.accesskey	"M">
 <!ENTITY danbooruUpOptions.completeWithTab.tooltip	"Does not select a tag by default, but lets you press tab to complete the suggested tag.">

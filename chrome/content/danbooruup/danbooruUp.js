@@ -4,7 +4,7 @@ var danbooruImgNode	= null;
 // namespace pollution ahoy
 var StrBundleSvc	= Components.classes['@mozilla.org/intl/stringbundle;1']
 			.getService(Components.interfaces.nsIStringBundleService);
-var prefService		= Components.classes["@mozilla.org/preferences-service;1"]
+var dbuPrefService		= Components.classes["@mozilla.org/preferences-service;1"]
 			.getService(Components.interfaces.nsIPrefBranch);
 var ioService		= Components.classes["@mozilla.org/network/io-service;1"]
 			.getService(Components.interfaces.nsIIOService);
@@ -66,7 +66,7 @@ danbooruUpObject.uploadImage = function() {
 
 	// update synchronously
 	try {
-		if(prefService.getBoolPref("extensions.danbooruUp.autocomplete.update.beforedialog"))
+		if(dbuPrefService.getBoolPref("extensions.danbooruUp.autocomplete.update.beforedialog"))
 			danbooruHelperService.update(false, false, null);
 	} catch (e) {
 	}
@@ -103,10 +103,10 @@ danbooruUpObject.init = function(e) {
 	menu.addEventListener("popupshowing",danbooruImageContext,false);
 	menu.addEventListener("onpopupshowing",danbooruImageContext,false);
 
-	if(prefService.getCharPref("extensions.danbooruUp.tooltipcrop") != "default")
+	if(dbuPrefService.getCharPref("extensions.danbooruUp.tooltipcrop") != "default")
 	{
 		document.getElementById("aHTMLTooltip").setAttribute("crop",
-			prefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
+			dbuPrefService.getCharPref("extensions.danbooruUp.tooltipcrop"));
 	}
 
 	document.getElementById("appcontent").addEventListener("DOMContentLoaded",

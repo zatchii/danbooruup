@@ -13,15 +13,16 @@
   <RDF:Description RDF:about="urn:mozilla:install-manifest"
                    em:id="{7209145A-6A2A-42C1-99EB-4DE7293990E1}"
                    em:name="Danbooru Uploader"
-                   em:version="0.3.8"
+                   em:version="0.4.0"
                    em:type="2"
                    em:description="Uploads images to danbooru from the context menu."
-                   em:creator="Buffered"
-                   em:homepageURL="http://unbuffered.info/danbooruup/"
+                   em:creator="Zatchii, Buffered"
+                   em:homepageURL="http://pianosite.net/danbooruup/"
                    em:iconURL="chrome://danbooruup/skin/icon-large.png"
+                   em:icon64URL="chrome://danbooruup/skin/icon_64.png"
                    em:optionsURL="chrome://danbooruup/content/danbooruUpOptions.xul"
-		   em:updateURL="http://unbuffered.info/danbooruup/danbooruup.rdf"
-                   em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDTQWUtIsj7hzUuMQzPq8/zW8RRsYn42vUzdSkTlzOx7ezUN6uGv2my9gPksFCYqlLmFoiugp9jey/X9bKb2SaRYspT7ZIk4m/cxEOcguJ/is8wREYmlpFHI8uSYDeEvGebyVs7iuy1sUUXXdYqq+wVa0GwXNmXdwIETuDgUZ6ZjwIDAQAB">
+                   em:updateURL="http://pianosite.net/danbooruup/update_f.rdf"
+                   em:updateKey="MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC+ntGdmBT49kMXuvvwokUgt0XwlvHJkLTZT9PNZji3jEmAibte0h3sR6x2+Adrq2IlOraErD72Zyx57i4UnaiIQOY+Qi7Hgtcx9Z2l+OBJWIDqQIomT3QlCj/JHGY7mrYsC66uEfiBGn+70MhXPrZgmpogxxaYDEwKz9rnWh4UGQIDAQAB">
     <em:file RDF:resource="urn:mozilla:extension:file:danbooruup.jar"/>
     <em:targetApplication RDF:resource="rdf:#$p7Be1H"/>
   </RDF:Description>
