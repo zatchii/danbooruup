@@ -132,7 +132,6 @@ function danbooruUploader(aRealSource, aSource, aTags, aRating, aDest, aTab, aLo
 	this.mLocation = aLocation;
 	this.mNoForward = aNoForward;
 	this.mUpdateTags = aUpdateTags;
-	//this.mChannel = aChannel;
 
 	this.mStorage = Components.classes["@mozilla.org/storagestream;1"]
 			.createInstance(Components.interfaces.nsIStorageStream);
@@ -172,26 +171,31 @@ danbooruUploader.prototype = {
 
 	upload: function ()
 	{
-		//var fieldFile	="post[file]";
-		//var fieldSource	="post[source_url]";
-		//var fieldTags	="post[tags]";
 		var upURI = ioService.newURI(this.mDest, 'UTF-8', null);
-		var fieldPrefix = "";
-		var fieldSuffix = "";
 
-		if (upURI.path.match(/\/post\/create\.xml$/))
-		{
-			fieldPrefix = "post[";
-			fieldSuffix = "]";
+		// Danbooru 2 uses "/uploads.xml" URI, while older versions (>= 1.3?) use "post/create.xml"
+		var isDanbooru2 = upURI.path.match(/\/uploads\.xml$/);
+
+		var fieldFile;
+		var fieldSource;
+		var fieldTags;
+		var fieldRating;
+		var fieldMD5;
+
+		if (isDanbooru2) {
+			fieldFile		= "upload[file]";
+			fieldSource		= "upload[source]";
+			fieldTags		= "upload[tag_string]";
+			fieldRating		= "upload[rating]";
+			fieldMD5		= "upload[md5_confirmation]";
+			this.mRating = this.mRating[0].toLowerCase();
+		} else {
+			fieldFile		= "post[file]";
+			fieldSource		= "post[source]";
+			fieldTags		= "post[tags]";
+			fieldRating		= "post[rating]";
+			fieldMD5		= "md5";
 		}
-
-		var fieldLogin		= "login";
-		var fieldPassHash	= "password_hash";
-		var fieldFile		= fieldPrefix + "file" + fieldSuffix;
-		var fieldSource		= fieldPrefix + "source" + fieldSuffix;
-		var fieldTags		= fieldPrefix + "tags" + fieldSuffix;
-		var fieldRating		= fieldPrefix + "rating" + fieldSuffix;
-		var fieldMD5		= "md5";
 
 		var postDS	= Components.classes["@mozilla.org/io/multiplex-input-stream;1"]
 				.createInstance(Components.interfaces.nsIMultiplexInputStream)
@@ -206,17 +210,17 @@ danbooruUploader.prototype = {
 		var fn = "danbooruup" + new Date().getTime() + Math.floor(Math.random()*0xFFFFFFFF);
 		var conttype = "";
 		try {
+			conttype = this.mChannel.contentType;
 			var mimeService = Components.classes["@mozilla.org/mime;1"].getService(Components.interfaces.nsIMIMEService);
 			var ext = mimeService.getPrimaryExtension(this.mChannel.contentType, null);
 			fn += "." + ext;
-			conttype = this.mChannel.contentType;
-		}catch(e){}
+		} catch (e) { }
 
 		if(!conttype)
 		{
 			conttype = "application/octet-stream";
 		}
-
+		
 		// MD5
 		var hasher = Components.classes["@mozilla.org/security/hash;1"].createInstance(Components.interfaces.nsICryptoHash);
 		var hashInStr = Components.classes["@mozilla.org/network/buffered-input-stream;1"]
@@ -227,6 +231,7 @@ danbooruUploader.prototype = {
 		var outMD5 = hasher.finish(false);
 		var outMD5Hex = [ ('0'+outMD5.charCodeAt(c).toString(16)).slice(-2) for(c in outMD5) ].join('');
 
+		// Duplicate check. This won't be run on Danbooru 2 due to the URL check.
 		try {
 		var prefBranch = Components.classes["@mozilla.org/preferences-service;1"].getService(Components.interfaces.nsIPrefBranch);
 		if (prefBranch.getBoolPref("extensions.danbooruUp.checkMD5BeforeUpload") && upURI.path.match(/\/post\/create\.xml$/))
@@ -318,25 +323,6 @@ danbooruUploader.prototype = {
 		}
 		} catch (e) { }
 
-		// cookie info
-		/*
-		try {
-			var cookieJar	= Components.classes["@mozilla.org/cookieService;1"]
-					.getService(Components.interfaces.nsICookieService);
-			var cookieStr	= cookieJar.getCookieString(upURI, null);
-			var loginM	= cookieStr.match(/(?:;\s*)?login=(\w+)(?:;|$)/);
-			var passM	= cookieStr.match(/(?:;\s*)?pass_hash=([0-9A-Fa-f]+)(?:;|$)/);
-
-			if(loginM && passM) {
-				postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldLogin
-					+ "\"\r\n\r\n" + loginM[1] + "\r\n";
-				postChunk += "--" + boundary + "\r\nContent-Disposition: form-data; name=\"" + fieldPassHash
-					+ "\"\r\n\r\n" + passM[1] + "\r\n";
-			}
-		} catch(e) {
-			// can anything even blow up?
-		}
-		*/
 		// Source field
 		postChunk += "--" + boundary + "\r\nContent-Transfer-Encoding: 8bit\r\nContent-Disposition: form-data; name=\"" + fieldSource
 			+ "\"\r\n\r\n" + (this.mSource ? encoder.Convert(this.mSource) : '') + "\r\n";
@@ -481,27 +467,13 @@ danbooruUploader.prototype = {
 
 		this.mChannel = channel;
 
-		/*
-		var notificationBox = this.mTab.linkedBrowser.parentNode;
-		var notification = notificationBox.getNotificationWithValue("danbooru-up");
-		if (notification) {
-			notificationBox.removeNotification(notification);
-		}
-		*/
 		var buttons = [{
 				 label: commondlgMsg.GetStringFromName('cancelButtonText'),
 				 accessKey: commondlgMsg.GetStringFromName('cancelButtonTextAccesskey'),
 				 popup: null,
 				 callback: danbooruUpHitch(this, "cancel")
 		}];
-		/*
-		//const priority = notificationBox.PRIORITY_WARNING_MEDIUM;
-		var priority = notificationBox.PRIORITY_INFO_MEDIUM;
-		notificationBox.appendNotification(danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource.spec,
-				"danbooru-up",
-				"chrome://global/skin/throbber/Throbber-small.gif",
-				priority, buttons);
-		*/
+
 		addNotification(this.mTab, danbooruUpMsg.GetStringFromName('danbooruUp.msg.reading')+ " "+this.mRealSource.spec,
 				"chrome://danbooruup/skin/Throbber-small.gif",
 				this.PRIORITY_INFO_MEDIUM, buttons);
@@ -695,8 +667,6 @@ danbooruPoster.prototype = {
 	},
 	onStartRequest: function (channel, ctxt)
 	{
-		//channel.QueryInterface(Components.interfaces.nsIHttpChannel);
-		//alert(channel.getResponseHeader("X-Danbooru-Errors")+"\n"+channel.getResponseHeader("X-Danbooru-View-Url"));
 	},
 	onStopRequest: function (channel, ctxt, status)
 	{
@@ -724,8 +694,7 @@ danbooruPoster.prototype = {
 			var contentType="";
 			try { contentType = channel.getResponseHeader("Content-Type"); } catch(e) {}
 
-			// danbooru 1.3 post/upload doesn't use HTTP status codes
-			if(contentType.match(/^application\/xml(;|$)/)) {
+			if (contentType.match(/^application\/xml(;|$)/)) {
 				var sis = this.mStorage.newInputStream(0);
 				var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
 					.createInstance(Components.interfaces.nsIBinaryInputStream);
@@ -735,31 +704,56 @@ danbooruPoster.prototype = {
 				var parser = Components.classes["@mozilla.org/xmlextras/domparser;1"].createInstance(Components.interfaces.nsIDOMParser);
 				var doc = parser.parseFromString(str, "application/xml");
 
-				// <response> tag with children
-				if (doc.evaluate("/response/success", doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue) {
-					viewurl = doc.evaluate("/response/location/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
-					errs = doc.evaluate("/response/reason/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue;
-					success = doc.evaluate("/response/success/text()", doc, null, XPathResult.STRING_TYPE, null).stringValue == "true";
-				} else {
-					// <response> tag with attributes
-					viewurl = doc.evaluate("/response/@location", doc, null, XPathResult.STRING_TYPE, null).stringValue;
-					errs = doc.evaluate("/response/@reason", doc, null, XPathResult.STRING_TYPE, null).stringValue;
-					success = doc.evaluate("/response/@success", doc, null, XPathResult.STRING_TYPE, null).stringValue == "true";
+				function getNode(query) {
+					return doc.evaluate(query, doc, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+				}
+				function getString(query) {
+					return doc.evaluate(query, doc, null, XPathResult.STRING_TYPE, null).stringValue;
 				}
 
-				if(success) {
+				// <response> tag with children
+				if (getNode("/response/success")) {
+					viewurl = getString("/response/location/text()");
+					errs = getString("/response/reason/text()");
+					success = getString("/response/success/text()") == "true";
+
+				// <response> tag with attributes
+				} else if (getString("/response/@success")) {
+					viewurl = getString("/response/@location");
+					errs = getString("/response/@reason");
+					success = getString("/response/@success") == "true";
+
+				// <upload> response (Danbooru 2)
+				} else if (getNode("/upload"))  {
+					var uploadId = getString("/upload/id/text()");
+					viewurl = this.mUpURIStr.replace(/uploads\.xml$/, "uploads/" + uploadId);
+					success = true;
+
+				// <errors> response (Danbooru 2)
+				} else if (getNode("/errors")){
+					// If there are multiple errors, this only gets the first one
+					errs = getString("/errors/error/text()")
+					success = false;
+
+				// Unknown response format
+				} else {
+					success = false;
+					errs = getString("/");
+				}
+
+				if (success) {
 					addNotification(this.mTab,
 							danbooruUpMsg.GetStringFromName("danbooruUp.msg.uploaded"),
 							"chrome://danbooruup/skin/icon.ico",
 							this.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
 				} else {
-					if(errs == "duplicate")	{
+					if (errs == "duplicate")	{
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.duplicate");
-					} else if(errs == "md5 mismatch") {
+					} else if (errs == "md5 mismatch") {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.corruptupload");
-					} else if(errs == "access denied") {
+					} else if (errs == "access denied") {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.accessdenied");
-					} else if(errs == "daily limit exceeded") {
+					} else if (errs == "daily limit exceeded") {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.limitexceeded");
 					} else {
 						str = danbooruUpMsg.GetStringFromName("danbooruUp.err.unhandled") + " " + errs;
@@ -768,44 +762,9 @@ danbooruPoster.prototype = {
 							this.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:viewurl});
 				}
 				return;
-			}
 
-			// api/add_post route
-			if(channel.responseStatus == 200 || channel.responseStatus == 201)
-			{
-				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
-				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
-
-				if (errs) {
-					addNotification(this.mTab,
-							danbooruUpMsg.GetStringFromName('danbooruUp.err.unexpected') + ' ' + errs,
-							"chrome://danbooruup/skin/danbooru-attention.gif",
-							this.PRIORITY_INFO_MEDIUM, null);
-				} else {
-					addNotification(this.mTab,
-							danbooruUpMsg.GetStringFromName('danbooruUp.msg.uploaded'),
-							"chrome://danbooruup/skin/icon.ico",
-							this.PRIORITY_INFO_MEDIUM, null, {type:'link', link:viewurl});
-
-					if (this.mUpdateTags)
-						os.notifyObservers(null, "danbooru-update", "");
-				}
-			} else if (channel.responseStatus == 409) {
-				try { errs = channel.getResponseHeader("X-Danbooru-Errors"); } catch(e) {}
-				try { viewurl = channel.getResponseHeader("X-Danbooru-Location"); } catch(e) {}
-
-				if (errs.search("(^|;)duplicate(;|$)") != -1) {
-					str = danbooruUpMsg.GetStringFromName('danbooruUp.err.duplicate');
-				} else if (errs.search("(^|;)mismatched md5(;|$)") != -1) {
-					str = danbooruUpMsg.GetStringFromName('danbooruUp.err.corruptupload');
-				} else {
-					str = danbooruUpMsg.GetStringFromName('danbooruUp.err.unhandled') + ' ' + errs;
-				}
-
-				addNotification(this.mTab, str, "chrome://danbooruup/skin/danbooru-attention.gif",
-						this.PRIORITY_WARNING_MEDIUM, null, {type:'link', link:viewurl});
 			} else {
-				var str = "";
+				str = "";
 				try {
 					var sis = this.mStorage.newInputStream(0);
 					var bis = Components.classes["@mozilla.org/binaryinputstream;1"]
