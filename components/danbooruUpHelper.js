@@ -115,10 +115,6 @@ var danbooruUpHelperObject = {
 	},
 	observe: function(aSubject, aTopic, aData)
 	{
-		//var os	= Components.classes["@mozilla.org/observer-service;1"]
-		//	.getService(Components.interfaces.nsIObserverService);
-		//os.removeObserver(this, "browser-window-before-show");
-		//this.log("observing"+"\n"+aSubject + "\n" + aTopic + "\n" + aData);
 		switch (aTopic) {
 		case "app-startup":
 		case "profile-after-change":
@@ -230,30 +226,6 @@ var danbooruUpHelperObject = {
 		}
 		return Components.results.NS_OK;
 	},
-	cleanup: function(aInteractive,aListener)
-	{
-		var locationURL	= ioService.newURI(this._branch.getComplexValue("updateuri", Ci.nsISupportsString).data, '', null)
-				.QueryInterface(Ci.nsIURL);
-		locationURL.query = "limit=0";
-		// dump("using " + locationURL.spec + "\n");
-		this._updating = true;
-		this._interactive = aInteractive;
-		try {
-			this.tagService.updateTagListFromURI(locationURL.spec, aListener);
-		} catch (e) {
-			if (e == Components.results.NS_ERROR_NOT_AVAILABLE)
-			{
-				if(aInteractive)
-					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.updatebusy'));
-			} else {
-				this._updating = false;
-				if(aInteractive)
-					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
-			}
-			throw e;
-		}
-		this._updating = false;
-	},
 
 	//
 	//
@@ -287,48 +259,6 @@ var danbooruUpHelperObject = {
 			obService.addObserver(uploader, "danbooru-down", false);
 			listener.init(uploader.mOutStr, uploader);
 			imgChannel.asyncOpen(listener, imgChannel);
-		}
-	},
-
-	downloadRelatedTagDB: function(aInteractive,aListener)
-	{
-		this.tagService.detachRelatedTagDatabase();
-		var dirSvc = Cc["@mozilla.org/file/directory_service;1"].getService(Ci.nsIProperties);
-		var outFile = dirSvc.get("ProfD", Ci.nsILocalFile).clone().QueryInterface(Ci.nsILocalFile);
-		outFile.append("danboorurelated.sqlite");
-
-		var channel = ioService.newChannel(this._branch.getComplexValue("relatedupdateuri", Ci.nsISupportsString).data, null, null)
-				.QueryInterface(Components.interfaces.nsIHttpChannel);
-		// will raise a harmless WARNING: NS_ENSURE_TRUE(mCachedResponseHead) failed
-		channel.loadFlags = channel.INHIBIT_CACHING | channel.LOAD_BYPASS_CACHE;
-		if (outFile.exists())
-		{
-			var modDate = new Date();
-			modDate.setTime(outFile.lastModifiedTime);
-			//print('lastmod '+modDate.toUTCString());
-			channel.setRequestHeader("If-Modified-Since", modDate.toUTCString(), false);
-		}
-
-		var fileStream = Cc["@mozilla.org/network/safe-file-output-stream;1"].createInstance(Ci.nsIFileOutputStream)
-			.QueryInterface(Ci.nsISafeOutputStream);
-		fileStream.init(outFile, 0x02 | 0x08 | 0x20, 0600, 0);
-
-		var outStr = Components.classes["@mozilla.org/network/buffered-output-stream;1"]
-			.createInstance(Components.interfaces.nsIBufferedOutputStream)
-			.QueryInterface(Components.interfaces.nsIOutputStream);
-		outStr.init(fileStream, 65536);
-
-		ctx = {interactive:aInteractive, outStream: outStr, fileStream: fileStream};
-		ctx.wrappedJSObject = ctx;
-
-		var converter = Cc["@mozilla.org/streamconv;1?from=gzip&to=uncompressed"]
-			.createInstance(Components.interfaces.nsIStreamConverter);
-		converter.asyncConvertData("gzip", "uncompressed", aListener, null);
-
-		channel.notificationCallbacks = aListener;
-		try {
-			channel.asyncOpen(converter, ctx);
-		} catch(e) {
 		}
 	},
 
@@ -419,12 +349,8 @@ var danbooruUpHelperObject = {
 		var stylePrefs = prefService.getBranch("extensions.danbooruUp.tagtype.");
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
 		for (let i=0, rule; i<TAGTYPE_COUNT; i++) {
-			// rule = prefs.getCharPref(i).replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
-			// rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
 			rule = stylePrefs.getCharPref(i);
 			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ btoa(rule) +"');", sandbox);
-			//rule = stylePrefs.getCharPref(i+".selected").replace(/[{}]/g, '').match(rx).join('').split(';').join(";\n");
-			//rule = rule.replace(/^\s*-moz[^:]+\s*:[^;]+;/mg, '').replace(/\s{2,}/mg,'');
 			rule = stylePrefs.getCharPref(i + '.selected');
 			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ btoa(rule) +"');", sandbox);
 		}
@@ -464,7 +390,6 @@ var danbooruUpHelperObject = {
 			var lineFinder = new Error();
 			for (let i=0; i<this.script_src.length; i++) {
 				sandbox.script_arr.push(this.script_src[i]);
-				// Components.utils.evalInSandbox(this.script_src[i], sandbox);
 			}
 			sandbox.script_arr.push("window.danbooruUpACPrefs = " + acPrefs.toSource() + ';');
 
