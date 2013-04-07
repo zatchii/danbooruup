@@ -477,26 +477,15 @@ var tagHistoryService = {
 			throw Components.results.NS_ERROR_NOT_AVAILABLE;
 		this._dbBusy = true;
 
-		var isDanbooru2 = this.isDanbooru2(uri);
-		isDanbooru2 = false;
-
 		var o = this;
 		var rowCountAtStart = this.rowCount;
 
-		uri += "?limit=0";
-		var maxId = this.maxID;
-		if (maxId) {
-			uri += "&after_id=" + maxId;
+		var cancel;
+		if (this.isDanbooru2(uri)) {
+			cancel = this.updateDanbooru2Tags(uri, onComplete, onError, progress);
+		} else {
+			cancel = this.updateDanbooru1Tags(uri, onComplete, onError, progress);
 		}
-
-		if (progress) progress.progress("connecting", 0, 0);
-		var cancel = this.fetchAndInsertTags(
-			uri,
-			isDanbooru2,
-			onComplete,
-			onError,
-			progress
-		);
 
 		return function() {
 			o._dbBusy = false;
@@ -518,6 +507,121 @@ var tagHistoryService = {
 		}
 	},
 
+	updateDanbooru1Tags: function(uri, complete, error, progress)
+	{
+		uri += "?limit=0";
+		var maxId = this.maxID;
+		if (maxId) {
+			uri += "&after_id=" + maxId;
+		}
+
+		if (progress) progress.progress("connecting", 0, 0);
+		return this.fetchAndInsertTags(
+			uri,
+			false,
+			complete,
+			error,
+			progress
+		);
+	},
+
+	updateDanbooru2Tags: function(uri, complete, error, progress)
+	{
+		var o = this;
+		var cancelled = false;
+		var cancelCb = null;
+
+		if (progress) progress.progress("maxid_check", 0, 0);
+		this.getMaxTagIdOnBooru(uri,
+			checkDistance,
+			error
+		);
+
+		return function() {
+			concelled = true;
+			if (cancelCb) cancelCb();
+		};
+
+		function checkDistance(targetId) {
+			if (cancelled) {
+				error("cancelled", null);
+				return;
+			}
+			var needFullUpdate = (targetId - o.maxID) > 1000;
+			if (needFullUpdate) {
+				var fullUri = uri.replace(/\/tags\.json$/, "/cache/tags.json");
+				if (progress) progress.progress("connecting", 0, 0);
+				cancelCb = o.fetchAndInsertTags(fullUri, true, complete, error, progress);
+				// TODO: should top up with fetchTagsRepeated
+			} else {
+				cancelCb = o.fetchTagsRepeated(uri, targetId, 2, complete, error, progress);
+			}
+		}
+	},
+
+	// Get largest tag ID present on a booru
+	getMaxTagIdOnBooru: function(uri, complete, error)
+	{
+		var latestUri = uri + '?search%5Border%5D=date';
+		return this.jsonRequest(latestUri,
+			function(tags) {
+				complete(tags[0].id);
+			},
+			error
+		);
+	},
+
+	// Do several update attempts up to a set limit to get up do date
+	fetchTagsRepeated: function(uri, targetId, maxAttempts, complete, error, progress)
+	{
+		var o = this;
+		var startId = o.maxID;
+		var cancelled = false;
+		var cancelCb = null;
+
+		doFetch();
+
+		return function() {
+			cancelled = true;
+			if (cancelCb) cancelCb();
+		};
+
+		function doFetch() {
+			if (cancelled) {
+				error("cancelled", null);
+				return;
+			}
+			if (maxAttempts <= 0) {
+				complete();
+				return;
+			}
+			maxAttempts--;
+
+			var currentMaxId = o.maxID;
+			if (currentMaxId >= targetId) {
+				complete();
+				return;
+			}
+
+			var updateUri = uri + '?page=a' + currentMaxId;
+
+			if (progress) progress.progress("connecting", currentMaxId - startId, targetId - startId);
+
+			cancelCb = o.fetchAndInsertTags(updateUri, true,
+				function(ntags) {
+					if (ntags == 0) {
+						complete();
+						return;
+					}
+					// On success, do another round
+					doFetch();
+				},
+				error,
+				progress
+			);
+		}
+	},
+
 	fetchAndInsertTags: function(uri, isDanbooru2, complete, error, progress)
 	{
 		var o = this;
@@ -531,7 +635,7 @@ var tagHistoryService = {
 					error("inserterror", e);
 					throw e;
 				}
-				complete();
+				complete(tags.length);
 			},
 			error,
 			progress

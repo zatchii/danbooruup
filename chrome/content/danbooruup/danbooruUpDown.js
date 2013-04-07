@@ -122,6 +122,7 @@ DanbooruDownloadListener.prototype = {
 		var msg;
 		switch (aStatus) {
 		case 'connecting':
+		case 'maxid_check':
 			msg = danBundle.GetStringFromName('danbooruUp.msg.connecting');
 			break;
 		case 'downloading':
