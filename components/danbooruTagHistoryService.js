@@ -213,37 +213,48 @@ var tagHistoryService = {
 	},
 
 	// Make GET request and parse response as JSON
-	jsonRequest: function(uri, callback, error)
+	jsonRequest: function(uri, callback, error, progress)
 	{
 		var request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
 			.createInstance(Ci.nsIXMLHttpRequest);
-		request.open('GET', uri);
 
-		request.addEventListener('load',
-			function(ev) {
-				var parsed;
-				if (this.status == 200) {
-					try {
-						parsed = JSON.parse(this.responseText);
-					} catch (e) {
-						error("bad_json", null);
-						return;
-					}
-					callback(parsed);
-				} else {
-					error("http_error", this.status);
+		var isFile = /^file:\/\//.test(uri);
+
+		request.addEventListener('load', function(ev) {
+			var parsed;
+			if (this.status == 200 || isFile) {
+				try {
+					parsed = JSON.parse(this.responseText);
+				} catch (e) {
+					error("bad_json", null);
+					return;
 				}
+				callback(parsed);
+			} else {
+				error("http_error", this.status);
 			}
-		);
+		}, false);
 		if (error) {
-			request.addEventListener('error',
-				function(ev) {
-					error("request_error", null);
-				}
-			);
+			request.addEventListener('error', function(ev) {
+				error("request_error", null);
+			}, false);
+			request.addEventListener('abort', function(ev) {
+				error("cancelled", null);
+			}, false);
+		}
+		if (progress) {
+			request.addEventListener('progress', function(ev) {
+				progress.progress("downloading", ev.loaded, ev.total);
+			}, false);
 		}
 
+		request.overrideMimeType('application/json');
+		request.open('GET', uri);
+
 		request.send(null);
+
+		// Return function that cancels request
+		return function() { request.abort(); };
 	},
 
 	searchRelatedTags: function(tag, callback)
@@ -460,85 +471,110 @@ var tagHistoryService = {
 		callback('', res);
 	},
 
-	updateTagListFromURI: function(uri, notification)
+	updateTagListFromURI: function(uri, progress)
 	{
 		if (this._dbBusy || !this._acPrefs.getBoolPref('enabled'))
 			throw Components.results.NS_ERROR_NOT_AVAILABLE;
 		this._dbBusy = true;
 
-		// XMLHttpRequest seems reluctant to participate in any form of threading.
-		var request = Components.classes['@mozilla.org/xmlextras/xmlhttprequest;1']
-			.createInstance(Components.interfaces.nsIXMLHttpRequest);
-		request.open('GET', uri);
+		var isDanbooru2 = this.isDanbooru2(uri);
+		isDanbooru2 = false;
 
-		if (notification) {
-			request.channel.notificationCallbacks = notification;
-			request.addEventListener('load', notification, false);
-			request.addEventListener('error', notification, false);
+		var o = this;
+		var rowCountAtStart = this.rowCount;
+
+		uri += "?limit=0";
+		var maxId = this.maxID;
+		if (maxId) {
+			uri += "&after_id=" + maxId;
 		}
 
-		request.setRequestHeader('connection', 'close');
+		if (progress) progress.progress("connecting", 0, 0);
+		var cancel = this.fetchAndInsertTags(
+			uri,
+			isDanbooru2,
+			onComplete,
+			onError,
+			progress
+		);
 
-		var isLocal = /^file:\/\//.test(uri);
+		return function() {
+			o._dbBusy = false;
+			cancel();
+		};
 
-		var db = this.db;
-		request.addEventListener('load', function(event) {
-				if ((isLocal || this.status == 200) && this.responseXML.documentElement.tagName == 'tags') {
-					try {
-						var xml = this.responseXML;
-						tagHistoryService.updateTagListFromXML(xml, db, notification);
-					} finally {
-						tagHistoryService._dbBusy = false;
-					}
-
-				} else {
-					observerService.notifyObservers(this, 'danbooru-update-failed', null);
-					tagHistoryService._dbBusy = false;
-				}
-			}, false);
-
-		request.addEventListener('error', function(event) {
-				tagHistoryService._dbBusy = false;
-				__log('Tag update failed,  ');
-			}, false);
-
-		request.send(null);
-
+		function onComplete() {
+			o._dbBusy = false;
+			var insertedRows = o.rowCount - rowCountAtStart;
+			observerService.notifyObservers(new supsInt32(insertedRows), 'danbooru-update-done', null);
+		}
+		function onError(error, info) {
+			o._dbBusy = false;
+			__log('Tag update failed, ' + error);
+			var msg = error;
+			if (error == 'http_error')
+				msg += '  ' + info;
+			observerService.notifyObservers(null, 'danbooru-update-failed', msg);
+		}
 	},
 
-	updateTagListFromXML: function(xmlDom, db, progressSink)
+	fetchAndInsertTags: function(uri, isDanbooru2, complete, error, progress)
+	{
+		var o = this;
+		var db = this.db;
+
+		return this.jsonRequest(uri,
+			function(tags) {
+				try {
+					o.insertTags(tags, isDanbooru2, db, progress);
+				} catch (e) {
+					error("inserterror", e);
+					throw e;
+				}
+				complete();
+			},
+			error,
+			progress
+		);
+	},
+
+	insertTags: function(tags, isDanbooru2, db, progress)
 	{
 		var stmt = db.createStatement(kTagInsert);
+		var tagCount = 0;
 		try {
 			var thread = threadManager.currentThread;
-			var rootEl = xmlDom.documentElement;
-			var nnodes = rootEl.childNodes.length;
 			db.beginTransaction();
-			var tagCount = 0;
-			var i = 0;
 			// var time = (new Date()).getTime();
-			for (var node = rootEl.firstChild; node; node = node.nextSibling) {
-				i++;
-				if (node.nodeType != 1)
-					continue;
-				stmt.bindInt32Parameter(0, node.getAttribute('id'));
-				stmt.bindStringParameter(1, node.getAttribute('name'));
-				stmt.bindInt32Parameter(2, node.getAttribute('count'));
-				stmt.bindInt32Parameter(3, node.getAttribute('type'));
-				stmt.bindInt32Parameter(4, node.getAttribute('ambiguous') == 'true');
+			for (var i = 0; i < tags.length; i++) {
+				var tag = tags[i];
+				if (isDanbooru2) {
+					if (tag.post_count == 0) continue;
+					stmt.bindInt32Parameter(0, tag.id);
+					stmt.bindStringParameter(1, tag.name);
+					stmt.bindInt32Parameter(2, tag.post_count);
+					stmt.bindInt32Parameter(3, tag.category);
+					stmt.bindInt32Parameter(4, false);
+				} else {
+					stmt.bindInt32Parameter(0, tag.id);
+					stmt.bindStringParameter(1, tag.name);
+					stmt.bindInt32Parameter(2, tag.count);
+					stmt.bindInt32Parameter(3, tag.type);
+					stmt.bindInt32Parameter(4, tag.ambiguous);
+				}
 				stmt.executeStep();
 				stmt.reset();
 				if ((++tagCount & 255) === 0) {
 					while (thread.hasPendingEvents()) {
 						thread.processNextEvent(false);
 					}
-					if (progressSink)
-						progressSink.onProgress(null, null, i, nnodes);
+					if (progress)
+						progress.progress("inserting", i, tags.length);
 				}
 			}
 			db.commitTransaction();
-			if (progressSink)
-				progressSink.onProgress(null, null, i, nnodes);
+			if (progress)
+				progress.progress("inserting", tags.length, tags.length);
 		} catch (e) {
 			db.rollbackTransaction();
 			throw e;
@@ -546,7 +582,6 @@ var tagHistoryService = {
 			stmt.finalize();
 			// __log('Insert time ');
 			// __log((new Date()).getTime() - time);
-			observerService.notifyObservers(new supsInt32(tagCount), 'danbooru-update-done', null);
 		}
 	},
 

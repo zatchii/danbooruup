@@ -49,8 +49,6 @@ ResultWrapper.prototype = {
 
 var danbooruUpHelperObject = {
 	_tagService: null,
-	_updating: false,
-	_interactive: false,
 
 	get tagService()
 	{
@@ -153,7 +151,6 @@ var danbooruUpHelperObject = {
 			return;
 		if (!this._branch.getBoolPref("autocomplete.update.onstartup"))
 			return;
-		this._branch.setIntPref("autocomplete.update.lastupdate", Date.now());
 		try { this.update(false); }
 		catch(e) {
 			__log("DanbooruUp startup update failed: "+e);
@@ -171,13 +168,14 @@ var danbooruUpHelperObject = {
 		}
 		this.update(false);
 	},
-	update: function(aInteractive, aListener)
+
+	update: function(aInteractive, aProgress)
 	{
-		if (!this.tagService) return Components.results.NS_ERROR_NOT_AVAILABLE;
-		if (!this._branch.getIntPref("autocomplete.update.lastupdate") && (this._branch.getIntPref("autocomplete.update.lastupdate") < Date.now() + cMinTagUpdateInterval))
+		if (!this.tagService) return null;
+		if (!aInteractive && (this._branch.getIntPref("autocomplete.update.lastupdate") > Date.now() + cMinTagUpdateInterval))
 		{
 			dump("skipping tag update, " + (Date.now() + cMinTagUpdateInterval - this._branch.getIntPref("autocomplete.update.lastupdate")) + " seconds left\n");
-			return;
+			return null;
 		}
 
 		var locationURL;
@@ -187,22 +185,20 @@ var danbooruUpHelperObject = {
 		} catch (e) {
 			if(aInteractive)
 				promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
-			else
-				return e.result
+			return null;
 		}
 
-		locationURL.query = "limit=0";
-		var maxId = this.getMaxID();
-		if (maxId)
-		{
-			locationURL.query += "&after_id="+(maxId);
-		}
+		//locationURL.query = "limit=0";
+		//var maxId = this.getMaxID();
+		//if (maxId)
+		//{
+			//locationURL.query += "&after_id="+(maxId);
+		//}
 		// dump("using " + locationURL.spec + "\n");
 
-		this._updating = true;
-		this._interactive = aInteractive;
+		var canceller = null;
 		try {
-			this.tagService.updateTagListFromURI(locationURL.spec, aListener);
+			canceller = this.tagService.updateTagListFromURI(locationURL.spec, aProgress);
 		} catch (e) {
 			if(e.result==Components.results.NS_ERROR_NOT_AVAILABLE)
 			{
@@ -211,20 +207,18 @@ var danbooruUpHelperObject = {
 				throw e;
 			}
 			else {
-				this._updating = false;
 				if(aInteractive)
 					promptService.alert(null, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.exc') + e);
 				throw e;
 			}
 		}
-		this._updating = false;
 		this._branch.setIntPref("autocomplete.update.lastupdate", Date.now());
 
 		if (this._branch.getBoolPref("autocomplete.update.ontimer") && !this.mTimer)
 		{
 			this.startTimer();
 		}
-		return Components.results.NS_OK;
+		return canceller;
 	},
 
 	//

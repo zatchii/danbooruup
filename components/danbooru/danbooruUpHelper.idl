@@ -1,5 +1,7 @@
 #include "nsISupports.idl"
 #include "danbooruITagHistoryService.idl"
+#include "danbooruICanceller.idl"
+#include "danbooruIProgressCallback.idl"
 
 interface nsIURI;
 interface nsIInterfaceRequestor;
@@ -11,7 +13,7 @@ interface danbooruIHelperService : nsISupports
 
 	void contentLoaded(in nsISupports win);
 
-	void update(in boolean interactive, in nsIInterfaceRequestor listener);
+	danbooruICanceller update(in boolean interactive, in danbooruIProgressCallback progress);
 
 	void startUpload(in nsIURI aRealSource, in wstring aSource, in wstring aTags, in wstring aRating, in wstring aDest,
 			in nsIURI aLocation, in nsISupports aWind, in boolean aUpdate);

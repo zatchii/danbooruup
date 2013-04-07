@@ -67,7 +67,7 @@ danbooruUpObject.uploadImage = function() {
 	// update synchronously
 	try {
 		if(dbuPrefService.getBoolPref("extensions.danbooruUp.autocomplete.update.beforedialog"))
-			danbooruHelperService.update(false, false, null);
+			danbooruHelperService.update(false);
 	} catch (e) {
 	}
 

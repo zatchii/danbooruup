@@ -1,0 +1,13 @@
+#include "nsISupports.idl"
+
+interface nsIVariant;
+
+[scriptable, function, uuid(7d2050ee-c817-4ca7-a9ed-540fc0e9438d)]
+interface danbooruIProgressCallback : nsISupports
+{
+  /**
+   * Generic callback function for reporting progress
+   */
+  void progress(in AString status, in unsigned long long progress, in unsigned long long progressmax);
+};
+

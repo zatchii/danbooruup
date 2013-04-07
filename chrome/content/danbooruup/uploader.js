@@ -220,7 +220,7 @@ danbooruUploader.prototype = {
 		{
 			conttype = "application/octet-stream";
 		}
-		
+
 		// MD5
 		var hasher = Components.classes["@mozilla.org/security/hash;1"].createInstance(Components.interfaces.nsICryptoHash);
 		var hashInStr = Components.classes["@mozilla.org/network/buffered-input-stream;1"]

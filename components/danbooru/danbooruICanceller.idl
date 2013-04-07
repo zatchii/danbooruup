@@ -1,0 +1,11 @@
+#include "nsISupports.idl"
+
+[scriptable, function, uuid(57b6f95e-dad5-4494-b6ac-9a0126b2d018)]
+interface danbooruICanceller : nsISupports
+{
+  /**
+   * Cancels an ongoing operation
+   */
+  void cancel();
+};
+

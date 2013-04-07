@@ -13,7 +13,6 @@ function onLoad()
 	init();
 	if (gListener)
 	{
-		gListener.mWindow = window;
 		gListener.Components = Components;
 		var obsSvc = Components.classes["@mozilla.org/observer-service;1"].getService(Components.interfaces.nsIObserverService);
 		obsSvc.addObserver(gListener, "danbooru-update-done", false);
@@ -38,10 +37,10 @@ function init()
 	switch(window.arguments[0].action)
 	{
 	case 'tagupdate':
-		gListener = new DanbooruDownloadListener();
-		gListener.ownerWindow = window;
+		if (!gListener) gListener = new DanbooruDownloadListener();
 		try {
-			helperSvc.update(true, gListener);
+			var cancel = helperSvc.update(true, gListener);
+			gListener.init(cancel);
 		} catch (e if e.result == kErrorNotAvailable) {
 			window.close();
 		}
@@ -65,192 +64,79 @@ function __log(msg) {
 
 function clicked(evt)
 {
-	switch (gListener.statusCode)
-	{
-	case kStatusReadFrom_Status:
-	case kStatusWroteTo_Status:
-	case kStatusReceivingFrom_Status:
-	case kStatusSendingTo_Status:
-	case kStatusWaitingFor_Status:
-	case kStatusResolvingHost_Status:
-	case kStatusConnectedTo_Status:
-	case kStatusConnectingTo_Status:
-		gListener.cancel();
-		break;
-	case kErrorFailure:
-		init();
-		break;
-	case kNS_OK:
-	case null:
-	default:
+	if (gListener.finished) {
 		window.close();
-		break;
+	} else if (gListener.error) {
+		init(); // Retry
+	} else {
+		gListener.cancel();
 	}
 }
 
-function DanbooruDownloadListener(outputStr, fileStr)
+function DanbooruDownloadListener()
 {
-	this.mOutStream = outputStr;
-	this.mFileStream = fileStr;
 }
 
 DanbooruDownloadListener.prototype = {
-	mCount: 0,
-	mOutStream: null,
-	mFileStream: null,
-	mChannel: null,
-	mStatus: -1,
 	mInteractive: true,
-	mOwnerWindow: null,
+	mStatus: "",
+	mCanceller: null,
+	mError: false,
+	mFinished: false,
 
-	set outStream(x) { this.mOutStream = x; },
-	get outStream() { return this.mOutStream; },
-	set fileStream(x) { this.mFileStream = x; },
-	get fileStream() { return this.mFileStream; },
-	set interactive(x) { this.mInteractive = x; },
-	get interactive() { return this.mInteractive; },
-	set ownerWindow(x) { this.mOwnerWindow = x},
-	get ownerWindow() { return this.mOwnerWindow; },
+	set finished(x) { this.mFinished = x; },
+	get finished() { return this.mFinished; },
+	set error(x) { this.mError = x; },
+	get error() { return this.mError; },
 
-	set statusCode(x) { },
-	get statusCode() { return this.mStatus; },
-	set channel(x) { },
-	get channel() { return this.mChannel; },
-
-	onStartRequest: function(request, ctxt) {
-		this.mChannel = request;
-		this.mCount = 0;
-		if (ctxt)
-		{
-			this.mOutStream = ctxt.wrappedJSObject.outStream;
-			this.mFileStream = ctxt.wrappedJSObject.fileStream;
-			this.mInteractive = ctxt.wrappedJSObject.interactive;
-		}
-	},
-
-	onStopRequest: function(request, ctxt, status) {
-		// drop the circular reference
-		this.mChannel = null;
-		if (status == kNS_OK) {
-			try {
-				request.QueryInterface(Components.interfaces.nsIHttpChannel);
-				if (request.responseStatus == 200) {
-					this.mOutStream.flush();
-					this.mFileStream.finish();
-					this.mStatus = kNS_OK;
-					if (this.mInteractive)
-					{
-						$('label').setAttribute('value',danBundle.GetStringFromName('danbooruUp.msg.done'));
-						$('button').setAttribute('label',danBundle.GetStringFromName('danbooruUp.msg.done'));
-					}
-					return;
-				} else if (request.responseStatus == 304) {
-					// only happens with If-Modified-By is set, which would be the reltag case
-					this.mFileStream.close();
-					this.mStatus = kNS_OK;
-					if (this.mInteractive) {
-						$('label').setAttribute('value',danBundle.GetStringFromName("danbooruUp.msg.relatedUpToDate"));
-						$('progress').mode = 'determined';
-						$('button').setAttribute('label',danBundle.GetStringFromName('danbooruUp.msg.done'));
-					}
-					return;
-				}
-			} catch(e) { __log(e); }
-		} else if (status == kErrorAbort) {
-			this.mStatus = kErrorFailure;
-			this.mFileStream.close();
-			if (this.mInteractive) {
-				$('label').setAttribute('value',danBundle.GetStringFromName("danbooruUp.msg.readcancel"));
-				$('progress').mode = 'determined';
-				$('button').setAttribute('label',danBundle.GetStringFromName('danbooruUp.msg.retry'));
-			}
-			return;
-		}
-		__log("DanbooruUp download failure " + request.responseStatusText + " " + NameForStatusCode(status));
-		this.mStatus = kErrorFailure;
-		this.mFileStream.close();
-		$('button').setAttribute('label',danBundle.GetStringFromName('danbooruUp.msg.retry'));
-	},
-
-	onDataAvailable: function (aRequest, aContext, aInputStream, aOffset, aCount)
-	{
-		try {
-			this.mOutStream.writeFrom(aInputStream, aInputStream.available());
-			this.mCount += aCount;
-		} catch(e) {
-			__log(e);
-		}
-	},
-
-	onStatus : function(aRequest, aContext, aStatusCode, aStatusArg)
-	{
-		//if (aStatusCode == kStatusReceivingFrom_Status) return;
-		//print("onStatus:");
-		//print("  Request: " + aRequest.name);
-		//print("  StatusCode: " + NameForStatusCode(aStatusCode));
-		//print("  StatusArg: " + aStatusArg);
-		if (aStatusCode == this.mStatus) return;
-		if (!this.mInteractive) return;
-		if (!this.mChannel) this.mChannel = aRequest;
-		this.mStatus = aStatusCode;
-		var msg = '';
-		try {
-			aRequest.QueryInterface(Components.interfaces.nsIChannel);
-			msg = neckoBundle.formatStringFromName(aStatusCode - kNetBase, [aStatusArg], 1);
-		} catch(e) {
-			msg = NameForStatusCode(aStatusCode);
-		}
-		$('label').setAttribute('value', msg);
-	},
-	onProgress : function(aRequest, aContext, aProgress, aProgressMax)
-	{
-		if (!this.mInteractive) return;
-		$('progress').mode = 'determined';
-		if (aProgressMax > 0 && aProgress > 0)
-			$('progress').setAttribute('value', aProgress/aProgressMax*100);
-
-		// tag-history-service sets them like this when reports progress.
-		if (aRequest == null && aContext == null)	
-		{
-			$('label').setAttribute('value', danBundle.GetStringFromName('danbooruUp.msg.processing'));
-			$('button').disabled = true;
-		}
-	},
-	onChannelRedirect : function(aOldChannel, aNewChannel, aFlags)
-	{
-		//print("redirect");
+	init: function(canceller) {
+		this.mCanceller = canceller;
+		this.mError = false;
+		this.mFinished = false;
+		this.mStatus = "";
 	},
 
 	cancel : function()
 	{
-		this.mCanceled = true;
-		if (this.mChannel)
-			this.mChannel.cancel(kErrorAbort);
+		if (this.mCanceller) {
+			this.mCanceller.cancel();
+			this.mCanceller = null;
+		}
 		return !($('button').disabled);
 	},
 
-	// nsIDOMEventListener
-	handleEvent : function(aEvent)
+	progress: function(aStatus, aProgress, aProgressMax)
 	{
-		switch (aEvent.type)
-		{
-		case 'load':
-			// XHR complete, but we use the observer notifications to tell whether it is successful or not
+		if (!this.mInteractive) return;
+
+		if (aProgressMax > 0 && aProgress > 0) {
+			$('progress').mode = 'determined';
+			$('progress').setAttribute('value', aProgress/aProgressMax*100);
+		} else {
+			$('progress').mode = 'undetermined';
+		}
+
+		if (aStatus == this.mStatus)
+			return;
+
+		var msg;
+		switch (aStatus) {
+		case 'connecting':
+			msg = danBundle.GetStringFromName('danbooruUp.msg.connecting');
 			break;
-		case 'error':
-			// XHR is lame and doesn't give us the status code sent with the stoprequest
-			if (this.mInteractive)
-			{
-				$('progress').mode = 'determined';
-				if (this.mCanceled)
-					$('label').setAttribute('value',danBundle.GetStringFromName('danbooruUp.msg.readcancel'));
-				else
-					$('label').setAttribute('value',danBundle.GetStringFromName('danbooruUp.err.errorRetrievingTags'));
-				$('button').setAttribute('label',danBundle.GetStringFromName('danbooruUp.msg.retry'));
-				this.mStatus = kErrorFailure;
-			}
+		case 'downloading':
+			msg = danBundle.GetStringFromName('danbooruUp.msg.reading');
+			break;
+		case 'inserting':
+			msg = danBundle.GetStringFromName('danbooruUp.msg.processing');
+			$('button').disabled = true;
+			break;
+		default:
+			msg = aStatus;
 			break;
 		}
+
+		$('label').setAttribute('value', msg);
 	},
 
 	observe: function(aSubject, aTopic, aData)
@@ -260,17 +146,30 @@ DanbooruDownloadListener.prototype = {
 		switch (aTopic) {
 		case "danbooru-update-done":
 			aSubject.QueryInterface(Components.interfaces.nsISupportsPRUint32);
-			$('label').setAttribute('value', danBundle.formatStringFromName("danbooruUp.opt.updatedNodes", [aSubject.data], 1));
+			$('label').setAttribute('value', danBundle.formatStringFromName("danbooruUp.opt.updatedTags", [aSubject.data], 1));
 			$('button').disabled = false;
 			$('button').setAttribute('label', danBundle.GetStringFromName('danbooruUp.msg.done'));
-			this.mStatus = kNS_OK;
+			$('progress').mode = 'determined';
+			this.mFinished = true;
 			break;
 		case "danbooru-update-failed":
-			// sent when HTTP response is not 200
-			aSubject.QueryInterface(Components.interfaces.nsIXMLHttpRequest);
-			$('label').setAttribute('value', aSubject.status + ' ' + aSubject.statusText);
+			var msg;
+			switch (aData) {
+				case 'request_error':
+					msg = danBundle.GetStringFromName('danbooruUp.err.errorRetrievingTags');
+					break;
+				case 'cancelled':
+					msg = danBundle.GetStringFromName('danbooruUp.msg.readcancel');
+					break;
+				default:
+					msg = aData;
+					break;
+			}
+			$('label').setAttribute('value', msg);
 			$('button').setAttribute('label', danBundle.GetStringFromName('danbooruUp.msg.retry'));
-			this.mStatus = kErrorFailure;
+			$('button').disabled = false;
+			$('progress').mode = 'determined';
+			this.mError = true;
 			break;
 		}
 	},
@@ -278,12 +177,7 @@ DanbooruDownloadListener.prototype = {
 	// nsISupports
 	QueryInterface : function(aIID)
 	{
-		if (aIID.equals(Components.interfaces.nsIProgressEventSink)
-			|| aIID.equals(Components.interfaces.nsIChannelEventSink)
-			|| aIID.equals(Components.interfaces.nsIRequestObserver)
-			|| aIID.equals(Components.interfaces.nsIStreamListener)
-			|| aIID.equals(Components.interfaces.nsIDOMEventListener)
-			|| aIID.equals(Components.interfaces.nsIPrompt)
+		if (aIID.equals(Components.interfaces.nsIPrompt)
 			|| aIID.equals(Components.interfaces.nsISupports)
 			|| aIID.equals(Components.interfaces.nsISupportsWeakReference)
 			|| aIID.equals(Components.interfaces.nsIInterfaceRequestor)
@@ -301,12 +195,7 @@ DanbooruDownloadListener.prototype = {
 	getHelperForLanguage: function(lang) { return null; },
 	getInterfaces: function(ct)
 	{
-		var array = [Components.interfaces.nsIProgressEventSink,
-				Components.interfaces.nsIChannelEventSink,
-				Components.interfaces.nsIRequestObserver,
-				Components.interfaces.nsIStreamListener,
-				Components.interfaces.nsIDOMEventListener,
-				Components.interfaces.nsIPrompt,
+		var array = [ Components.interfaces.nsIPrompt,
 				Components.interfaces.nsISupportsWeakReference,
 				Components.interfaces.nsIInterfaceRequestor,
 				Components.interfaces.nsIClassInfo]

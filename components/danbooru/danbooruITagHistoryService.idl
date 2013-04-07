@@ -38,6 +38,8 @@
 #include "nsISupports.idl"
 #include "danbooruISearchCallback.idl"
 #include "danbooruIErrorCallback.idl"
+#include "danbooruIProgressCallback.idl"
+#include "danbooruICanceller.idl"
 
 interface nsIVariant;
 interface nsIInterfaceRequestor;
@@ -76,11 +78,11 @@ interface danbooruITagHistoryService : nsISupports
                                   in danbooruISearchCallback callback);
 
   /**
-   * Update the tag database from a given XML source.
-   * @param aXmlURI The URI from which to retrieve tags from.
-   * @param insert True if retrieving tags for insertion, false if retrieving tags for clean up.
+   * Update the tag database from a given JSON source.
+   * @param baseURI The URI to the API from which to retrieve tags.
+   * @param progress listener for progress updates
    */
-  void updateTagListFromURI(in AString aXmlURI, in nsIInterfaceRequestor notification);
+  danbooruICanceller updateTagListFromURI(in AString baseURI, in danbooruIProgressCallback progress);
 
   /**
    * Add a list of tags to a list of contexts in the tag history.
