@@ -118,6 +118,7 @@ var gDanbooruManager = {
       gDanbooruManager.addDanbooru();
       return false;
     }
+    return true;
   },
 
   onWindowKeyPress: function (aEvent)

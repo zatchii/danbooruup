@@ -95,6 +95,7 @@ var gDanbooruTree;
       gDanbooruManager.addDanbooru();
       return false;
     }
+    return true;
   }
 
   // site list functions
