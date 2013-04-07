@@ -248,36 +248,37 @@ var tagHistoryService = {
 
 	searchRelatedTags: function(tag, callback)
 	{
-		var uri = prefService.getBranch('extensions.danbooruUp.').getComplexValue('updateuri', Ci.nsISupportsString).data
-			.replace(/\/[^/]+\/[^/]+$/, '/tag/related.xml');
-		uri += '?tags=' + encodeURIComponent(tag);
+		var updateuri = prefService.getBranch('extensions.danbooruUp.').getComplexValue('updateuri', Ci.nsISupportsString).data
+		var isdanbooru2 = this.isDanbooru2(updateuri);
 
-		var request = Cc['@mozilla.org/xmlextras/xmlhttprequest;1']
-			.createInstance(Ci.nsIXMLHttpRequest);
-		request.open('GET', uri);
+		var uri;
+		if (isdanbooru2) {
+			uri = updateuri.replace(/\/[^/]+$/, '/related_tag.json') + '?query=' + encodeURIComponent(tag);
+		} else {
+			uri = updateuri.replace(/\/[^/]+\/[^/]+$/, '/tag/related.json') + '?tags=' + encodeURIComponent(tag);
+		}
 
 		var o = this;
-		request.addEventListener('load',
-			function(event) {
-				if (this.status == 200) {
-					var tags = [];
-					var el = this.responseXML.documentElement.firstChild;
-					while (el.nodeType != 1)
-						el = el.nextSibling;
-					for (var node = el.firstChild; node; node = node.nextSibling) {
-						if (node.nodeType != 1)
-							continue;
-						tags.push(node.getAttribute('name'));
-					}
-
-					callback.handleSearchResult(tag, o.enhanceTags(tags));
+		this.jsonRequest(
+			uri,
+			function(response) {
+				var tagarray;
+				if (isdanbooru2) {
+					tag_array = response.tags.concat(response.wiki_page_tags);
 				} else {
-					__log('Got status ' + this.status + ' from artist search.');
+					tag_array = response[tag];
 				}
+				var tags = [];
+				for (var i = 0; i < tag_array.length; i++) {
+					tags.push(tag_array[i][0]);
+				}
+
+				callback.handleSearchResult(tag, o.enhanceTags(tags));
 			},
-			false
+			function(error, info) {
+				__log("Got " + error + " on related tag search");
+			}
 		);
-		request.send(null);
 	},
 
 	// Add tag types from database to a plain array of tag names.
@@ -288,8 +289,11 @@ var tagHistoryService = {
 		try {
 			for (var i = 0; i < tags.length; i++) {
 				stmt.bindStringParameter(0, tags[i]);
-				stmt.executeStep();
-				richtags.push([tags[i], stmt.getInt32(1), stmt.getInt32(2)]);
+				if (stmt.executeStep()) {
+					richtags.push([tags[i], stmt.getInt32(1), stmt.getInt32(2)]);
+				} else {
+					richtags.push([tags[i], 0, 0]);
+				}
 				stmt.reset();
 			}
 		} finally {
