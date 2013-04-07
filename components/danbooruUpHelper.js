@@ -172,9 +172,9 @@ var danbooruUpHelperObject = {
 	update: function(aInteractive, aProgress)
 	{
 		if (!this.tagService) return null;
-		if (!aInteractive && (this._branch.getIntPref("autocomplete.update.lastupdate") > Date.now() + cMinTagUpdateInterval))
+		if (!aInteractive && (this._branch.getCharPref("autocomplete.update.lastupdatestr") > Date.now() - cMinTagUpdateInterval))
 		{
-			dump("skipping tag update, " + (Date.now() + cMinTagUpdateInterval - this._branch.getIntPref("autocomplete.update.lastupdate")) + " seconds left\n");
+			dump("skipping tag update, updated " + (Date.now() - this._branch.getCharPref("autocomplete.update.lastupdatestr")) / 1000 + " seconds ago\n");
 			return null;
 		}
 
@@ -212,7 +212,7 @@ var danbooruUpHelperObject = {
 				throw e;
 			}
 		}
-		this._branch.setIntPref("autocomplete.update.lastupdate", Date.now());
+		this._branch.setCharPref("autocomplete.update.lastupdatestr", Date.now());
 
 		if (this._branch.getBoolPref("autocomplete.update.ontimer") && !this.mTimer)
 		{
