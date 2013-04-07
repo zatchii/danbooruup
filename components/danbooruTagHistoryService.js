@@ -206,6 +206,46 @@ var tagHistoryService = {
 		return res;
 	},
 
+	// Check if a URI is in Danbooru 2 format
+	isDanbooru2: function(uri)
+	{
+		return /\/uploads\.xml$/.test(uri) || /\/tags.json$/.test(uri);
+	},
+
+	// Make GET request and parse response as JSON
+	jsonRequest: function(uri, callback, error)
+	{
+		var request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"]
+			.createInstance(Ci.nsIXMLHttpRequest);
+		request.open('GET', uri);
+
+		request.addEventListener('load',
+			function(ev) {
+				var parsed;
+				if (this.status == 200) {
+					try {
+						parsed = JSON.parse(this.responseText);
+					} catch (e) {
+						error("bad_json", null);
+						return;
+					}
+					callback(parsed);
+				} else {
+					error("http_error", this.status);
+				}
+			}
+		);
+		if (error) {
+			request.addEventListener('error',
+				function(ev) {
+					error("request_error", null);
+				}
+			);
+		}
+
+		request.send(null);
+	},
+
 	searchRelatedTags: function(tag, callback)
 	{
 		var uri = prefService.getBranch('extensions.danbooruUp.').getComplexValue('updateuri', Ci.nsISupportsString).data
@@ -257,6 +297,29 @@ var tagHistoryService = {
 		}
 		return richtags;
 	},
+
+	artistSearch: function(imageURI, postURI, callback, error)
+	{
+		var searchuri;
+		if (this.isDanbooru2(postURI)) {
+			searchuri = postURI.replace(/\/uploads\.xml$/, "/artists.json?search%5Bname%5D=" + encodeURIComponent(imageURI));
+		} else {
+			searchuri = postURI.replace(/\/post\/create\.xml$/, "/artist/index.json?name=" + encodeURIComponent(imageURI));
+		}
+
+		this.jsonRequest(
+			searchuri,
+			function(response) {
+				var names = [];
+				for (var i = 0; i < response.length; i++) {
+					names.push(response[i].name);
+				}
+				callback.handleSearchResult(imageURI, names);
+			},
+			error.handleError
+		);
+	},
+
 
 	autocompleteSearch: function(query, prefix, context, callback)
 	{

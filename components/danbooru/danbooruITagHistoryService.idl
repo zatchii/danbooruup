@@ -37,6 +37,7 @@
 
 #include "nsISupports.idl"
 #include "danbooruISearchCallback.idl"
+#include "danbooruIErrorCallback.idl"
 
 interface nsIVariant;
 interface nsIInterfaceRequestor;
@@ -58,6 +59,12 @@ interface danbooruITagHistoryService : nsISupports
    * Scriptable manual search for related tags.
    */
   boolean searchRelatedTags(in AString tagname, in danbooruISearchCallback callback);
+
+  /**
+   * Search for artist tag associated with an image URI.
+   * The post URI of the booru to search must be provided.
+   */
+  void artistSearch(in AString imageURI, in AString postURI, in danbooruISearchCallback callback, in danbooruIErrorCallback error);
 
   /**
    * AutoCompleteController-called tag search.

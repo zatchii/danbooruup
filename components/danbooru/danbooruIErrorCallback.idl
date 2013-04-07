@@ -1,0 +1,13 @@
+#include "nsISupports.idl"
+
+interface nsIVariant;
+
+[scriptable, function, uuid(f5fa1318-0ac4-4e7a-8904-29a5cf8dea2c)]
+interface danbooruIErrorCallback : nsISupports
+{
+  /**
+   * Generic callback function for reporting errors.
+   */
+  void handleError(in AString error, in nsIVariant info);
+};
+

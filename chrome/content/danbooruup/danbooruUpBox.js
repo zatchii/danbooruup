@@ -189,64 +189,52 @@ function doSwitchTab() {
 	return true;
 }
 function doArtistSearch() {
-	var ioService = Components.classes["@mozilla.org/network/io-service;1"].getService(Components.interfaces.nsIIOService);
-	var xhr = Components.classes["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(Components.interfaces.nsIXMLHttpRequest);
 	var ml = document.getElementById('danbooru');
 	var btn = document.getElementById('artistSearch');
+	var imguri = document.getElementById('source').value;
+	var posturi = ml.label;
 
 	btn.setAttribute("image", "chrome://global/skin/throbber/Throbber-small.gif");
-	var uri = ioService.newURI(ml.label, null, null).QueryInterface(Components.interfaces.nsIURL);
-	uri.path = uri.path.replace(/\/[^/]+\/[^/]+$/, "/artist/index.xml");
-	uri.query = "name=" + encodeURIComponent(document.getElementById('source').value);
 
-	function artistLoad(event) {
+
+	var tagService =  Components.classes["@unbuffered.info/danbooru/helper-service;1"]
+		.getService(Components.interfaces.danbooruIHelperService).tagService;
+
+	tagService.artistSearch(imguri, posturi, artistLoad, artistError);
+
+	function artistLoad(url, names) {
 		document.getElementById('artistSearch').setAttribute("image", "chrome://danbooruup/skin/glass-trimmed.png");
-		var responseXML = xhr.responseXML;
-		if (responseXML
-			&& responseXML.documentElement.namespaceURI != "http://www.mozilla.org/newlayout/xml/parsererror.xml"
-			&& (xhr.status == 200 || xhr.status == 0)) {
-			var result = responseXML.evaluate("/artists/artist", responseXML, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-			if (result.snapshotLength == 1) {
-				var tags = document.getElementById('tags');
-				var append = result.snapshotItem(0).getAttribute("name") + ' ';
-				if (append)
-				{
-					if (!tags.value.match(/\s$/))
-						append = ' ' + append;
-					tags.value += append;
-					return;
-				}
-			} else if (result.snapshotLength > 1) {
-				var s=Components.classes['@mozilla.org/sound;1'].createInstance(Components.interfaces.nsISound);
-				s.beep();
+
+		if (names.length == 1) {
+			var tags = document.getElementById('tags');
+			var append = names[0] + ' ';
+			if (append)
+			{
+				if (!tags.value.match(/\s$/))
+					append = ' ' + append;
+				tags.value += append;
 				return;
 			}
-			var s=Components.classes['@mozilla.org/sound;1'].createInstance(Components.interfaces.nsISound);
-			s.beep();
-			return;
-		} else {
-			var msg;
-			if (xhr.status != 200) {
-				msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + xhr.status + ' '+ xhr.statusText;
-			} else if (!responseXML || responseXML.documentElement.namespaceURI != "http://www.mozilla.org/newlayout/xml/parsererror.xml") {
-				msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.parse');
-			} else {
-				msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.artistsearchfailed');
-			}
-			promptService.alert(window, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), msg);
 		}
+		var s=Components.classes['@mozilla.org/sound;1'].createInstance(Components.interfaces.nsISound);
+		s.beep();
+		return;
 	}
-	function artistError(event) {
-		promptService.alert(window, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), danbooruUpMsg.GetStringFromName('danbooruUp.err.artistsearchfailed.network'));
+	function artistError(error, info) {
+		var msg;
+		if (error == 'http_error') {
+			msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.serverresponse') + info;
+		} else if (error == 'bad_json') {
+			msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.parse');
+		} else if (error == 'request_error') {
+			msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.artistsearchfailed.network')
+		} else {
+			msg = danbooruUpMsg.GetStringFromName('danbooruUp.err.artistsearchfailed');
+		}
+		promptService.alert(window, danbooruUpMsg.GetStringFromName('danbooruUp.err.title'), msg);
+
 		document.getElementById('artistSearch').setAttribute("image", "chrome://danbooruup/skin/glass-trimmed.png");
 	}
-
-	xhr.open("GET", uri.spec, true);
-	xhr.overrideMimeType("text/xml");
-	xhr.QueryInterface(Components.interfaces.nsIJSXMLHttpRequest);
-	xhr.onload = artistLoad;
-	xhr.onerror = artistError;
-	xhr.send(null);
 }
 
 var completer = {

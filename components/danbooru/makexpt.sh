@@ -2,11 +2,12 @@
 
 set -e
 
-XPIDL=~/source/firefox/ff-dbg/dist/bin/xpidl
-XPT_LINK=~/source/firefox/ff-dbg/dist/bin/xpt_link
+XPIDL="python xulrunner-sdk/sdk/bin/typelib.py"
+XPT_LINK="python xulrunner-sdk/sdk/bin/xpt.py link"
+IDL_DIR="xulrunner-sdk/idl"
 
 for I in *.idl; do
-	$XPIDL -m typelib -I ~/source/firefox/ff-dbg/dist/idl/ -o `basename $I .idl` $I
+	$XPIDL -I "$IDL_DIR" -o `basename $I .idl`.xpt $I
 done
 
 $XPT_LINK danbooruac.xpt *.xpt
