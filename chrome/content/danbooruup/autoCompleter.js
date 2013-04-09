@@ -23,7 +23,6 @@ var AutoCompleter = function(textfield, completer, createPopup, search_type)
 	var o = this;
 	this._showSugg = function(tag, suggestions) { o.showSuggestions(tag, suggestions); };
 	this._showRel = function(tag, related) { o.showRelated(tag, related); };
-	this._textfield.addEventListener('keypress', function(event) { o.onKeyPress(event); }, false);
 	this._textfield.addEventListener('keydown', function(event) { o.onKeyDown(event); }, false);
 	this._textfield.addEventListener('input', function(event) { o.onInput(event); }, false);
 	this._textfield.addEventListener('blur', function(event) { o._popup.timedHide(); }, false);
@@ -157,12 +156,10 @@ AutoCompleter.prototype = {
 	onKeyDown: function(event)
 	{
 		this.lastKeyCode = event.keyCode;
-	},
 
-	onKeyPress: function(event)
-	{
 		if (this.ignoreKeypress || this.disabled)
 			return;
+
 		// Ignore enter events that come in too quick succession.
 		if (this.lastKeyCode == KeyEvent.DOM_VK_RETURN && this.ignoreEnter > new Date()) {
 			event.preventDefault();
@@ -174,10 +171,8 @@ AutoCompleter.prototype = {
 		var lb = this._listbox;
 		var moved = true;
 
-
 		// Handle some keys for the autocomplete list.
 		if (this._popup.state == 'open') {
-			//switch (event.keyCode) {
 			switch (this.lastKeyCode) {
 				case KeyEvent.DOM_VK_UP:
 					if (lb.selectedIndex == -1 || lb.selectedIndex == 0)
@@ -268,7 +263,6 @@ AutoCompleter.prototype = {
 				lb.selectedItem = lb.getItemAtIndex(lb.selectedIndex);
 			}
 		} else {
-			//switch (event.keyCode) {
 			switch (this.lastKeyCode) {
 				case KeyEvent.DOM_VK_INSERT:
 				case KeyEvent.DOM_VK_HELP:
