@@ -275,13 +275,13 @@ var tagHistoryService = {
 			function(response) {
 				var tagarray;
 				if (isdanbooru2) {
-					tag_array = response.tags.concat(response.wiki_page_tags);
+					tagarray = response.tags.concat(response.wiki_page_tags);
 				} else {
-					tag_array = response[tag];
+					tagarray = response[tag];
 				}
 				var tags = [];
-				for (var i = 0; i < tag_array.length; i++) {
-					tags.push(tag_array[i][0]);
+				for (var i = 0; i < tagarray.length; i++) {
+					tags.push(tagarray[i][0]);
 				}
 
 				callback.handleSearchResult(tag, o.enhanceTags(tags));

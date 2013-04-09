@@ -11,8 +11,8 @@ from optparse import OptionParser
 
 opt_parser = OptionParser()
 opt_parser.add_option('-f', '--tagfile',
-        default='http://danbooru.donmai.us/tag/index.xml?limit=0',
-        help="XML tag file URL")
+        default='http://danbooru.donmai.us/cache/tags.json',
+        help="JSON tag file URL")
 opt_parser.add_option('-o', '--outfile',
         default='danbooruUpUserJS.js',
         help="name of output file")
@@ -119,23 +119,20 @@ def urlopen_gzip(url):
         f = GzipFile(mode='rb', fileobj=StringIO(f.read()))
     return f
 
-tags = []
+def read_tags(json_file):
+    def format_tag(tag):
+        if 'count' in tag:
+            return (tag['name'], tag['type'], int(tag['ambiguous']), tag['count'])
+        else:
+            return (tag['name'], tag['category'], 0, tag['post_count'])
 
-class TagParser(xml.sax.ContentHandler):
-    def startDocument(self):
-        self.ntags = 0
-    def startElement(self, name, attrs):
-        if name == 'tag':
-            tags.append(
-                (attrs['name'], int(attrs['type']), int(attrs['ambiguous'] == 'true'), int(attrs['count']))
-            )
-        self.ntags += 1
-        if self.ntags & 0xFF == 0:
-            print '.',
+    tags = json.load(json_file);
+    return filter(lambda x: x[3] > 0, map(format_tag, tags));
+
 
 if not options.database:
     print "Reading tags..."
-    xml.sax.parse(urlopen_gzip(options.tagfile), TagParser())
+    tags = read_tags(urlopen_gzip(options.tagfile))
     print
 
     # Sort tags by tag count

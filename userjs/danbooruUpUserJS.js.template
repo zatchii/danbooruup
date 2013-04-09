@@ -69,8 +69,10 @@ if (!window.KeyEvent) {
 var KeyEvent = window.KeyEvent;
 
 
-IF DATABASE
 var site_uri = document.location.protocol + '//' + document.location.host;
+var is_danbooru_2 = site_uri == 'http://danbooru.donmai.us';
+
+IF DATABASE
 
 // Handles configuration.
 var danbooruUpConfig = {
@@ -241,7 +243,7 @@ var danbooruUpDBUpdater = {
 					function(t, r) {
 						// Initiate the update if we got the lock, else fail.
 						if (r.rowsAffected == 1) {
-							o.fetchTags();
+							o.doTagUpdate();
 						} else {
 							o.gui.status('Could not grab lock, aborting update.');
 						}
@@ -250,54 +252,110 @@ var danbooruUpDBUpdater = {
 		});
 	},
 
-	fetchTags: function()
+	doTagUpdate: function()
 	{
-		this.gui.status('Checking for tags...');
 		this.gui.busy(true);
 
 		var o = this;
-
 		this.database.readTransaction(function (t) {
 			t.executeSql('SELECT MAX(tag_id) AS max_id FROM tag', null, function(t, r) {
 				var max_id = r.rows[0].max_id;
-				var path = '/tag/index.json?limit=0';
-				if (max_id)
-					path += '&after_id=' + (max_id + 1);
-				var uri = site_uri + path;
 
-				var request = new window.XMLHttpRequest();
-				request.open('GET', uri);
-
-				request.onreadystatechange = function(event) {
-					if (this.readyState == 3) {
-						o.gui.status('Downloading...');
-					} else if (this.readyState == 4) {
-						if (this.status == 200) {
-							o.gui.status('Parsing...');
-							// var time1 = new Date().getTime();
-							var tags = JSON.parse(this.responseText);
-							// console.log('got ' + tags.length + ' tags, parsed in ' +(new Date().getTime() - time1));
-							o.insertTags(tags);
-						} else {
-							o.gui.error('Could not get tags. Status ' + this.status + '.');
+				if (is_danbooru_2) {
+					o.getMaxTagIdOnBooru(function(target_id) {
+						if (!max_id) max_id = 0;
+						if (target_id <= max_id) {
+							o.gui.status('Tags are up to date.');
+							on_success();
+							return;
 						}
-					}
-				};
-				o.config.setConfig('Aborts', o.config.getConfig('Aborts') + 1);
+						var need_full_update = target_id - max_id > 1000;
 
-				request.send();
-			});
+						var uri;
+						if (need_full_update) {
+							uri = site_uri + '/cache/tags.json';
+						} else {
+							uri = site_uri + '/tags.json?page=a' + max_id;
+						}
+						o.fetchAndInsertTags(uri, on_success, on_error);
+					}, on_error);
+				} else {
+					var path = '/tag/index.json?limit=0';
+					if (max_id)
+						path += '&after_id=' + (max_id + 1);
+					var uri = site_uri + path;
+
+					o.fetchAndInsertTags(uri, on_success, on_error);
+				}
+			})
 		});
+
+		function on_success() {
+			o.config.setConfig('LastUpdated', new Date().getTime());
+			o.gui.busy(false);
+		}
+		function on_error(msg) {
+			o.gui.error(msg);
+			o.gui.busy(false);
+		}
 	},
 
-	insertTags: function(tags)
+	getMaxTagIdOnBooru: function(callback, error) {
+		this.gui.status('Checking max tag id on site...');
+
+		var uri = site_uri + '/tags.json?search%5Border%5D=date';
+		var request = new window.XMLHttpRequest();
+		request.open('GET', uri);
+		request.onreadystatechange = function(event) {
+			if (this.readyState == 4) {
+				if (this.status == 200) {
+					var tags = JSON.parse(this.responseText);
+					callback(tags[0].id);
+				} else {
+					error('Could not get max tag id from site.');
+				}
+			}
+		};
+		request.send();
+	},
+
+	fetchAndInsertTags: function(uri, callback, error)
+	{
+		this.gui.status('Connecting...');
+
+		var o = this;
+
+		var request = new window.XMLHttpRequest();
+		request.open('GET', uri);
+
+		request.onreadystatechange = function(event) {
+			if (this.readyState == 3) {
+				o.gui.status('Downloading ' + uri + '...');
+			} else if (this.readyState == 4) {
+				if (this.status == 200) {
+					o.gui.status('Parsing...');
+					// var time1 = new Date().getTime();
+					var tags = JSON.parse(this.responseText);
+					// console.log('got ' + tags.length + ' tags, parsed in ' +(new Date().getTime() - time1));
+					o.insertTags(tags, callback, error);
+				} else {
+					error('Could not get tags. Status ' + this.status + '.');
+				}
+			}
+		};
+		o.config.setConfig('Aborts', o.config.getConfig('Aborts') + 1);
+
+		request.send();
+	},
+
+	insertTags: function(tags, callback, error)
 	{
 		// Could possibly get a small speedup by dropping the tag_name index before inserting many tags,
 		// and a larger one by not using placeholders in the query.
 
 		if (!tags.length) {
 			this.gui.status('No new tags.');
-			this.gui.busy(false);
+			callback();
 			return;
 		}
 
@@ -306,8 +364,14 @@ var danbooruUpDBUpdater = {
 		this.gui.status('Inserting tags...');
 		// var time = new Date().getTime();
 		this.database.transaction(function(t) {
-				o.batchify(t, 'INSERT OR IGNORE INTO tag(tag_id, tag_name, tag_count, tag_type, ambiguous)', 5,
-					tags.map(function(tag) {return [tag.id, tag.name, tag.count, tag.type, tag.ambiguous?1:0];}));
+			var tag_list;
+			if (is_danbooru_2) {
+				tag_list = (tags.filter(function(tag) {return tag.post_count > 0;})
+					.map(function(tag) {return [tag.id, tag.name, tag.post_count, tag.category, 0];}));
+			} else {
+				tag_list = tags.map(function(tag) {return [tag.id, tag.name, tag.count, tag.type, tag.ambiguous?1:0];});
+			}
+			o.batchify(t, 'INSERT OR IGNORE INTO tag(tag_id, tag_name, tag_count, tag_type, ambiguous)', 5, tag_list);
 		},
 		function(e) {
 			if (e.code == 4) { // QUOTA_ERR
@@ -317,16 +381,14 @@ var danbooruUpDBUpdater = {
 				o.config.setConfig('UpdateOnSubmit', false);
 				o.updateDisplay();
 			}
-			o.gui.error('Database insertion failed due to error, ' + e.message + ' (' + e.code + ').');
 			o.config.setConfig('Aborts', o.config.getConfig('Aborts') - 1000);
-			o.gui.busy(false);
+			error('Database insertion failed due to error, ' + e.message + ' (' + e.code + ').');
 		},
 		function() {
 			// console.log('Inserted in ' + (new Date().getTime() - time));
-			o.config.setConfig('LastUpdated', new Date().getTime());
 			o.config.setConfig('Aborts', o.config.getConfig('Aborts') - 1);
 			o.gui.status('Downloaded ' + tags.length + ' tags.');
-			o.gui.busy(false);
+			callback();
 		});
 	},
 
@@ -564,7 +626,7 @@ var danbooruUpGui = {
 
 	init: function()
 	{
-		var navbar = document.getElementById('navbar') || document.getElementById('links');
+		var navbar = document.getElementById('navbar') || document.getElementById('links') || document.querySelector('nav menu.main');
 		if (!navbar)
 			return;
 
@@ -1023,8 +1085,12 @@ ENDIF /*NOT_DATABASE*/
 	getRelated: function(tag, callback)
 	{
 		// Will only work if the booru is running from the top level.
-		var uri = document.location.protocol + '//' + document.location.host + '/tag/related.xml';
-		uri += '?tags=' + encodeURIComponent(tag);
+		var uri
+		if (is_danbooru_2) {
+			uri = site_uri + '/related_tag.json?query=' + encodeURIComponent(tag);
+		} else {
+			uri = site_uri + '/tag/related.json?tags=' + encodeURIComponent(tag);
+		}
 
 		var request = new window.XMLHttpRequest();
 		request.open('GET', uri);
@@ -1033,14 +1099,17 @@ ENDIF /*NOT_DATABASE*/
 		request.onreadystatechange = function(event) {
 			if (this.readyState == 4) {
 				if (this.status == 200) {
+					var response = JSON.parse(this.responseText);
+
+					var tagarray;
+					if (is_danbooru_2) {
+						tagarray = response.tags.concat(response.wiki_page_tags);
+					} else {
+						tagarray = response[tag];
+					}
 					var tags = [];
-					var el = this.responseXML.documentElement.firstChild;
-					while (el.nodeType != 1)
-						el = el.nextSibling;
-					for (var node = el.firstChild; node; node = node.nextSibling) {
-						if (node.nodeType != 1)
-							continue;
-						tags.push(node.getAttribute('name'));
+					for (var i = 0; i < tagarray.length; i++) {
+						tags.push(tagarray[i][0]);
 					}
 
 					o.enhanceTags(tags, function(etags) { callback(tag, etags); });

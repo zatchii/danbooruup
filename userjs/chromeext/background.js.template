@@ -1,4 +1,5 @@
 var site_uri = 'http://danbooru.donmai.us';
+var is_danbooru_2 = true;
 
 // Proxy for GUI events
 var danbooruUpGuiProxy = {
@@ -129,7 +130,12 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
 
 function uploadURL(urlinfo, tab)
 {
-	var pageuri = site_uri + '/post/upload?url=' + encodeURIComponent(urlinfo.srcUrl);
+	var pageuri;
+	if (is_danbooru_2) {
+		pageuri = site_uri + '/uploads/new?url=' + encodeURIComponent(urlinfo.srcUrl);
+	} else {
+		pageuri = site_uri + '/post/upload?url=' + encodeURIComponent(urlinfo.srcUrl);
+	}
 	chrome.windows.create({url: pageuri, width: 860});
 }
 
