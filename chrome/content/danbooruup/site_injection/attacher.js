@@ -64,8 +64,15 @@ if (document.location.pathname == '/') {
 }
 
 inhibitForm('post_tags');	// Post view and upload
+danbooruUpACAttacher('post_tags');
+
+inhibitForm('post_tag_string');	// Post view , Danbooru 2
+danbooruUpACAttacher('post_tag_string');
+
+inhibitForm('upload_tag_string');	// Post upload, Danbooru 2
+danbooruUpACAttacher('upload_tag_string');
+
 danbooruUpACAttacher('tags');	// Front and side
-danbooruUpACAttacher('post_tags');	// Post view and upload
 danbooruUpACAttacher('tag_name', 'search_single');	// Tag edit
 danbooruUpACAttacher('tag_alias_name', 'search_single');	// Tag alias
 danbooruUpACAttacher('tag_alias_alias', 'search_single');	// Tag alias
@@ -73,18 +80,23 @@ danbooruUpACAttacher('tag_implication_predicate', 'search_single');	// Tag impli
 danbooruUpACAttacher('tag_implication_consequent', 'search_single');	// Tag implication
 danbooruUpACAttacher('user_blacklisted_tags');	// User prefs
 danbooruUpACAttacher('user_uploaded_tags');	// User prefs
+danbooruUpACAttacher('user_favorite_tags');	// User prefs, Danbooru 2
 
-if (document.location.href.match(/\/tag(\/|\?|$)/)) {	// Tag search
+if (document.location.href.match(/\/tags?(\/|\?|$)/)) {	// Tag search
 	danbooruUpACAttacher('name', 'search_single');
+	danbooruUpACAttacher('quick_search_name_matches', 'search_single');
+	danbooruUpACAttacher('search_name_matches', 'search_single');
 }
-if (document.location.href.match(/\/tag_(alias|implication)(\/|\?|$)/)) {	// Tag alias/implication
+if (document.location.href.match(/\/tag_(alias(es)?|implications?)(\/|\?|$)/)) {	// Tag alias/implication
 	danbooruUpACAttacher('query', 'search_single');
 }
-if (document.location.href.match(/\/wiki(\/|$)/)) {
+if (document.location.href.match(/\/wiki(_pages)?(\/|$)/)) {
 	danbooruUpACAttacher('search-box');	// Wiki side bar
+	danbooruUpACAttacher('search_title', 'search_single');	// Wiki side bar, Danbooru 2
+	danbooruUpACAttacher('quick_search_title', 'search_single');	// Wiki side bar, Danbooru 2
 	danbooruUpACAttacher('wiki_page_title', 'search_single');	// Wiki add
 }
-if (document.location.href.match(/\/tag_subscription(\/|$)/)) {
+if (document.location.href.match(/\/tag_subscriptions?(\/|$)/)) {
 	// User subscriptions. Tricky.
 	// TODO: Bind new fields as they're ajax-added
 	let subscriptionInputs = document.getElementsByTagName('input');
