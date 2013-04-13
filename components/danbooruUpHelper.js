@@ -352,7 +352,7 @@ var danbooruUpHelperObject = {
 		function doSearch(e)
 		{
 			var command = e.target.getAttribute('command');
-			var query = e.target.getAttribute('query');
+			var query = JSON.parse(e.target.getAttribute('query'));
 			var return_fun = function(tag, result) {
 				Components.utils.evalInSandbox('unsafeWindow.danbooruUpCompleterResult = ' + [tag, result].toSource() + ';', sandbox);
 				var evt = sandbox.document.createEvent('Events');
@@ -360,19 +360,13 @@ var danbooruUpHelperObject = {
 				sandbox.window.dispatchEvent(evt);
 			};
 			if (command == 'search') {
-				let [tagstr, ctxstr] = query.split(' ');
-				let [tag, prefix] = tagstr.split('P');
-				let ctx = ctxstr.split(',');
-				danbooruUpHelperObject.tagService.autocompleteSearch(tag, prefix, ctx,
+				danbooruUpHelperObject.tagService.autocompleteSearch(query.tag, query.prefix, query.ctx,
 						return_fun
 				);
 			} else if (command == 'update') {
-				let [tagstr, ctxstr] = query.split(' ');
-				let tags = tagstr.split('X').map(function(x) x.split('P'));
-				let ctx = ctxstr.split(',');
-				danbooruUpHelperObject.tagService.updateTagHistory(tags, ctx);
+				danbooruUpHelperObject.tagService.updateTagHistory(query.tags, query.ctx);
 			} else if (command == 'related') {
-				danbooruUpHelperObject.tagService.searchRelatedTags(query,
+				danbooruUpHelperObject.tagService.searchRelatedTags(query.tag,
 						return_fun
 				);
 			}

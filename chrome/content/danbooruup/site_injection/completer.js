@@ -30,7 +30,7 @@ var danbooruUpCompleter = {
 		this.timer = null;
 		var tag = this.cur_tag.toLowerCase();
 		var prefix = this.cur_prefix.toLowerCase();
-		var query = [tag, 'P', prefix, ' ' , this.getContextStr(this.cur_search_type)].join('');
+		var query = {"tag": tag, "prefix": prefix, "ctx" : this.getContext(this.cur_search_type)};
 
 		this.sendRequest(query, 'search');
 	},
@@ -65,11 +65,6 @@ var danbooruUpCompleter = {
 		}
 	},
 
-	getContextStr: function(search_type)
-	{
-		return this.getContext(search_type).join(',').replace(' ', '');
-	},
-
 	// Called on window event, the result has been written to window.danbooruUpCompleterResult.
 	returnResult: function()
 	{
@@ -80,12 +75,11 @@ var danbooruUpCompleter = {
 	getRelated: function(tag, callback)
 	{
 		this.cur_callback = callback;
-		this.sendRequest(tag, 'related');
+		this.sendRequest({"tag" : tag}, 'related');
 	},
 
 	onSubmit: function(search_type, tags)
 	{
-		// TODO: Switch to JSON if dropping support for < 3.5
 		if (search_type == 'update') {
 			var old_tags = {};
 			var old_tag_el = document.getElementById('post_old_tags') || document.getElementById('post_old_tag_string');
@@ -93,18 +87,18 @@ var danbooruUpCompleter = {
 				old_tag_el.value.split(' ').forEach(function(tn) { old_tags[tn] = true; });
 			tags = tags.filter(function(tag) !(tag[0] in old_tags));
 		}
-		var tagstr = tags.map(function(t) t[0].toLowerCase() + 'P' + t[1].toLowerCase()).join('X');
-		var context = this.getContextStr(search_type);
-		var query = [tagstr, context].join(' ');
+		tags = tags.map(function(t) { return [t[0].toLowerCase(), t[1].toLowerCase()]; });
+		var context = this.getContext(search_type);
+		var query = {"tags": tags, "ctx": context};
 
 		this.sendRequest(query, 'update');
 	},
 
-	sendRequest: function(tag, command)
+	sendRequest: function(query, command)
 	{
 		var element = document.createElement('DUSearch');
 		element.setAttribute('command', command);
-		element.setAttribute('query', tag);
+		element.setAttribute('query', JSON.stringify(query));
 		document.documentElement.appendChild(element);
 
 		var evt = document.createEvent("Events");
