@@ -34,7 +34,6 @@ function inhibitForm(id) {
 				el.danbooruUpAutoCompleter) {
 			// Acts on event and stops propagation if appropriate.
 			el.danbooruUpAutoCompleter.onKeyDown(ev);
-			el.danbooruUpAutoCompleter.onKeyPress(ev);
 		}
 	}, true);
 
@@ -67,10 +66,10 @@ inhibitForm('post_tags');	// Post view and upload
 danbooruUpACAttacher('post_tags');
 
 inhibitForm('post_tag_string');	// Post view , Danbooru 2
-danbooruUpACAttacher('post_tag_string');
+danbooruUpACAttacher('post_tag_string', 'update');
 
 inhibitForm('upload_tag_string');	// Post upload, Danbooru 2
-danbooruUpACAttacher('upload_tag_string');
+danbooruUpACAttacher('upload_tag_string', 'post');
 
 danbooruUpACAttacher('tags');	// Front and side
 danbooruUpACAttacher('tag_name', 'search_single');	// Tag edit

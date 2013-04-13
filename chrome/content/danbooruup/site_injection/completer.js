@@ -30,7 +30,7 @@ var danbooruUpCompleter = {
 		this.timer = null;
 		var tag = this.cur_tag.toLowerCase();
 		var prefix = this.cur_prefix.toLowerCase();
-		var query = [tag, 'P', prefix, ' ' , this.getContextStr()].join('');
+		var query = [tag, 'P', prefix, ' ' , this.getContextStr(this.cur_search_type)].join('');
 
 		this.sendRequest(query, 'search');
 	},
@@ -38,8 +38,9 @@ var danbooruUpCompleter = {
 	getContext: function(search_type)
 	{
 		if (search_type == 'post') {
-			var source = document.getElementById('post_source').value;
-			var match = source.match(/(?:.*:\/\/)?(.*?)\/(.*)/);
+			var source = document.getElementById('post_source') || document.getElementById('upload_source');
+			var match = null;
+			if (source) match = source.value.match(/(?:.*:\/\/)?(.*?)\/(.*)/);
 			// Domain name except top level, and path name except file name.
 			if (match)
 				return ['__ALL__'].concat(match[1].split('.').slice(0,-1), match[2].split('/').slice(0,-1));
@@ -48,13 +49,12 @@ var danbooruUpCompleter = {
 		} else if (search_type == 'update') {
 			var context = ['__ALL__', '__UPDATE__'];
 			// Grab first artist and copyright, if available.
-			var tags = document.getElementById('tag-sidebar');
-			var artist;
-			var copy;
-			if (tags.querySelector) {
-				artist = tags.querySelector('.tag-type-artist > a:last-of-type');
-				copy = tags.querySelector('.tag-type-copyright > a:last-of-type');
-			}
+			var tags = document.getElementById('tag-sidebar') || document.getElementById('tag-list');
+			if (!tags) return context;
+			var artist = tags.querySelector('.tag-type-artist > a:last-of-type') ||
+				tags.querySelector('.category-1 .search-tag');
+			var copy = tags.querySelector('.tag-type-copyright > a:last-of-type') ||
+				tags.querySelector('.category-3 .search-tag');
 			if (artist)
 				context.push(artist.textContent.replace(' ', '_'));
 			if (copy)
@@ -88,12 +88,14 @@ var danbooruUpCompleter = {
 		// TODO: Switch to JSON if dropping support for < 3.5
 		if (search_type == 'update') {
 			var old_tags = {};
-			document.getElementById('post_old_tags').value.split(' ').forEach(function(tn) { old_tags[tn] = true; });
+			var old_tag_el = document.getElementById('post_old_tags') || document.getElementById('post_old_tag_string');
+			if (old_tag_el)
+				old_tag_el.value.split(' ').forEach(function(tn) { old_tags[tn] = true; });
 			tags = tags.filter(function(tag) !(tag[0] in old_tags));
 		}
 		var tagstr = tags.map(function(t) t[0].toLowerCase() + 'P' + t[1].toLowerCase()).join('X');
-		var context = this.getContextStr();
-		var query = [tagstr, this.getContextStr()].join(' ');
+		var context = this.getContextStr(search_type);
+		var query = [tagstr, context].join(' ');
 
 		this.sendRequest(query, 'update');
 	},
