@@ -102,7 +102,7 @@ danbooruACXULPopup.prototype = {
 		evt.initKeyEvent('keypress', true, false, window, false, false, false, false, KeyEvent.DOM_VK_LEFT, 0);
 		textfield.inputField.dispatchEvent(evt);
 		evt = document.createEvent("KeyboardEvent");
-		evt.initKeyEvent('keypress', false, false, window, false, false, false, false, KeyEvent.DOM_VK_RIGHT, 0);
+		evt.initKeyEvent('keypress', true, false, window, false, false, false, false, KeyEvent.DOM_VK_RIGHT, 0);
 		textfield.inputField.dispatchEvent(evt);
 	}
 };
