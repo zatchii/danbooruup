@@ -12,7 +12,6 @@ pref("extensions.danbooruUp.autocomplete.site.enabled", true);
 pref("extensions.danbooruUp.autocomplete.altsearch", false);
 pref("extensions.danbooruUp.autocomplete.completewithtab", false);
 pref("extensions.danbooruUp.autocomplete.suggestprefixes", false);
-pref("extensions.danbooruUp.autocomplete.threaded", true);
 pref("extensions.danbooruUp.autocomplete.limit", 100);
 pref("extensions.danbooruUp.autocomplete.keephistory", true);
 pref("extensions.danbooruUp.autocomplete.update.onstartup", true);

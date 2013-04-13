@@ -173,9 +173,6 @@ var gDanbooruManager = {
 
     var appInfo = Components.classes["@mozilla.org/xre/app-info;1"].getService(Components.interfaces.nsIXULAppInfo);
     var versionChecker = Components.classes["@mozilla.org/xpcom/version-comparator;1"].getService(Components.interfaces.nsIVersionComparator);
-    this.isFF4 = versionChecker.compare(appInfo.platformVersion, "1.*") > 0;
-    if (this.isFF4)
-      document.getElementById("threadedSearch").disabled = true;
   },
 
   // used by danbooruUpBox and Options

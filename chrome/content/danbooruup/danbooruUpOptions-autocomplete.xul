@@ -22,7 +22,6 @@
 		    "altSearch",
 		    "suggestPrefixes",
 		    "completeWithTab",
-		    "threadedSearch",
 		    "resultLimit",
 		    "updateURL",
 		    "clearTags",
@@ -35,8 +34,6 @@
 		for (let i=0; i<elements.length; i++) {
 		    document.getElementById(elements[i]).disabled = !pref.value;
 		}
-		if (gDanbooruManager.isFF4)
-		    document.getElementById("threadedSearch").disabled = true;
 		if (pref.value) {
 		    onReadUpdateOnTimer();
 		}
@@ -96,8 +93,6 @@
 			    name="extensions.danbooruUp.autocomplete.suggestprefixes"		type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.completewithtab"
 			    name="extensions.danbooruUp.autocomplete.completewithtab"		type="bool" />
-		<preference id="pref.extensions.danbooruUp.autocomplete.threaded"
-			    name="extensions.danbooruUp.autocomplete.threaded"			type="bool" />
 		<preference id="pref.extensions.danbooruUp.autocomplete.limit"
 			    name="extensions.danbooruUp.autocomplete.limit"			type="int"/>
 		<preference id="pref.extensions.danbooruUp.updateuri"				instantApply="true"
@@ -146,11 +141,6 @@
 			  label="&danbooruUpOptions.completeWithTab.label;"
 			  accesskey="&danbooruUpOptions.completeWithTab.accesskey;"
 			  tooltiptext="&danbooruUpOptions.completeWithTab.tooltip;"/>
-		<checkbox id="threadedSearch" 
-			  preference="pref.extensions.danbooruUp.autocomplete.threaded"
-			  label="&danbooruUpOptions.threadedSearch.label;"
-			  accesskey="&danbooruUpOptions.threadedSearch.accesskey;"
-			  tooltiptext="&danbooruUpOptions.threadedSearch.tooltip;"/>
 		<hbox align="center">
 			<label control="resultLimit"
 			       value="&danbooruUpOptions.resultLimit.label;"

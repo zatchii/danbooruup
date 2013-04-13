@@ -57,54 +57,8 @@ const versionChecker = Cc["@mozilla.org/xpcom/version-comparator;1"].getService(
 
 function __log(msg)
 {
-	if (threadManager.isMainThread)
-		Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).logStringMessage(msg);
-	else
-		threadManager.mainThread.dispatch({run: function() { __log('fo ' + msg); }}, threadManager.mainThread.DISPATCH_NORMAL);
+	Components.classes["@mozilla.org/consoleservice;1"].getService(Components.interfaces.nsIConsoleService).logStringMessage(msg);
 	return msg;
-}
-
-// Check for Gecko >= 2.0
-const isFF4 = versionChecker.compare(appInfo.platformVersion, "1.*") > 0;
-
-var bgThread;
-
-if (!isFF4) {
-	bgThread = threadManager.newThread(0);
-
-	function bgDispatch(fun, callback)
-	{
-		var n_callback = function() {
-			var args = arguments;
-			threadManager.mainThread.dispatch({ run: function() {callback.apply(null, args);} }, threadManager.mainThread.DISPATCH_NORMAL);
-		}
-		bgThread.dispatch({ run: function() { fun(n_callback); } }, bgThread.DISPATCH_NORMAL);
-	}
-
-	// Kind of pointless ATM... Considered making all db access from same thread.
-	function bgDispatchSync(fun)
-	{
-		var r = {};
-		bgThread.dispatch({ run: function() { r.result = fun(); } }, bgThread.DISPATCH_SYNC);
-		return r.result;
-	}
-
-} else {
-	/*
-	 * In Firefox 4, JS objects can not be passed between threads.
-	 * For now, just cludge the thread support with dummy functions.
-	 * It would probably be better to remove the threading and switch to asynchronous DB calls.
-	 */
-
-	function bgDispatch(fun, callback)
-	{
-		fun(callback);
-	}
-
-	function bgDispatchSync(fun)
-	{
-		return fun();
-	}
 }
 
 // Testing.
@@ -173,18 +127,14 @@ var tagHistoryService = {
 	dbGetSimple: function(statement, method)
 	{
 		var db = this.db;
-		return bgDispatchSync(
-			function() {
-				var stmt = db.createStatement(statement);
-				try {
-					stmt.executeStep();
-					var res = stmt[method](0);
-				} finally {
-					stmt.finalize();
-				}
-				return res;
-			}
-		);
+		var stmt = db.createStatement(statement);
+		try {
+			stmt.executeStep();
+			var res = stmt[method](0);
+		} finally {
+			stmt.finalize();
+		}
+		return res;
 	},
 
 	setUpTables: function()
@@ -351,14 +301,7 @@ var tagHistoryService = {
 			context = context.concat('__NEG__');
 			prefix = prefix.slice(1);
 		}
-		if (this._acPrefs.getBoolPref('threaded')) {
-			bgDispatch(
-				function(cb) { tagHistoryService.searchTags(query, prefix, context, limit, alternate, db, cb); },
-				callback.handleSearchResult
-			);
-		} else {
-			this.searchTags(query, prefix, context, limit, alternate, db, callback.handleSearchResult);
-		}
+		this.searchTags(query, prefix, context, limit, alternate, db, callback.handleSearchResult);
 	},
 
 	clearTags: function()
@@ -408,67 +351,97 @@ var tagHistoryService = {
 
 		// First get recently used tags.
 		var stmt = db.createStatement(this.expandQuery(kHistorySearch, context.length));
-		try {
-			query = stmt.escapeStringForLIKE(query, '\\');
-			query = query.replace(/\*/g, '%');
-			stmt.bindStringParameter(0, query);
-			for (var i = 1; i <= context.length; i++)
-				stmt.bindStringParameter(i, context[i - 1]);
-			stmt.bindInt32Parameter(context.length + 1, limit);
+		query = stmt.escapeStringForLIKE(query, '\\');
+		query = query.replace(/\*/g, '%');
+		stmt.bindStringParameter(0, query);
+		for (var i = 1; i <= context.length; i++)
+			stmt.bindStringParameter(i, context[i - 1]);
+		stmt.bindInt32Parameter(context.length + 1, limit);
 
-			while (stmt.executeStep()) {
-				res.push([stmt.getString(0), stmt.getInt32(1), stmt.getInt32(2)]);
-				seen[stmt.getString(0)] = true;
+		stmt.executeAsync({
+			handleError: function(error) {
+				__log("history search failed: " + error.message);
+			},
+			handleResult: function(result) {
+				var row, tag_name, tag_type, ambiguous;
+				while (row = result.getNextRow()) {
+					tag_name = row.getResultByIndex(0);
+					tag_type = row.getResultByIndex(1);
+					ambiguous = row.getResultByIndex(2);
+					res.push([tag_name, tag_type, ambiguous]);
+					seen[tag_name] = true;
+				}
+			},
+			handleCompletion: function(reason) {
+				if (reason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
+					return;
+				// var time2 = (new Date()).getTime();
+
+				// Then fill up with normal results.
+				stmt = db.createStatement(kTagSearch);
+				stmt.bindStringParameter(0, query);
+				stmt.bindInt32Parameter(1, limit);
+
+				stmt.executeAsync({
+					handleError: function(error) {
+						__log("tag search failed: " + error.message);
+					},
+					handleResult: function(result) {
+						var row, tag_name, tag_type, ambiguous;
+						while (res.length < limit && (row = result.getNextRow())) {
+							tag_name = row.getResultByIndex(0);
+							tag_type = row.getResultByIndex(1);
+							ambiguous = row.getResultByIndex(2);
+							if (!seen[tag_name])
+								res.push([tag_name, tag_type, ambiguous]);
+						}
+					},
+					handleCompletion: function(reason) {
+						if (reason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
+							return;
+						// var time3 = (new Date()).getTime();
+						/* dump('\nq1 used ');
+						dump(time2 - time1);
+						dump('\nq2 used ');
+						dump(time3 - time2);
+						*/
+						callback(aquery, res);
+					}
+				});
 			}
-		} finally {
-			stmt.finalize();
-		}
-		// var time2 = (new Date()).getTime();
-
-		// Then fill up with normal results.
-		stmt = db.createStatement(kTagSearch);
-		try {
-			stmt.bindStringParameter(0, query);
-			stmt.bindInt32Parameter(1, limit);
-			while (res.length < limit && stmt.executeStep()) {
-				if (!seen[stmt.getString(0)])
-					res.push([stmt.getString(0), stmt.getInt32(1), stmt.getInt32(2)]);
-			}
-		} finally {
-			stmt.finalize();
-		}
-		// var time3 = (new Date()).getTime();
-
-		/* dump('\nq1 used ');
-		dump(time2 - time1);
-		dump('\nq2 used ');
-		dump(time3 - time2);
-		*/
-
-		callback(aquery, res);
+		});
 	},
 
 	searchSpecs: function(query, prefix, context, limit, db, callback)
 	{
 		var res = [];
 		var stmt = db.createStatement(this.expandQuery(kSpecSearch, context.length));
-		try {
-			query = stmt.escapeStringForLIKE(query, '\\');
-			query = query.replace(/\*/g, '%');
-			stmt.bindStringParameter(0, query);
-			for (var i = 1; i <= context.length; i++)
-				stmt.bindStringParameter(i, context[i - 1]);
-			stmt.bindStringParameter(context.length + 1, prefix);
-			stmt.bindInt32Parameter(context.length + 2, limit);
+		query = stmt.escapeStringForLIKE(query, '\\');
+		query = query.replace(/\*/g, '%');
+		stmt.bindStringParameter(0, query);
+		for (var i = 1; i <= context.length; i++)
+			stmt.bindStringParameter(i, context[i - 1]);
+		stmt.bindStringParameter(context.length + 1, prefix);
+		stmt.bindInt32Parameter(context.length + 2, limit);
 
-			while (stmt.executeStep()) {
-				res.push([stmt.getString(0), 0, 0]);
+		stmt.executeAsync({
+			handleError: function(error) {
+				__log("metatag history search failed: " + error.message);
+			},
+			handleResult: function(result) {
+				var row, tag_name;
+				while (row = result.getNextRow()) {
+					tag_name = row.getResultByIndex(0);
+					res.push([tag_name, 0, 0]);
+				}
+			},
+			handleCompletion: function(reason) {
+				if (reason != Ci.mozIStorageStatementCallback.REASON_FINISHED)
+					return;
+				callback('', res);
 			}
-		} finally {
-			stmt.finalize();
-		}
+		});
 
-		callback('', res);
 	},
 
 	updateTagListFromURI: function(uri, progress)
@@ -538,7 +511,7 @@ var tagHistoryService = {
 		);
 
 		return function() {
-			concelled = true;
+			cancelled = true;
 			if (cancelCb) cancelCb();
 		};
 
