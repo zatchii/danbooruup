@@ -1,0 +1,10 @@
+chrome/danbooruup.jar
+components/danbooruac.xpt
+*.oex
+*.xpi
+*.crx
+danbooruUpUserJS.js
+userjs/chrome.zip
+userjs/chromebuild
+userjs/chromeext/*.js
+userjs/operaext/includes/danbooruUpUserJS.js
