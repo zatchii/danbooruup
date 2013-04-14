@@ -257,37 +257,31 @@ var danbooruUpDBUpdater = {
 		this.gui.busy(true);
 
 		var o = this;
-		this.database.readTransaction(function (t) {
-			t.executeSql('SELECT MAX(tag_id) AS max_id FROM tag', null, function(t, r) {
-				var max_id = r.rows[0].max_id;
+		this.getMaxTagId(function(max_id) {
+			if (is_danbooru_2) {
+				o.getMaxTagIdOnBooru(function(target_id) {
+					if (target_id <= max_id) {
+						o.gui.status('Tags are up to date.');
+						on_success();
+						return;
+					}
+					var need_full_update = target_id - max_id > 2000;
 
-				if (is_danbooru_2) {
-					o.getMaxTagIdOnBooru(function(target_id) {
-						if (!max_id) max_id = 0;
-						if (target_id <= max_id) {
-							o.gui.status('Tags are up to date.');
-							on_success();
-							return;
-						}
-						var need_full_update = target_id - max_id > 1000;
-
-						var uri;
-						if (need_full_update) {
-							uri = site_uri + '/cache/tags.json';
-						} else {
-							uri = site_uri + '/tags.json?page=a' + max_id;
-						}
+					if (need_full_update) {
+						var uri = site_uri + '/cache/tags.json';
 						o.fetchAndInsertTags(uri, on_success, on_error);
-					}, on_error);
-				} else {
-					var path = '/tag/index.json?limit=0';
-					if (max_id)
-						path += '&after_id=' + (max_id + 1);
-					var uri = site_uri + path;
+					} else {
+						o.fetchTagsRepeated(target_id, 20, on_success, on_error);
+					}
+				}, on_error);
+			} else {
+				var path = '/tag/index.json?limit=0';
+				if (max_id)
+					path += '&after_id=' + (max_id + 1);
+				var uri = site_uri + path;
 
-					o.fetchAndInsertTags(uri, on_success, on_error);
-				}
-			})
+				o.fetchAndInsertTags(uri, on_success, on_error);
+			}
 		});
 
 		function on_success() {
@@ -300,7 +294,18 @@ var danbooruUpDBUpdater = {
 		}
 	},
 
-	getMaxTagIdOnBooru: function(callback, error) {
+	getMaxTagId: function(callback)
+	{
+		this.database.readTransaction(function (t) {
+			t.executeSql('SELECT MAX(tag_id) AS max_id FROM tag', null, function(t, r) {
+				var max_id = r.rows[0].max_id || 0;
+				callback(max_id);
+			});
+		});
+	},
+
+	getMaxTagIdOnBooru: function(callback, error)
+	{
 		this.gui.status('Checking max tag id on site...');
 
 		var uri = site_uri + '/tags.json?search%5Border%5D=date';
@@ -319,6 +324,43 @@ var danbooruUpDBUpdater = {
 		request.send();
 	},
 
+	// Do several update attempts up to a set limit to get up to date
+	fetchTagsRepeated: function(target_id, max_attempts, callback, error)
+	{
+		var o = this;
+
+		do_fetch();
+
+		function do_fetch() {
+			if (max_attempts <= 0) {
+				callback();
+				return;
+			}
+			max_attempts--;
+			o.getMaxTagId(function(max_id) {
+				if (target_id <= max_id) {
+					callback();
+					return;
+				}
+
+				var uri = site_uri + '/tags.json?page=a' + max_id;
+				o.fetchAndInsertTags(
+					uri,
+					function(ntags) {
+						// Stop if no tags were returned
+						if (ntags > 0)
+							do_fetch();
+						else
+							callback();
+					},
+					error
+				);
+			});
+		}
+	},
+
+	// Fetch tags from URI and insert them to the database.
+	// Calls callback with number of tags returned from API.
 	fetchAndInsertTags: function(uri, callback, error)
 	{
 		this.gui.status('Connecting...');
@@ -337,7 +379,7 @@ var danbooruUpDBUpdater = {
 					// var time1 = new Date().getTime();
 					var tags = JSON.parse(this.responseText);
 					// console.log('got ' + tags.length + ' tags, parsed in ' +(new Date().getTime() - time1));
-					o.insertTags(tags, callback, error);
+					o.insertTags(tags, function() { callback(tags.length); }, error);
 				} else {
 					error('Could not get tags. Status ' + this.status + '.');
 				}
@@ -375,7 +417,7 @@ var danbooruUpDBUpdater = {
 		},
 		function(e) {
 			if (e.code == 4) { // QUOTA_ERR
-				alert('An update of the DanbooruUp tag database failed due to insufficient storage quota.\n' + 
+				alert('An update of the DanbooruUp tag database failed due to insufficient storage quota.\n' +
 					'Please increase the local storage quota before enabling updates.');
 				o.config.setConfig('EnableUpdates', false);
 				o.config.setConfig('UpdateOnSubmit', false);
@@ -559,7 +601,8 @@ var danbooruUpDBUpdater = {
 	},
 
 	// Search search specifier history
-	specSearch: function(query, specifier, context, limit, callback) {
+	specSearch: function(query, specifier, context, limit, callback)
+	{
 		this.database.readTransaction(function(t) {
 			t.executeSql('SELECT value FROM spec_history WHERE ' +
 				'spec=? AND value glob ? AND context IN (' + new Array(context.length + 1).join('?, ').slice(0, -2) + ') ' +
@@ -630,7 +673,7 @@ var danbooruUpGui = {
 		if (!navbar)
 			return;
 
-		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em;' + 
+		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em;' +
 			' -o-transition: opacity 0.2s; -webkit-transition: opacity 0.2s; } ' +
 			'#dbu_panel h3 { font-family: "verdana", sans-serif; font-size: 15px; font-weight: 400; margin-left: 1em;} ' +
 			'#dbu_panel ul { list-style: none; margin: 0} #dbu_panel li { margin: 0; margin-top: 0.2em; } ' +

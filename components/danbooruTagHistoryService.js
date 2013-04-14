@@ -544,7 +544,7 @@ var tagHistoryService = {
 		);
 	},
 
-	// Do several update attempts up to a set limit to get up do date
+	// Do several update attempts up to a set limit to get up to date
 	fetchTagsRepeated: function(uri, targetId, maxAttempts, complete, error, progress)
 	{
 		var o = this;
