@@ -31,7 +31,7 @@
 <!ENTITY danbooruUpOptions.tagtype.selected		"Selected">
 
 <!ENTITY danbooruUpOptions.danbooruTab.label		"Danbooru Sites">
-<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here. The sites listed here will also have site autocompletion enabled for them. There must always be at least one entry in this list. Older danbooru sites may still use api/add_post, or post/upload.xml but the most recent version uses post/create.xml.">
+<!ENTITY danbooruUpOptions.danbooruText			"Add extra danbooru here. The sites listed here will also have site autocompletion enabled for them. There must always be at least one entry in this list. Danbooru&#160;1 sites usually use /post/create.xml, while Danbooru&#160;2 uses /uploads.xml.">
 <!ENTITY danbooruUpOptions.posturi.label		"URL of post/create.xml:">
 <!ENTITY danbooruUpOptions.posturi.accesskey		"U">
 <!ENTITY danbooruUpOptions.add.label			"Add Site">
@@ -57,7 +57,7 @@
 <!ENTITY danbooruUpOptions.resultLimit.label		"Limit search results to">
 <!ENTITY danbooruUpOptions.resultLimit.accesskey	"L">
 <!ENTITY danbooruUpOptions.matches.label		"matches">
-<!ENTITY danbooruUpOptions.updateURL.description	"The update URL is also used to get the location of tag/related.xml for the related tag lookup.">
+<!ENTITY danbooruUpOptions.updateURL.description	"The update URL is also used to get the URI for the related tag lookup.">
 <!ENTITY danbooruUpOptions.updateURL.label		"Update URL:">
 <!ENTITY danbooruUpOptions.updateURL.accesskey		"U">
 <!ENTITY danbooruUpOptions.clearTags.label		"Clear Tags">

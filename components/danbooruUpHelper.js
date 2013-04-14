@@ -72,6 +72,8 @@ var danbooruUpHelperObject = {
 		this._branch.QueryInterface(Components.interfaces.nsIPrefBranch2);
 		this._branch.addObserver("", this, false);
 
+		this.rewriteOldConfig();
+
 		try {
 			this._tagService = Cc["@unbuffered.info/danbooru/taghistory-service;1"]
 						.getService(Ci.danbooruITagHistoryService);
@@ -91,6 +93,25 @@ var danbooruUpHelperObject = {
 
 		this.startupUpdate();
 	},
+
+	// Update old default config
+	rewriteOldConfig: function()
+	{
+		var cur_postadduri = this._branch.getCharPref('postadduri');
+		var cur_updateuri = this._branch.getCharPref('updateuri');
+
+		var new_postadduri = (cur_postadduri
+			.replace('http://danbooru.donmai.us/post/create.xml', 'http://danbooru.donmai.us/uploads.xml'));
+		var new_updateuri = (cur_updateuri
+			.replace('http://danbooru.donmai.us/tag/index.xml', 'http://danbooru.donmai.us/tags.json')
+			.replace(/\/index\.xml$/, '/index.json'));
+
+		if (new_postadduri !== cur_postadduri)
+			this._branch.setCharPref('postadduri', new_postadduri);
+		if (new_updateuri !== cur_updateuri)
+			this._branch.setCharPref('updateuri', new_updateuri);
+	},
+
 	unregister: function()
 	{
 		if(this._branch)
