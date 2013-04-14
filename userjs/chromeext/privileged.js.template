@@ -75,14 +75,14 @@ var danbooruUpMessageProxyLower = {
 
 	sendTagRequest: function(message)
 	{
-		chrome.extension.sendRequest(message, function(answer) {
+		chrome.runtime.sendMessage(message, function(answer) {
 			danbooruUpDOMProxyUpper.sendAnswer('SearchResult', answer);
 		});
 	},
 
 	sendRequest: function(message)
 	{
-		chrome.extension.sendRequest(message);
+		chrome.runtime.sendMessage(message);
 	},
 
 	// Config functions
@@ -95,7 +95,7 @@ var danbooruUpMessageProxyLower = {
 
 	setConfig: function(name, value)
 	{
-		chrome.extension.sendRequest({action: 'SetConfig', name: name, value: value});
+		chrome.runtime.sendMessage({action: 'SetConfig', name: name, value: value});
 	},
 
 	// Requests configuration settings from the background process.
@@ -103,7 +103,7 @@ var danbooruUpMessageProxyLower = {
 	requestConfig: function(callback)
 	{
 		var o = this;
-		chrome.extension.sendRequest({action:'RequestConfig'}, function(result) {
+		chrome.runtime.sendMessage({action:'RequestConfig'}, function(result) {
 			o.config = result;
 			o.loaded = true;
 			danbooruUpDOMProxyUpper.sendConfig();
@@ -114,15 +114,15 @@ var danbooruUpMessageProxyLower = {
 
 	// Database functions
 	checkForUpdate: function(interactive) {
-		chrome.extension.sendRequest({action: 'CheckForUpdate', interactive: interactive});
+		chrome.runtime.sendMessage({action: 'CheckForUpdate', interactive: interactive});
 	},
 
 	clearTags: function() {
-		chrome.extension.sendRequest({action: 'ClearTags'});
+		chrome.runtime.sendMessage({action: 'ClearTags'});
 	},
 
 	clearHistory: function() {
-		chrome.extension.sendRequest({action: 'ClearHistory'});
+		chrome.runtime.sendMessage({action: 'ClearHistory'});
 	}
 };
 

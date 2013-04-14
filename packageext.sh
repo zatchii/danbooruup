@@ -9,7 +9,7 @@ set -e
 #zip -Xj danbooruup.crx userjs/chromeext/{background.html,background.js,inject.js,manifest.json,icon*.png}
 rm -rf userjs/chromebuild
 mkdir userjs/chromebuild
-cp userjs/chromeext/{background.html,background.js,inject.js,manifest.json,icon*.png} userjs/chromebuild/
+cp userjs/chromeext/{background.js,inject.js,manifest.json,icon*.png} userjs/chromebuild/
 
 echo 'Packaging Opera...'
 rm -f danbooruup.oex

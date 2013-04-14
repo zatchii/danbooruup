@@ -64,14 +64,16 @@ chrome.extension.onConnect.addListener(function(port) {
 });
 
 // Listen for and process requests from content scripts.
-chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
-	if (!sender) return;
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+	if (!sender) return false;
+	var will_respond = false;
 	switch (request.action) {
 		case 'TagSearch':
 			danbooruUpDBUpdater.tagSearch(
 				request.data.glob,
 				request.data.limit,
 				sendResponse);
+			will_respond = true;
 			break;
 		case 'HistorySearch':
 			danbooruUpDBUpdater.historySearch(
@@ -79,6 +81,7 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
 				request.data.context,
 				request.data.limit,
 				sendResponse);
+			will_respond = true;
 			break;
 		case 'SpecSearch':
 			danbooruUpDBUpdater.specSearch(
@@ -87,18 +90,21 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
 				request.data.context,
 				request.data.limit,
 				sendResponse);
+			will_respond = true;
 			break;
 		case 'EnhanceTags':
 			danbooruUpDBUpdater.enhanceTags(
 				request.data.tags,
 				sendResponse);
+			will_respond = true;
 			break;
 		case 'UpdateTagHistory':
+			if (sender.tab && sender.tab.incognito)
+				break;
 			danbooruUpDBUpdater.updateTagHistory(
 				request.data.used_context,
 				request.data.tag_contexts,
-				request.data.specifier_contexts,
-				sendResponse);
+				request.data.specifier_contexts);
 			break;
 
 		case 'CheckForUpdate':
@@ -124,6 +130,8 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
 		default:
 			console.error('Unknown request ' + request.action);
 	}
+
+	return will_respond;
 });
 
 // Add a context menu item to images.
@@ -139,8 +147,12 @@ function uploadURL(urlinfo, tab)
 	chrome.windows.create({url: pageuri, width: 860});
 }
 
+chrome.runtime.onInstalled.addListener(function() {
 chrome.contextMenus.create({
+	'id' : 'dbupload',
 	'title': 'Upload to Danbooru',
-	'contexts': ['image'],
-	'onclick': uploadURL
+	'contexts': ['image']
 });
+});
+
+chrome.contextMenus.onClicked.addListener(uploadURL);

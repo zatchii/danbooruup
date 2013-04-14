@@ -312,7 +312,7 @@ var danbooruUpDBUpdater = {
 					var tags = JSON.parse(this.responseText);
 					callback(tags[0].id);
 				} else {
-					error('Could not get max tag id from site.');
+					error('Could not get max tag id from site, got ' + this.status + '.');
 				}
 			}
 		};

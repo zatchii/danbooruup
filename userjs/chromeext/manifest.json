@@ -1,8 +1,12 @@
 {
+	"manifest_version": 2,
 	"name": "DanbooruUp",
 	"version": "0.4.0",
 	"description": "Tag completion for the Danbooru web site.",
-	"background_page": "background.html",
+	"background": {
+		"scripts": ["background.js"],
+		"persistent": false
+	},
 	"homepage_url": "http://pianosite.net/danbooruup/",
 	"icons": {
 		"16": "icon_16.png",
