@@ -48,32 +48,46 @@ AutoCompleter.prototype = {
 	disabled: false,
 
 	search_prefixes: [
-		'user:',
 		'ordfav:',
+		'fastfav:',
+		//'unlocked:',
+		'user:',
+		'approver:',
+		'commenter:',
+		//'comm:',
+		'noter:',
+		'pool:',
+		'fav:',
+		'sub:',
+		'md5:',
 		'rating:',
-		'source:',
+		'locked:',
 		'width:',
 		'height:',
-		'score:',
 		'mpixels:',
+		'score:',
+		'favcount:',
 		'filesize:',
+		'source:',
+		//'id:',
 		'date:',
+		'order:',
+		'status:',
+		'tagcount:',
 		'gentags:',
 		'arttags:',
 		'chartags:',
 		'copytags:',
-		'status:',
-		'approver:',
-		'order:',
 		'parent:',
-		'unlocked:',
-		'pool:',
+		'pixiv_id:',
+		//'pixiv:',
 	],
 
 	tagParser: {
 		searchParser: function(tag)
 		{
-			var search_re = /^(:?|user|fav|fastfav|ordfav|md5|-?rating|source|id|width|height|score|mpixels|filesize|date|gentags|arttags|chartags|copytags|status|approver|order|parent|unlocked|sub|pool):|^-|^~/i;
+			// ordfav, fastfav and unlocked are from Danbooru 1. The rest are either both or Danbooru 2 only
+			var search_re = /^(ordfav|fastfav|unlocked|-user|user|-approver|approver|commenter|comm|noter|-pool|pool|-fav|fav|sub|md5|-rating|rating|-locked|locked|width|height|mpixels|score|favcount|filesize|source|id|date|order|-status|status|tagcount|gentags|arttags|chartags|copytags|parent|-parent|pixiv_id|pixiv):|^-|^~/i;
 			var match = search_re.exec(tag);
 			var prefix = match ? match[0] : '';
 			return [tag.slice(prefix.length), prefix];
@@ -86,7 +100,7 @@ AutoCompleter.prototype = {
 
 		postParser: function(tag)
 		{
-			var post_re = /^ambiguous:|^(:?(:?ambiguous:)?(:?general|artist|char(?:acter)?|copy(?:right)?)):|^rating:|^parent:|^pool:/i;
+			var post_re = /^ambiguous:|^(?:(?:ambiguous:)?(?:gen|general|art|artist|co|copy|copyright|ch|char|character)):|^rating:|^parent:|^pool:/i;
 			var match = post_re.exec(tag);
 			var prefix = match ? match[0] : '';
 			return [tag.slice(prefix.length), prefix];
@@ -94,7 +108,7 @@ AutoCompleter.prototype = {
 
 		updateParser: function(tag)
 		{
-			var update_re = /^ambiguous:|^(:?(:?ambiguous:)?(:?general|artist|char(?:acter)?|copy(?:right)?)):|^rating:|^parent:|^-?pool:/i;
+			var update_re = /^ambiguous:|^(?:(?:ambiguous:)?(?:gen|general|art|artist|co|copy|copyright|ch|char|character)):|^rating:|^parent:|^-?pool:/i;
 			var match = update_re.exec(tag);
 			var prefix = match ? match[0] : '';
 			return [tag.slice(prefix.length), prefix];
