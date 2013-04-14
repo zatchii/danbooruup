@@ -58,7 +58,7 @@ if (document.location.pathname == '/') {
 		let div = inp.parentNode.parentNode.parentNode;
 		div.style.display = 'table';
 		div.style.margin = '0 auto 2em';
-		
+
 	} catch (e) { };
 }
 

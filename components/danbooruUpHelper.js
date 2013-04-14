@@ -329,7 +329,6 @@ var danbooruUpHelperObject = {
 				var uri = ioService.newURI(sites[i], null, null);
 				if (winUri.prePath != uri.prePath) continue;
 				//this.log(winUri.spec+' matched ' + uri.spec);
-				// 
 				this.inject(href, unsafeWin);
 				return;
 			} catch(x) {__log(x);}
