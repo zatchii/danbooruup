@@ -1,7 +1,7 @@
 {
 	"manifest_version": 2,
 	"name": "DanbooruUp",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"description": "Tag completion for the Danbooru web site.",
 	"background": {
 		"scripts": ["background.js"],

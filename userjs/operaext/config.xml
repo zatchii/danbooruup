@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<widget xmlns="http://www.w3.org/ns/widgets" id="http://pianosite.net/danbooruup/" version="0.4.0">
+<widget xmlns="http://www.w3.org/ns/widgets" id="http://pianosite.net/danbooruup/" version="0.5.0">
     <name>DanbooruUp</name>
     <description>Tag completion for the Danbooru website.</description>
     <author href="http://pianosite.net/danbooruup/">Zatchii</author>
