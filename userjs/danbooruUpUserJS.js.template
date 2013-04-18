@@ -690,7 +690,7 @@ var danbooruUpGui = {
 			return;
 
 		var cssdec = '#dbu_panel { background: white; border: 1px solid black; position: absolute; padding: 0.2em; border-radius: 0.5em;' +
-			' -o-transition: opacity 0.2s; -webkit-transition: opacity 0.2s; } ' +
+			' -o-transition: opacity 0.2s; -webkit-transition: opacity 0.2s; z-index: 1000; } ' +
 			'#dbu_panel h3 { font-family: "verdana", sans-serif; font-size: 15px; font-weight: 400; margin-left: 1em;} ' +
 			'#dbu_panel ul { list-style: none; margin: 0} #dbu_panel li { margin: 0; margin-top: 0.2em; } ' +
 			'#dbu_panel label { font-weight: normal; margin-left: 0.2em; }' +
