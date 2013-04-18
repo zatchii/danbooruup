@@ -269,7 +269,13 @@ var danbooruUpDBUpdater = {
 
 					if (need_full_update) {
 						var uri = site_uri + '/cache/tags.json';
-						o.fetchAndInsertTags(uri, on_success, on_error);
+						o.fetchAndInsertTags(uri, on_success, function() {
+							// Plan B
+							// TODO: remove this when cache/tags is reliable
+							console.log('Tag fetch error, trying offsite');
+							o.gui.status('Tag fetch error, trying offsite');
+							o.fetchAndInsertTags('http://pianosite.net/danbooruup/tags.php', on_success, on_error);
+						});
 					} else {
 						o.fetchTagsRepeated(target_id, 20, on_success, on_error);
 					}
@@ -314,7 +320,12 @@ var danbooruUpDBUpdater = {
 		request.onreadystatechange = function(event) {
 			if (this.readyState == 4) {
 				if (this.status == 200) {
-					var tags = JSON.parse(this.responseText);
+					try {
+						var tags = JSON.parse(this.responseText);
+					} catch (e) {
+						error(e.message);
+						return;
+					}
 					callback(tags[0].id);
 				} else {
 					error('Could not get max tag id from site, got ' + this.status + '.');
@@ -377,7 +388,12 @@ var danbooruUpDBUpdater = {
 				if (this.status == 200) {
 					o.gui.status('Parsing...');
 					// var time1 = new Date().getTime();
-					var tags = JSON.parse(this.responseText);
+					try {
+						var tags = JSON.parse(this.responseText);
+					} catch (e) {
+						error(e.message);
+						return;
+					}
 					// console.log('got ' + tags.length + ' tags, parsed in ' +(new Date().getTime() - time1));
 					o.insertTags(tags, function() { callback(tags.length); }, error);
 				} else {

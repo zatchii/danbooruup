@@ -524,7 +524,17 @@ var tagHistoryService = {
 			if (needFullUpdate) {
 				var fullUri = uri.replace(/\/tags\.json$/, "/cache/tags.json");
 				if (progress) progress.progress("connecting", 0, 0);
-				cancelCb = o.fetchAndInsertTags(fullUri, true, complete, error, progress);
+				var planb = error;
+				if (fullUri == 'http://danbooru.donmai.us/cache/tags.json') {
+					planb = function(reason, msg) {
+						// Plan B
+						// TODO: remove this when cache/tags is reliable
+						__log("Tag fetch error," + reason + " " + msg);
+						__log("Falling back to offsite tag dump");
+						cancelCb = o.fetchAndInsertTags('http://pianosite.net/danbooruup/tags.php', true, complete, error, progress);
+					};
+				}
+				cancelCb = o.fetchAndInsertTags(fullUri, true, complete, planb, progress);
 				// TODO: should top up with fetchTagsRepeated
 			} else {
 				cancelCb = o.fetchTagsRepeated(uri, targetId, 2, complete, error, progress);
