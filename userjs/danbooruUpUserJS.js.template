@@ -154,7 +154,7 @@ var danbooruUpDBUpdater = {
 		}
 
 		try {
-			this.database = window.openDatabase('danbooruUp', '', 'Tag database', 15 * 1024 * 1024);
+			this.database = window.openDatabase('danbooruUp', '', 'Tag database', 25 * 1024 * 1024);
 			if (this.database.version != '1.0') {
 				this.createTables(this.database);
 				return true;
