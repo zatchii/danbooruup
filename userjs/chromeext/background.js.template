@@ -64,7 +64,7 @@ chrome.extension.onConnect.addListener(function(port) {
 });
 
 // Listen for and process requests from content scripts.
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+(chrome.runtime.onMessage || chrome.extension.onMessage).addListener(function(request, sender, sendResponse) {
 	if (!sender) return false;
 	var will_respond = false;
 	switch (request.action) {
