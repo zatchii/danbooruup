@@ -293,7 +293,7 @@ var completer = {
 
 		var boardUri = document.getElementById('danbooru').label;
 		var uri = ioService.newURI(boardUri, null, null).QueryInterface(Components.interfaces.nsIURL);
-		uri.path = uri.path.replace(/\/[^/]+\/[^/]+$/, "/post/index");
+		uri.path = uri.path.replace(/\/post\/create\.xml$/, "/post/index").replace(/\/uploads\.xml$/, "/posts");
 
 		uri.query = "tags=" + encodeURIComponent(tag);
 
