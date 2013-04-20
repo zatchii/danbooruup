@@ -20,7 +20,7 @@
 		"tabs"
 	],
 	"content_scripts": [{
-		"matches": ["http://danbooru.donmai.us/*"],
+		"matches": ["http://danbooru.donmai.us/*", "http://hijiribe.donmai.us/*", "http://sonohara.donmai.us/*", "http://donmai.us/*"],
 		"js": ["inject.js"]
 	}],
 	"update_url": "http://pianosite.net/danbooruup/update_c.xml"

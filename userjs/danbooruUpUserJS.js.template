@@ -3,6 +3,9 @@
 	// @description Tag field autocompleter for Danbooru.
 	// @version 0.5.0
 	// @include http://danbooru.donmai.us/*
+	// @include http://hijiribe.donmai.us/*
+	// @include http://sonohara.donmai.us/*
+	// @include http://donmai.us/*
 	// @include http://behoimi.org/*
 // ==/UserScript==
 
