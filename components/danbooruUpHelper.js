@@ -364,9 +364,9 @@ var danbooruUpHelperObject = {
 		Components.utils.evalInSandbox("var style_arr = [];", sandbox);
 		for (let i=0, rule; i<TAGTYPE_COUNT; i++) {
 			rule = stylePrefs.getCharPref(i);
-			Components.utils.evalInSandbox("style_arr['"+ i +"'] = atob('"+ btoa(rule) +"');", sandbox);
+			Components.utils.evalInSandbox("style_arr['"+ i +"'] = window.atob('"+ btoa(rule) +"');", sandbox);
 			rule = stylePrefs.getCharPref(i + '.selected');
-			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = atob('"+ btoa(rule) +"');", sandbox);
+			Components.utils.evalInSandbox("style_arr['"+ i +".selected'] = window.atob('"+ btoa(rule) +"');", sandbox);
 		}
 
 		function doSearch(e)
