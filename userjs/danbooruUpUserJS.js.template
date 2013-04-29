@@ -700,6 +700,12 @@ var danbooruUpGui = {
 			'#dbu_panel input[type=number] { width: 3em; }' +
 			'#dbu_status { height: 1.5em; }' +
 			'#dbu_button { -o-transition: color 0.5s; -webkit-transition: color 0.5s; }';
+#IF NOT_EXTENSION
+		// Fix for Opera. With the default textarea display (inline-block?), the completer dropdown
+		// covers most of the text field.
+		// I don't like to mess with the site CSS, but hopefully this will be specific enough to not cause any trouble.
+		cssdec += 'textarea#post_tag_string, textarea#upload_tag_string { display: block; }';
+#ENDIF
 
 		var style = document.createElement("style");
 		style.appendChild(document.createTextNode(cssdec));
